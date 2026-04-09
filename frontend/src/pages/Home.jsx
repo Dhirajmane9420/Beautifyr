@@ -60,8 +60,17 @@ function Home() {
   <div className="max-w-7xl mx-auto">
     
     {/* Heading */}
-    <h2 className="text-4xl font-bold text-teal-900">Shop by Category</h2>
-    <div className="mt-3 h-1 w-16 bg-pink-200 rounded-full"></div>
+    <div className="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h2 className="text-4xl font-bold text-teal-900">Shop by Category</h2>
+        <div className="mt-3 h-1 w-16 bg-pink-200 rounded-full"></div>
+      </div>
+
+      <button className="group inline-flex items-center gap-2 text-teal-700 font-semibold tracking-wide border-b border-teal-300 hover:text-teal-900 transition">
+        VIEW ALL
+        <span className="text-lg transition-transform group-hover:translate-x-1">→</span>
+      </button>
+    </div>
 
     {/* Grid */}
     <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-6">

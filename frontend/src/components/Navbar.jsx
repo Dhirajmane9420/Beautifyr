@@ -2,13 +2,13 @@ import { Search, Heart, User, ShoppingBag } from "lucide-react";
 
 function Navbar() {
   return (
-    <header className="absolute top-0 left-0 w-full z-20 bg-white/90">
+    <header className="absolute top-0 left-0 w-full z-20 bg-[#fefaf4]/90">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10">
         
         {/* Logo */}
         <a
           href="#"
-          className="text-2xl font-bold text-slate-900 tracking-tight"
+          className="text-2xl font-bold text-[#1b2330] tracking-tight"
         >
           Clinical Sanctuary
         </a>
@@ -18,40 +18,40 @@ function Navbar() {
           <li>
             <a
               href="#"
-              className="text-amber-700 border-b-2 border-amber-500 pb-1"
+              className="text-[#b88a44] border-b-2 border-[#c99b57] pb-1"
             >
               Shop
             </a>
           </li>
           <li>
-            <a href="#" className="hover:text-amber-700 transition">
+            <a href="#" className="hover:text-[#b88a44] transition">
               Categories
             </a>
           </li>
           <li>
-            <a href="#" className="hover:text-amber-700 transition">
+            <a href="#" className="hover:text-[#b88a44] transition">
               Best Sellers
             </a>
           </li>
           <li>
-            <a href="#" className="hover:text-amber-700 transition">
+            <a href="#" className="hover:text-[#b88a44] transition">
               New Arrivals
             </a>
           </li>
           <li>
-            <a href="#" className="hover:text-amber-700 transition">
+            <a href="#" className="hover:text-[#b88a44] transition">
               About
             </a>
           </li>
           <li>
-            <a href="#" className="hover:text-amber-700 transition">
+            <a href="#" className="hover:text-[#b88a44] transition">
               Contact
             </a>
           </li>
         </ul>
 
         {/* Icons */}
-        <div className="flex items-center gap-5 text-slate-900">
+        <div className="flex items-center gap-5 text-[#1b2330]">
           <button className="hover:scale-110 transition">
             <Search size={24} />
           </button>
