@@ -1,76 +1,133 @@
-import { Search, Heart, User, ShoppingBag } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Heart, User, ShoppingBag, Menu, X } from "lucide-react";
+import { Link, NavLink } from "react-router-dom";
 
 function Navbar() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  const navLinks = [
+    { label: "Home", path: "/" },
+    { label: "Categories", path: "#" },
+    { label: "Best Sellers", path: "/best-sellers" },
+    { label: "New Arrivals", path: "#" },
+    { label: "About", path: "#" },
+    { label: "Contact", path: "#" },
+  ];
+
+  // Detect scroll for glass effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <header className="absolute top-0 left-0 w-full z-20 bg-[#fefaf4]/90">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-10">
+    <header
+      className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
+        isScrolled
+          ? "backdrop-blur-xl bg-[#fffaf2]/95 shadow-md border-b border-[#eadfc8]"
+          : "bg-[#fef7ea]/95 shadow-sm border-b border-[#eadfc8]"
+      }`}
+    >
+      <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-10">
         
         {/* Logo */}
-        <a
-          href="#"
-          className="text-2xl font-bold text-[#1b2330] tracking-tight"
-        >
+        <Link to="/" className="text-xl font-semibold tracking-tight text-[#1b2330]">
           Clinical Sanctuary
-        </a>
+        </Link>
 
-        {/* Center Links */}
-        <ul className="hidden md:flex items-center gap-10 text-lg font-semibold text-gray-600">
-          <li>
-            <a
-              href="#"
-              className="text-[#b88a44] border-b-2 border-[#c99b57] pb-1"
-            >
-              Shop
-            </a>
-          </li>
-          <li>
-            <a href="#" className="hover:text-[#b88a44] transition">
-              Categories
-            </a>
-          </li>
-          <li>
-            <a href="#" className="hover:text-[#b88a44] transition">
-              Best Sellers
-            </a>
-          </li>
-          <li>
-            <a href="#" className="hover:text-[#b88a44] transition">
-              New Arrivals
-            </a>
-          </li>
-          <li>
-            <a href="#" className="hover:text-[#b88a44] transition">
-              About
-            </a>
-          </li>
-          <li>
-            <a href="#" className="hover:text-[#b88a44] transition">
-              Contact
-            </a>
-          </li>
+        {/* Desktop Links */}
+        <ul className="hidden md:flex items-center gap-10 text-[15px] font-medium text-[#283548]">
+          {navLinks.map((link) => (
+            <li key={link.label} className="group relative cursor-pointer">
+              {link.path === "/" || link.path === "/best-sellers" ? (
+                <NavLink
+                  to={link.path}
+                  className={({ isActive }) =>
+                    `transition-colors duration-300 group-hover:text-[#b88a44] ${isActive ? "text-[#b88a44]" : ""}`
+                  }
+                >
+                  {link.label}
+                </NavLink>
+              ) : (
+                <a href={link.path} className="transition-colors duration-300 group-hover:text-[#b88a44]">
+                  {link.label}
+                </a>
+              )}
+
+              {/* Animated underline */}
+              <span className="absolute left-0 -bottom-1 h-0.5 w-0 bg-[#b88a44] transition-all duration-300 group-hover:w-full"></span>
+            </li>
+          ))}
         </ul>
 
         {/* Icons */}
-        <div className="flex items-center gap-5 text-[#1b2330]">
-          <button className="hover:scale-110 transition">
-            <Search size={24} />
-          </button>
-          <button className="hover:scale-110 transition">
-            <Heart size={24} />
-          </button>
-          <button className="hover:scale-110 transition">
-            <User size={24} />
-          </button>
+        <div className="flex items-center gap-3">
+          
+          {[Search, Heart, User].map((Icon, i) => (
+            <button
+              key={i}
+              className="group relative rounded-full p-2 text-[#1b2330] transition duration-300 hover:bg-[#f3e5cc]"
+            >
+              <Icon className="h-5 w-5 transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-px" />
+            </button>
+          ))}
 
-          {/* Cart with badge */}
-          <button className="relative hover:scale-110 transition">
-            <ShoppingBag size={24} />
-            <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
+          {/* Cart */}
+          <button className="relative rounded-full p-2 text-[#1b2330] transition duration-300 hover:bg-[#f3e5cc]">
+            <ShoppingBag className="h-5 w-5 transition-transform duration-300 hover:scale-110" />
+            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-linear-to-r from-rose-500 to-pink-500 text-[10px] font-bold text-white shadow">
               2
             </span>
           </button>
+
+          {/* Mobile Toggle */}
+          <button
+            className="ml-2 rounded-md p-1 text-[#1b2330] transition hover:bg-[#f3e5cc] md:hidden"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            {isMenuOpen ? <X /> : <Menu />}
+          </button>
         </div>
       </nav>
+
+      {/* Mobile Menu (Animated) */}
+      <div
+        className={`md:hidden overflow-hidden transition-all duration-500 ${
+          isMenuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        <div className="bg-[#fffaf2] backdrop-blur-lg px-6 pb-6 shadow-lg">
+          <ul className="flex flex-col gap-4 pt-4 text-lg font-medium text-[#283548]">
+            {navLinks.map((link, index) => (
+              <li
+                key={link.label}
+                className="transform transition duration-300 hover:translate-x-2 hover:text-[#b88a44]"
+                style={{
+                  transitionDelay: `${index * 70}ms`,
+                }}
+              >
+                {link.path === "/" || link.path === "/best-sellers" ? (
+                  <NavLink
+                    to={link.path}
+                    className={({ isActive }) => (isActive ? "text-[#b88a44]" : "")}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {link.label}
+                  </NavLink>
+                ) : (
+                  <a href={link.path} onClick={() => setIsMenuOpen(false)}>
+                    {link.label}
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
     </header>
   );
 }
