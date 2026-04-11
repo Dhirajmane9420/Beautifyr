@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Heart, User, ShoppingBag, Menu, X } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
 
   const navLinks = [
     { label: "Home", path: "/" },
@@ -83,9 +85,14 @@ function Navbar() {
           {/* User Icon */}
           <button
             className="group relative rounded-full p-2 text-[#1b2330] transition duration-300 hover:bg-[#f3e5cc] hover:shadow-md premium-float"
-            onClick={() => navigate("/login")}
+            onClick={() => navigate(isAuthenticated ? "/profile" : "/login")}
           >
             <User className="h-5 w-5 transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-px" />
+            {isAuthenticated ? (
+              <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#a66f3f] text-[9px] font-semibold text-white">
+                {(user?.name || "U").charAt(0).toUpperCase()}
+              </span>
+            ) : null}
           </button>
 
           {/* Cart */}

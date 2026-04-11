@@ -1,23 +1,69 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
 import Navbar from "../components/Navbar";
+import { request } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 
 function Login() {
   const navigate = useNavigate();
+  const { setAuthenticatedUser } = useAuth();
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const hasGoogleClientId = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(form);
+    try {
+      setIsSubmitting(true);
+      setErrorMessage("");
+      setSuccessMessage("");
+
+      const payload = await request("/auth/login", {
+        method: "POST",
+        body: JSON.stringify(form),
+      });
+
+      setAuthenticatedUser(payload.user);
+      setSuccessMessage(payload.message || "Login successful.");
+      setTimeout(() => navigate("/profile"), 700);
+    } catch (error) {
+      setErrorMessage(error.message || "Unable to login. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleGoogleLogin = async (credentialResponse) => {
+    try {
+      const idToken = credentialResponse?.credential;
+      if (!idToken) {
+        setErrorMessage("Google sign-in failed. Please try again.");
+        return;
+      }
+
+      const payload = await request("/auth/google", {
+        method: "POST",
+        body: JSON.stringify({ idToken }),
+      });
+
+      setAuthenticatedUser(payload.user);
+      setSuccessMessage(payload.message || "Google login successful.");
+      setTimeout(() => navigate("/profile"), 700);
+    } catch (error) {
+      setErrorMessage(error.message || "Google sign-in failed.");
+    }
   };
 
   return (
@@ -40,6 +86,17 @@ function Login() {
 
         {/* FORM */}
         <form onSubmit={handleSubmit} className="space-y-5">
+          {errorMessage ? (
+            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {errorMessage}
+            </p>
+          ) : null}
+
+          {successMessage ? (
+            <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+              {successMessage}
+            </p>
+          ) : null}
           
           {/* Email */}
           <div className="relative">
@@ -90,9 +147,10 @@ function Login() {
           {/* Button */}
           <button
             type="submit"
+            disabled={isSubmitting}
             className="w-full rounded-xl bg-[#a66f3f] py-3 font-medium text-white shadow-md transition hover:bg-[#915f34]"
           >
-            Sign In
+            {isSubmitting ? "Signing In..." : "Sign In"}
           </button>
         </form>
 
@@ -104,9 +162,13 @@ function Login() {
         </div>
 
         {/* Social */}
-        <button className="w-full rounded-xl border border-[#e0c3a3] bg-white py-3 text-[#7a522f] transition hover:bg-[#f8ede0]">
-          Continue with Google
-        </button>
+        {hasGoogleClientId ? (
+          <div className="flex justify-center">
+            <GoogleLogin onSuccess={handleGoogleLogin} onError={() => setErrorMessage("Google sign-in failed.")} />
+          </div>
+        ) : (
+          <p className="text-center text-sm text-[#8b6f54]">Google sign-in is disabled. Add VITE_GOOGLE_CLIENT_ID to enable it.</p>
+        )}
 
         {/* Signup */}
         <p className="mt-6 text-center text-sm text-[#8b6f54]">
