@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, Heart, User, ShoppingBag, Menu, X } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 
 function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const navigate = useNavigate();
 
   const navLinks = [
     { label: "Home", path: "/" },
@@ -64,7 +66,7 @@ function Navbar() {
         {/* Icons */}
         <div className="flex items-center gap-3">
           
-          {[Search, Heart, User].map((Icon, i) => (
+          {[Search, Heart].map((Icon, i) => (
             <button
               key={i}
               className="group relative rounded-full p-2 text-[#1b2330] transition duration-300 hover:bg-[#f3e5cc] hover:shadow-md premium-float"
@@ -72,6 +74,14 @@ function Navbar() {
               <Icon className="h-5 w-5 transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-px" />
             </button>
           ))}
+
+          {/* User Icon */}
+          <button
+            className="group relative rounded-full p-2 text-[#1b2330] transition duration-300 hover:bg-[#f3e5cc] hover:shadow-md premium-float"
+            onClick={() => navigate("/login")}
+          >
+            <User className="h-5 w-5 transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-px" />
+          </button>
 
           {/* Cart */}
           <button className="relative rounded-full p-2 text-[#1b2330] transition duration-300 hover:bg-[#f3e5cc] hover:shadow-md premium-float">
