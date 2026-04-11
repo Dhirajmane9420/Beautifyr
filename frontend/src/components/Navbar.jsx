@@ -65,15 +65,20 @@ function Navbar() {
 
         {/* Icons */}
         <div className="flex items-center gap-3">
-          
-          {[Search, Heart].map((Icon, i) => (
-            <button
-              key={i}
-              className="group relative rounded-full p-2 text-[#1b2330] transition duration-300 hover:bg-[#f3e5cc] hover:shadow-md premium-float"
-            >
-              <Icon className="h-5 w-5 transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-px" />
-            </button>
-          ))}
+
+          <button
+            className="group relative rounded-full p-2 text-[#1b2330] transition duration-300 hover:bg-[#f3e5cc] hover:shadow-md premium-float"
+          >
+            <Search className="h-5 w-5 transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-px" />
+          </button>
+
+          <button
+            className="group relative rounded-full p-2 text-[#1b2330] transition duration-300 hover:bg-[#f3e5cc] hover:shadow-md premium-float"
+            onClick={() => navigate("/wishlist")}
+            aria-label="Open wishlist"
+          >
+            <Heart className="h-5 w-5 transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-px" />
+          </button>
 
           {/* User Icon */}
           <button

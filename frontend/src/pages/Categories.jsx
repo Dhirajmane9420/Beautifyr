@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import heroImg from "../assets/hero.jpg";
 
 const CATEGORY_PILLS = [
   "Cleansers",
@@ -70,15 +71,15 @@ const ALL_PRODUCTS = Object.values(CATALOG).flat();
 
 const CATEGORY_INFO = {
   Cleansers: {
-    image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=1200&q=80",
+    image: heroImg,
     description: "Deep-clean formulas that remove buildup while keeping the skin barrier balanced.",
   },
   Moisturizers: {
-    image: "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=1200&q=80",
+    image: heroImg,
     description: "Hydration-first creams and gels built for comfort, repair, and long-lasting glow.",
   },
   Serums: {
-    image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=1200&q=80",
+    image: heroImg,
     description: "High-performance actives for brightening, texture support, and visible correction.",
   },
 };
@@ -189,7 +190,7 @@ export default function CategoriesPage() {
           {/* Main Product */}
           <div className="relative z-10 -translate-x-10 translate-y-6">
             <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCeHRxnw8uluGjvb8X4xkFk0crpjJ7Qur9LWxhUmbSRxpHQnahOh-lnb8K8YaD5HdS8RK6ApNAsEcbNT1Dx63K1T6ImZsJ_qoB-nBFO3WFyTzmhEUtrqcK7B5zHLDMykfowJUcB7h9CWap8ny-T8DhxYeAVGRpgWma1IxmvX256AoUVT08uEu3x8cIdIqdCuqUyHfwB1I1rV9v8SvZcvSGF2EoIophgYeqTZwmiF6urVRtIR-UI3EZ7J4oyqbAMJZVpfCK4bvoHHYE7"
+              src={heroImg}
               className="w-64 h-80 object-cover rounded-xl shadow-2xl"
               alt="product"
             />
@@ -198,7 +199,7 @@ export default function CategoriesPage() {
           {/* Floating Product 2 */}
           <div className="absolute right-10 top-10 z-20">
             <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuD5vI2inLWZbHSpt1q73Cj7sn4fPn0yZ4Pcld3Xh0ltJQ1LOsW2ITdnkZacDTrSSPa9yx5Pw7dXt6oVhO7MAa1-mvEE3CaM66Q60a58kMFmcRzVFjB-4PCQAmOPQCWd01KKsUnUzTJyPKk99JjyEAFHcgGHD4oFEE6b-XKgZ7m2BCrfiWa4ntTc4YrIXTMKlqyjKH32NfkHI_RhIKZRptAX7OGbfj9jw0ADfHI4qDxcu6KL_5KBcONP6ASZ8FgEr6oQJX51x-o7agMH"
+              src={heroImg}
               className="w-44 h-60 rounded-xl shadow-xl border-4 border-white"
               alt="product"
             />
@@ -207,7 +208,7 @@ export default function CategoriesPage() {
           {/* Floating Product 3 */}
           <div className="absolute bottom-10 right-20 z-30">
             <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAv2OIuc81NnHQZmQqeXYnFJLURB306-_th8ukVtO1tNnRxpEdCVFiH8f15UJ6lpwsVo8N9lX3e--m60qjrYOfc97fUmx8gAyfeZLebsecpPDxHEqwe5LAJK2DwhcXqw7EyWrGqSWT2_xj-RrqbjNUfUYaGVr5GeavqEwUwBrleAqXYLLjlzD4NeJA6Im4HBpr9_kQenvQDQ0nibKfYnxDdTNiJFy-gCgV9cNqTgDAOyx69OPTgkDXtS_88gahL8AR-V9TY5vOlV66C"
+              src={heroImg}
               className="w-36 h-36 rounded-full shadow-lg border-2 border-gray-200"
               alt="product"
             />
@@ -389,7 +390,7 @@ function Section({ title, products, onViewAll }) {
   const isEmpty = products.length === 0;
 
   const info = CATEGORY_INFO[title] || {
-    image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=1200&q=80",
+    image: heroImg,
     description: `Explore high-performance ${title.toLowerCase()} crafted for visible, healthy results.`,
   };
 
@@ -466,7 +467,7 @@ function Section({ title, products, onViewAll }) {
               key={`${title}-${product.title}-${i}`}
               title={product.title}
               price={`₹${product.price}`}
-              image="https://via.placeholder.com/300"
+              image={heroImg}
               inStock={product.inStock}
             />
           ))}
