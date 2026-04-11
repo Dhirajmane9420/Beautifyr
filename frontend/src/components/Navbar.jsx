@@ -10,8 +10,8 @@ function Navbar() {
     { label: "Home", path: "/" },
     { label: "Categories", path: "#" },
     { label: "Best Sellers", path: "/best-sellers" },
-    { label: "New Arrivals", path: "#" },
-    { label: "About", path: "#" },
+    { label: "New Arrivals", path: "/new-arrivals" },
+    { label: "About", path: "/about" },
     { label: "Contact", path: "#" },
   ];
 
@@ -35,7 +35,7 @@ function Navbar() {
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-10">
         
         {/* Logo */}
-        <Link to="/" className="text-xl font-semibold tracking-tight text-[#1b2330]">
+        <Link to="/" className="text-xl font-semibold tracking-tight text-[#1b2330] transition duration-300 hover:text-[#8a6038] premium-fade-up">
           Clinical Sanctuary
         </Link>
 
@@ -43,23 +43,20 @@ function Navbar() {
         <ul className="hidden md:flex items-center gap-10 text-[15px] font-medium text-[#283548]">
           {navLinks.map((link) => (
             <li key={link.label} className="group relative cursor-pointer">
-              {link.path === "/" || link.path === "/best-sellers" ? (
+              {link.path.startsWith("/") ? (
                 <NavLink
                   to={link.path}
                   className={({ isActive }) =>
-                    `transition-colors duration-300 group-hover:text-[#b88a44] ${isActive ? "text-[#b88a44]" : ""}`
+                    `premium-link ${isActive ? "text-[#b88a44] premium-link-active" : ""}`
                   }
                 >
                   {link.label}
                 </NavLink>
               ) : (
-                <a href={link.path} className="transition-colors duration-300 group-hover:text-[#b88a44]">
+                <a href={link.path} className="premium-link group-hover:text-[#b88a44]">
                   {link.label}
                 </a>
               )}
-
-              {/* Animated underline */}
-              <span className="absolute left-0 -bottom-1 h-0.5 w-0 bg-[#b88a44] transition-all duration-300 group-hover:w-full"></span>
             </li>
           ))}
         </ul>
@@ -70,14 +67,14 @@ function Navbar() {
           {[Search, Heart, User].map((Icon, i) => (
             <button
               key={i}
-              className="group relative rounded-full p-2 text-[#1b2330] transition duration-300 hover:bg-[#f3e5cc]"
+              className="group relative rounded-full p-2 text-[#1b2330] transition duration-300 hover:bg-[#f3e5cc] hover:shadow-md premium-float"
             >
               <Icon className="h-5 w-5 transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-px" />
             </button>
           ))}
 
           {/* Cart */}
-          <button className="relative rounded-full p-2 text-[#1b2330] transition duration-300 hover:bg-[#f3e5cc]">
+          <button className="relative rounded-full p-2 text-[#1b2330] transition duration-300 hover:bg-[#f3e5cc] hover:shadow-md premium-float">
             <ShoppingBag className="h-5 w-5 transition-transform duration-300 hover:scale-110" />
             <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-linear-to-r from-rose-500 to-pink-500 text-[10px] font-bold text-white shadow">
               2
@@ -110,7 +107,7 @@ function Navbar() {
                   transitionDelay: `${index * 70}ms`,
                 }}
               >
-                {link.path === "/" || link.path === "/best-sellers" ? (
+                {link.path.startsWith("/") ? (
                   <NavLink
                     to={link.path}
                     className={({ isActive }) => (isActive ? "text-[#b88a44]" : "")}
