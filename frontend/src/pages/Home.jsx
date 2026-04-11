@@ -3,6 +3,7 @@ import heroVideoDesktop from "../assets/hero1.mp4";
 import heroVideoMobile from "../assets/hero2.mp4";
 import { motion } from "framer-motion";
 import Navbar from "../components/Navbar";
+import { Link } from "react-router-dom";
 
 const sectionReveal = {
   hidden: { opacity: 0, y: 42 },
@@ -121,10 +122,13 @@ function Home() {
               <div className="mt-3 h-1 w-16 bg-pink-200 rounded-full"></div>
             </div>
 
-            <button className="group inline-flex items-center gap-2 text-[#9a6f46] font-semibold tracking-wide border-b border-[#e8c7a5] hover:text-[#7a522f] transition">
+            <Link
+              to="/categories"
+              className="group inline-flex items-center gap-2 text-[#9a6f46] font-semibold tracking-wide border-b border-[#e8c7a5] hover:text-[#7a522f] transition"
+            >
               VIEW ALL
-              <span className="text-lg transition-transform group-hover:translate-x-1">â†’</span>
-            </button>
+              <span className="text-lg transition-transform group-hover:translate-x-1">-&gt;</span>
+            </Link>
           </div>
 
           {/* Grid */}

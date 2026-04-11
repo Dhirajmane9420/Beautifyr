@@ -5,7 +5,9 @@ import BestSellers from './pages/BestSellers'
 import NewArrivals from './pages/NewArrivals'
 import About from './pages/About'
 import Login from './pages/Login'
-import Signup from "./pages/Signup";
+import Signup from './pages/Signup'
+import Categories from './pages/Categories'
+import CategoryViewAll from './pages/CategoryViewAll'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -26,6 +28,8 @@ function App() {
         <Route path="/best-sellers" element={<BestSellers />} />
         <Route path="/new-arrivals" element={<NewArrivals />} />
         <Route path="/about" element={<About />} />
+        <Route path="/categories" element={<Categories />} />
+        <Route path="/categories/view-all" element={<CategoryViewAll />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
       </Routes>
