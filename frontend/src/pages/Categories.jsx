@@ -67,14 +67,6 @@ const CATALOG = {
 };
 
 const ALL_PRODUCTS = Object.values(CATALOG).flat();
-const PRICE_MAX = Math.max(...ALL_PRODUCTS.map((product) => product.price));
-const PRICE_RANGES = [
-  { key: "all", label: "All Prices", min: 0, max: PRICE_MAX },
-  { key: "100-500", label: "Rs100 - Rs500", min: 100, max: 500 },
-  { key: "501-1000", label: "Rs501 - Rs1000", min: 501, max: 1000 },
-  { key: "1001-1500", label: "Rs1001 - Rs1500", min: 1001, max: 1500 },
-  { key: "1501-plus", label: "Rs1501 and above", min: 1501, max: PRICE_MAX },
-];
 
 const CATEGORY_INFO = {
   Cleansers: {
@@ -112,63 +104,42 @@ const riseIn = {
 
 export default function CategoriesPage() {
   const navigate = useNavigate();
-  const [inStockOnly, setInStockOnly] = useState(false);
-  const [selectedPriceRange, setSelectedPriceRange] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState(null);
 
-  const activePriceRange =
-    PRICE_RANGES.find((range) => range.key === selectedPriceRange) || PRICE_RANGES[0];
-
-  const filteredCatalog = useMemo(() => {
-    const isVisible = (product) => {
-      const stockMatch = !inStockOnly || product.inStock;
-      const priceMatch =
-        product.price >= activePriceRange.min && product.price <= activePriceRange.max;
-      return stockMatch && priceMatch;
-    };
-
-    return {
-      Cleansers: CATALOG.Cleansers.filter(isVisible),
-      Moisturizers: CATALOG.Moisturizers.filter(isVisible),
-    };
-  }, [inStockOnly, selectedPriceRange, activePriceRange.min, activePriceRange.max]);
-
-  const visibleProductCount =
-    filteredCatalog.Cleansers.length + filteredCatalog.Moisturizers.length;
+  const filteredCatalog = {
+    Cleansers: CATALOG.Cleansers,
+    Moisturizers: CATALOG.Moisturizers,
+  };
 
   const selectedCategoryProducts = useMemo(() => {
     if (!selectedCategory) return [];
 
+    const allCatalogProducts = [...CATALOG.Cleansers, ...CATALOG.Moisturizers];
+
     if (selectedCategory === "Cleansers") {
-      return filteredCatalog.Cleansers;
+      return CATALOG.Cleansers;
     }
 
     if (selectedCategory === "Moisturizers") {
-      return filteredCatalog.Moisturizers;
+      return CATALOG.Moisturizers;
     }
 
     if (selectedCategory === "Serums") {
-      return [...filteredCatalog.Cleansers, ...filteredCatalog.Moisturizers].filter((product) =>
+      return allCatalogProducts.filter((product) =>
         ["Brightening", "Acne Care", "Toners"].includes(product.category)
       );
     }
 
-    return [...filteredCatalog.Cleansers, ...filteredCatalog.Moisturizers].filter(
+    return allCatalogProducts.filter(
       (product) => product.category === selectedCategory
     );
-  }, [filteredCatalog, selectedCategory]);
-
-  const resetFilters = () => {
-    setInStockOnly(false);
-    setSelectedPriceRange("all");
-    setSelectedCategory(null);
-  };
+  }, [selectedCategory]);
 
   const serumProducts = useMemo(() => {
     return [...filteredCatalog.Cleansers, ...filteredCatalog.Moisturizers].filter((product) =>
       ["Brightening", "Acne Care", "Toners"].includes(product.category)
     );
-  }, [filteredCatalog]);
+  }, [filteredCatalog.Cleansers, filteredCatalog.Moisturizers]);
 
   const handleViewAll = (title) => {
     const normalizedTitle = title.replace(/\s+Products$/, "");
@@ -276,61 +247,6 @@ export default function CategoriesPage() {
       </motion.section>
 
       <div className="max-w-7xl mx-auto px-8 py-12 space-y-10">
-
-        {/* COMPACT FILTERS */}
-        <section className="rounded-2xl border border-[#edd8bc] bg-white/90 backdrop-blur p-4 sm:p-5 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-sm font-bold uppercase tracking-wide">Filters</h3>
-            <button
-              onClick={resetFilters}
-              className="text-xs font-semibold text-[#8a6038] hover:underline"
-            >
-              Reset
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            <div>
-              <p className="text-xs font-semibold mb-2">Availability</p>
-              <div className="flex items-center justify-between rounded-lg border border-[#edd8bc] bg-[#f9efe2] px-3 py-2 text-xs">
-                <span>In Stock Only</span>
-                <button
-                  type="button"
-                  onClick={() => setInStockOnly((current) => !current)}
-                  aria-pressed={inStockOnly}
-                  className={`relative h-6 w-11 rounded-full transition ${
-                    inStockOnly ? "bg-[#8a6038]" : "bg-[#e9d8c5]"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition ${
-                      inStockOnly ? "left-5" : "left-0.5"
-                    }`}
-                  ></span>
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <p className="text-xs font-semibold mb-2">Price Range</p>
-              <select
-                value={selectedPriceRange}
-                onChange={(event) => setSelectedPriceRange(event.target.value)}
-                className="w-full rounded-lg border border-[#edd8bc] bg-white px-3 py-2 text-xs text-[#6e5947] outline-none"
-              >
-                {PRICE_RANGES.map((range) => (
-                  <option key={range.key} value={range.key}>
-                    {range.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="rounded-lg bg-[#f9efe2] px-3 py-2 text-xs text-[#6e5947] border border-[#edd8bc]">
-              Showing {visibleProductCount} of {ALL_PRODUCTS.length} | {inStockOnly ? "In Stock" : "All"} | {activePriceRange.label}
-            </div>
-          </div>
-        </section>
 
         <CategoryPills
           selectedCategory={selectedCategory}
