@@ -1,24 +1,70 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
 import Navbar from "../components/Navbar";
+import { request } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 
 function Signup() {
+  const { setAuthenticatedUser } = useAuth();
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const navigate = useNavigate();
+  const hasGoogleClientId = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(form);
+    try {
+      setIsSubmitting(true);
+      setErrorMessage("");
+      setSuccessMessage("");
+
+      const payload = await request("/auth/signup", {
+        method: "POST",
+        body: JSON.stringify(form),
+      });
+
+      setAuthenticatedUser(payload.user);
+      setSuccessMessage(payload.message || "Account created successfully.");
+      setTimeout(() => navigate("/profile"), 700);
+    } catch (error) {
+      setErrorMessage(error.message || "Unable to create account. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleGoogleSignup = async (credentialResponse) => {
+    try {
+      const idToken = credentialResponse?.credential;
+      if (!idToken) {
+        setErrorMessage("Google sign-up failed. Please try again.");
+        return;
+      }
+
+      const payload = await request("/auth/google", {
+        method: "POST",
+        body: JSON.stringify({ idToken }),
+      });
+
+      setAuthenticatedUser(payload.user);
+      setSuccessMessage(payload.message || "Google sign-up successful.");
+      setTimeout(() => navigate("/profile"), 700);
+    } catch (error) {
+      setErrorMessage(error.message || "Google sign-up failed.");
+    }
   };
 
   return (
@@ -39,6 +85,18 @@ function Signup() {
 
         {/* FORM */}
         <form onSubmit={handleSubmit} className="space-y-5">
+          {errorMessage ? (
+            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {errorMessage}
+            </p>
+          ) : null}
+
+          {successMessage ? (
+            <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+              {successMessage}
+            </p>
+          ) : null}
+
           {/* Name */}
           <div className="relative">
             <User className="absolute left-3 top-3.5 text-[#b69576]" size={18} />
@@ -92,18 +150,21 @@ function Signup() {
           {/* Button */}
           <button
             type="submit"
+            disabled={isSubmitting}
             className="w-full rounded-xl bg-[#a66f3f] py-3 font-medium text-white shadow-md transition hover:bg-[#915f34]"
           >
-            Sign Up
+            {isSubmitting ? "Signing Up..." : "Sign Up"}
           </button>
         </form>
 
         {/* Signup Button */}
-        <button
-          className="mt-4 w-full rounded-xl border border-[#e0c3a3] bg-white py-3 text-[#7a522f] transition hover:bg-[#f8ede0]"
-        >
-          Sign up with Google
-        </button>
+        <div className="mt-4 flex justify-center">
+          {hasGoogleClientId ? (
+            <GoogleLogin onSuccess={handleGoogleSignup} onError={() => setErrorMessage("Google sign-up failed.")} text="signup_with" />
+          ) : (
+            <p className="text-center text-sm text-[#8b6f54]">Google sign-up is disabled. Add VITE_GOOGLE_CLIENT_ID to enable it.</p>
+          )}
+        </div>
 
         {/* Login Redirect */}
         <p className="mt-6 text-center text-sm text-[#8b6f54]">

@@ -1,34 +1,27 @@
-import express from "express";
-import cors from "cors";
-import cookieParser from "cookie-parser";
-import dotenv from "dotenv";
-import mongoose from "mongoose";
-
-dotenv.config();
-
-const app = express();
-const PORT = process.env.PORT || 5000;
-
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173", credentials: true }));
-app.use(express.json());
-app.use(cookieParser());
-
-app.get("/api/health", (_req, res) => {
-  res.status(200).json({ status: "ok", message: "Backend running" });
-});
+import { createApp } from "./app.js";
+import { connectDatabase, disconnectDatabase } from "./config/database.js";
+import { env } from "./config/env.js";
 
 const startServer = async () => {
   try {
-    if (!process.env.MONGODB_URI) {
-      throw new Error("MONGODB_URI is missing in .env");
-    }
+    await connectDatabase(env.mongoUri);
 
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log("MongoDB connected");
+    const app = createApp({ clientUrl: env.clientUrl });
 
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+    const server = app.listen(env.port, () => {
+      console.log(`Server running on port ${env.port}`);
     });
+
+    const shutdown = async (signal) => {
+      console.log(`${signal} received. Starting graceful shutdown...`);
+      server.close(async () => {
+        await disconnectDatabase();
+        process.exit(0);
+      });
+    };
+
+    process.on("SIGINT", () => void shutdown("SIGINT"));
+    process.on("SIGTERM", () => void shutdown("SIGTERM"));
   } catch (error) {
     console.error("Failed to start server:", error.message);
     process.exit(1);

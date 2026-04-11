@@ -1,13 +1,16 @@
-import { useEffect } from 'react'
-import { Route, Routes, useLocation } from 'react-router-dom'
-import Home from './pages/Home'
-import BestSellers from './pages/BestSellers'
-import NewArrivals from './pages/NewArrivals'
-import About from './pages/About'
-import Login from './pages/Login'
-import Signup from './pages/Signup'
-import Categories from './pages/Categories'
-import CategoryViewAll from './pages/CategoryViewAll'
+import { Suspense, lazy, useEffect } from 'react'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { useAuth } from './context/AuthContext'
+
+const Home = lazy(() => import('./pages/Home'))
+const BestSellers = lazy(() => import('./pages/BestSellers'))
+const NewArrivals = lazy(() => import('./pages/NewArrivals'))
+const About = lazy(() => import('./pages/About'))
+const Login = lazy(() => import('./pages/Login'))
+const Signup = lazy(() => import('./pages/Signup'))
+const Profile = lazy(() => import('./pages/Profile'))
+const Categories = lazy(() => import('./pages/Categories'))
+const CategoryViewAll = lazy(() => import('./pages/CategoryViewAll'))
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -23,17 +26,42 @@ function App() {
   return (
     <>
       <ScrollToTop />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/best-sellers" element={<BestSellers />} />
-        <Route path="/new-arrivals" element={<NewArrivals />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/categories" element={<Categories />} />
-        <Route path="/categories/view-all" element={<CategoryViewAll />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-      </Routes>
+      <Suspense fallback={<RouteLoader />}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/best-sellers" element={<BestSellers />} />
+          <Route path="/new-arrivals" element={<NewArrivals />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/categories" element={<Categories />} />
+          <Route path="/categories/view-all" element={<CategoryViewAll />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        </Routes>
+      </Suspense>
     </>
+  )
+}
+
+function ProtectedRoute({ children }) {
+  const { isAuthenticated, isLoading } = useAuth()
+
+  if (isLoading) {
+    return <RouteLoader />
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  return children
+}
+
+function RouteLoader() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#fffaf2] text-[#7a522f]">
+      Loading page...
+    </div>
   )
 }
 
