@@ -8,7 +8,7 @@ function Navbar() {
 
   const navLinks = [
     { label: "Home", path: "/" },
-    { label: "Categories", path: "#" },
+    { label: "Categories", path: "/categories" },
     { label: "Best Sellers", path: "/best-sellers" },
     { label: "New Arrivals", path: "/new-arrivals" },
     { label: "About", path: "/about" },
