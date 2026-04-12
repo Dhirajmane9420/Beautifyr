@@ -1,10 +1,16 @@
 import { createApp } from "./app.js";
 import { connectDatabase, disconnectDatabase } from "./config/database.js";
 import { env } from "./config/env.js";
+import { ensureDefaultAdminUser } from "./modules/auth/auth.controller.js";
+import { ensureDefaultCatalogProducts } from "./modules/catalog/catalog.controller.js";
+import { ensureDefaultCatalogCategories } from "./modules/catalog/catalogCategory.controller.js";
 
 const startServer = async () => {
   try {
     await connectDatabase(env.mongoUri);
+    await ensureDefaultAdminUser();
+    await ensureDefaultCatalogProducts();
+    await ensureDefaultCatalogCategories();
 
     const app = createApp({ clientUrl: env.clientUrl });
 

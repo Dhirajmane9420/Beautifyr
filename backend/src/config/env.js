@@ -22,4 +22,10 @@ export const env = {
   jwtSecret: process.env.JWT_SECRET,
   googleClientId: process.env.GOOGLE_CLIENT_ID || "",
   clientUrl: process.env.CLIENT_URL || "http://localhost:5173",
+  adminEmail: process.env.ADMIN_EMAIL || "admin@gmail.com",
+  adminPassword: process.env.ADMIN_PASSWORD || "admin123",
+  adminName: process.env.ADMIN_NAME || "Admin",
+  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME || "",
+  cloudinaryApiKey: process.env.CLOUDINARY_API_KEY || "",
+  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || "",
 };

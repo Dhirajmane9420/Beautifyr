@@ -1,7 +1,14 @@
-﻿import React from "react";
+﻿import { useEffect, useState } from "react";
 import aboutImg from "../assets/hero.jpg"; // replace later with actual image
 import { motion } from "framer-motion";
 import Navbar from "../components/Navbar";
+import { useAuth } from "../context/AuthContext";
+import AboutLiveEditor from "../components/admin/AboutLiveEditor";
+import {
+  fetchPageOverrides,
+  savePageOverride,
+  uploadPageOverrideImage,
+} from "../lib/siteOverridesApi";
 
 // --- Animation Variants ---
 const fadeUp = {
@@ -62,6 +69,65 @@ const impactCommitments = [
 ];
 
 function About() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const [overrides, setOverrides] = useState([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadOverrides = async () => {
+      try {
+        const records = await fetchPageOverrides("about");
+        if (!isMounted) return;
+        setOverrides(records);
+      } catch {
+        if (!isMounted) return;
+        setOverrides([]);
+      }
+    };
+
+    void loadOverrides();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const keyToSelector = (key) => `[data-edit-key="${String(key).replace(/"/g, '\\\"')}"]`;
+
+    const apply = () => {
+      overrides.forEach((override) => {
+        const nodes = document.querySelectorAll(keyToSelector(override.key));
+        nodes.forEach((node) => {
+          if (override.kind === "image") {
+            node.setAttribute("src", override.value);
+            return;
+          }
+          node.textContent = override.value;
+        });
+      });
+    };
+
+    const frameId = window.requestAnimationFrame(apply);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [overrides]);
+
+  const handleSaveOverride = async ({ key, kind, value }) => {
+    const saved = await savePageOverride({
+      page: "about",
+      key,
+      kind,
+      value,
+    });
+
+    setOverrides((current) => {
+      const next = current.filter((item) => item.key !== saved.key);
+      return [saved, ...next];
+    });
+  };
+
   return (
     <div className="min-h-screen bg-[#FCFAF8] text-[#2A2520] font-sans selection:bg-[#E8DCCB] selection:text-[#2A2520]">
       <Navbar />
@@ -82,21 +148,21 @@ function About() {
           {/* LEFT CONTENT */}
           <div className="lg:col-span-5 flex flex-col justify-center">
             <motion.div variants={fadeUp} className="mb-6">
-              <span className="inline-flex rounded-full border border-[#E8DCCB] bg-[#F7F4F0] px-4 py-2 text-[10px] tracking-[0.2em] text-[#8B7E72] uppercase">
+              <span data-edit-key="about.hero.badge" data-edit-kind="text" data-edit-label="Hero Badge" className="inline-flex rounded-full border border-[#E8DCCB] bg-[#F7F4F0] px-4 py-2 text-[10px] tracking-[0.2em] text-[#8B7E72] uppercase">
                 The Core of Our Science
               </span>
             </motion.div>
 
-            <motion.h1 variants={fadeUp} className="text-5xl md:text-6xl lg:text-7xl font-light tracking-tight text-[#2A2520] leading-[1.1] mb-8">
+            <motion.h1 data-edit-key="about.hero.title" data-edit-kind="text" data-edit-label="Hero Title" variants={fadeUp} className="text-5xl md:text-6xl lg:text-7xl font-light tracking-tight text-[#2A2520] leading-[1.1] mb-8">
               Our <span className="font-serif italic text-[#8B7E72]">Story</span>
             </motion.h1>
 
-            <motion.p variants={fadeUp} className="text-[#7A6E62] text-lg font-light leading-relaxed max-w-lg mb-10">
+            <motion.p data-edit-key="about.hero.description" data-edit-kind="text" data-edit-label="Hero Description" variants={fadeUp} className="text-[#7A6E62] text-lg font-light leading-relaxed max-w-lg mb-10">
               Where clinical precision meets skin comfort. We blend vanguard innovation with biocompatible ingredients to create formulations that nourish, protect, and let your natural barrier thrive.
             </motion.p>
 
             <motion.div variants={fadeUp} className="flex flex-wrap items-center gap-6">
-              <button className="rounded-full bg-[#2A2520] px-8 py-4 text-xs font-semibold tracking-[0.15em] uppercase text-white transition-all hover:bg-[#3A332D] hover:-translate-y-1 shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
+              <button data-edit-key="about.hero.cta" data-edit-kind="text" data-edit-label="Hero CTA" className="rounded-full bg-[#2A2520] px-8 py-4 text-xs font-semibold tracking-[0.15em] uppercase text-white transition-all hover:bg-[#3A332D] hover:-translate-y-1 shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
                 Explore Formulations
               </button>
             </motion.div>
@@ -107,16 +173,19 @@ function About() {
             <div className="relative rounded-[2.5rem] overflow-hidden bg-[#F7F4F0] aspect-[4/5] sm:aspect-auto sm:h-[600px] w-full">
               <img
                 src={aboutImg}
+                data-edit-key="about.hero.image"
+                data-edit-kind="image"
+                data-edit-label="Hero Image"
                 alt="Skincare Science"
                 className="w-full h-full object-cover opacity-95 mix-blend-multiply"
               />
               
               {/* Floating Glass Founder Note */}
               <div className="absolute bottom-6 left-6 right-6 sm:bottom-10 sm:left-10 sm:right-10 rounded-[2rem] bg-white/70 backdrop-blur-xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60">
-                <p className="text-[10px] tracking-[0.2em] uppercase text-[#8B7E72] font-semibold mb-3">
+                <p data-edit-key="about.founder.badge" data-edit-kind="text" data-edit-label="Founder Badge" className="text-[10px] tracking-[0.2em] uppercase text-[#8B7E72] font-semibold mb-3">
                   Founder Note
                 </p>
-                <p className="text-[#2A2520] text-sm sm:text-base font-light leading-relaxed">
+                <p data-edit-key="about.founder.quote" data-edit-kind="text" data-edit-label="Founder Quote" className="text-[#2A2520] text-sm sm:text-base font-light leading-relaxed">
                   "Healthy skin should feel achievable, not overwhelming. Our minimal, high-impact formulas are engineered to support real-life routines."
                 </p>
               </div>
@@ -190,6 +259,8 @@ function About() {
           </div>
         </div>
       </motion.section>
+
+      <AboutLiveEditor isAdmin={isAdmin} onSaveOverride={handleSaveOverride} onUploadImage={uploadPageOverrideImage} />
 
       {/* AIRY STATS SECTION */}
       <motion.section 

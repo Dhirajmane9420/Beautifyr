@@ -10,6 +10,7 @@ const sanitizeUser = (user) => ({
   id: user._id,
   name: user.name,
   email: user.email,
+  role: user.role,
 });
 
 const createToken = (userId) => jwt.sign({ userId }, env.jwtSecret, { expiresIn: "7d" });
@@ -45,6 +46,7 @@ export const signup = async (req, res, next) => {
       name,
       email: email.toLowerCase(),
       password: hashedPassword,
+      role: "customer",
     });
 
     const token = createToken(user._id.toString());
@@ -107,7 +109,7 @@ export const getCurrentUser = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, env.jwtSecret);
-    const user = await User.findById(decoded.userId).select("_id name email");
+    const user = await User.findById(decoded.userId).select("_id name email role");
 
     if (!user) {
       return res.status(401).json({ message: "Unauthorized." });
@@ -152,6 +154,7 @@ export const googleAuth = async (req, res, next) => {
         name,
         email,
         password: generatedPassword,
+        role: "customer",
       });
     }
 
@@ -165,4 +168,26 @@ export const googleAuth = async (req, res, next) => {
   } catch (error) {
     return next(error);
   }
+};
+
+export const ensureDefaultAdminUser = async () => {
+  const adminEmail = env.adminEmail.toLowerCase();
+  const existingAdmin = await User.findOne({ email: adminEmail });
+
+  if (existingAdmin) {
+    if (existingAdmin.role !== "admin") {
+      existingAdmin.role = "admin";
+      await existingAdmin.save();
+    }
+    return;
+  }
+
+  const hashedPassword = await bcrypt.hash(env.adminPassword, 10);
+
+  await User.create({
+    name: env.adminName,
+    email: adminEmail,
+    password: hashedPassword,
+    role: "admin",
+  });
 };

@@ -1,26 +1,24 @@
-import React, { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
-import heroImg from "../assets/hero.jpg";
-
-const products = [
-  { id: 1, name: "Hydrating Glow Serum", price: "₹1,299", category: "Serum", image: heroImg, rating: 4.9, sold: "12k", inStock: true },
-  { id: 2, name: "Vitamin C Bright Cream", price: "₹1,499", category: "Cream", image: heroImg, rating: 4.8, sold: "8.6k", inStock: true },
-  { id: 3, name: "Daily Repair Moisturizer", price: "₹999", category: "Cream", image: heroImg, rating: 4.7, sold: "9.1k", inStock: true },
-  { id: 4, name: "Luxury Night Elixir", price: "₹1,899", category: "Serum", image: heroImg, rating: 4.9, sold: "6.4k", inStock: false },
-  { id: 5, name: "SPF 50 Sunscreen", price: "₹799", category: "Sunscreen", image: heroImg, rating: 4.6, sold: "15k", inStock: true },
-  { id: 6, name: "Under Eye Revival Gel", price: "₹1,099", category: "Gel", image: heroImg, rating: 4.7, sold: "7.3k", inStock: false },
-];
+import { useAuth } from "../context/AuthContext";
+import {
+  createCatalogProduct,
+  deleteCatalogProduct,
+  fetchCatalogProducts,
+  updateCatalogProduct,
+  uploadCatalogProductImage,
+} from "../lib/catalogApi";
 
 const categories = ["All", "Serum", "Cream", "Sunscreen", "Gel"];
+
 const priceRanges = [
   { key: "all", label: "All Prices", min: 0, max: Number.POSITIVE_INFINITY },
-  { key: "under-1000", label: "Under ₹1,000", min: 0, max: 999 },
-  { key: "1000-1500", label: "₹1,000 - ₹1,500", min: 1000, max: 1500 },
-  { key: "above-1500", label: "Above ₹1,500", min: 1501, max: Number.POSITIVE_INFINITY },
+  { key: "under-1000", label: "Under Rs 1,000", min: 0, max: 999 },
+  { key: "1000-1500", label: "Rs 1,000 - Rs 1,500", min: 1000, max: 1500 },
+  { key: "above-1500", label: "Above Rs 1,500", min: 1501, max: Number.POSITIVE_INFINITY },
 ];
 
-// Refined animation variants
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } },
@@ -31,46 +29,102 @@ const staggerContainer = {
   show: { opacity: 1, transition: { staggerChildren: 0.1 } },
 };
 
+const buildInitialForm = () => ({
+  title: "",
+  description: "",
+  price: "",
+  inStock: true,
+  section: "Best Sellers",
+  category: "Serum",
+  imageUrl: "",
+});
+
 function BestSellers() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [activeCategory, setActiveCategory] = useState("All");
   const [sortBy, setSortBy] = useState("featured");
   const [priceRange, setPriceRange] = useState("all");
   const [minimumRating, setMinimumRating] = useState("all");
   const [inStockOnly, setInStockOnly] = useState(false);
 
-  const filteredProducts = useMemo(
-    () => {
-      const activePriceRange =
-        priceRanges.find((range) => range.key === priceRange) || priceRanges[0];
-      const parsedMinimumRating = minimumRating === "all" ? 0 : Number(minimumRating);
+  const [isSaving, setIsSaving] = useState(false);
+  const [adminNotice, setAdminNotice] = useState("");
 
-      return products.filter((product) => {
-        const categoryMatch = activeCategory === "All" || product.category === activeCategory;
-        const numericPrice = Number(product.price.replace(/[^0-9]/g, ""));
-        const priceMatch =
-          numericPrice >= activePriceRange.min && numericPrice <= activePriceRange.max;
-        const ratingMatch = product.rating >= parsedMinimumRating;
-        const stockMatch = !inStockOnly || product.inStock;
+  const [newProductForm, setNewProductForm] = useState(buildInitialForm());
+  const [newProductFile, setNewProductFile] = useState(null);
 
-        return categoryMatch && priceMatch && ratingMatch && stockMatch;
-      });
-    },
-    [activeCategory, priceRange, minimumRating, inStockOnly]
-  );
+  const [editingProductId, setEditingProductId] = useState(null);
+  const [editingProductForm, setEditingProductForm] = useState(buildInitialForm());
+  const [editingProductFile, setEditingProductFile] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProducts = async () => {
+      try {
+        setIsLoading(true);
+        const allProducts = await fetchCatalogProducts();
+        if (!isMounted) return;
+        const bestSellerProducts = allProducts.filter((item) => item.section === "Best Sellers");
+        setProducts(bestSellerProducts);
+      } catch {
+        if (!isMounted) return;
+        setProducts([]);
+      } finally {
+        if (!isMounted) return;
+        setIsLoading(false);
+      }
+    };
+
+    void loadProducts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const withComputed = useMemo(() => {
+    return products.map((product) => {
+      const numericPrice = Number(product.price) || 0;
+      const rating = 4.6 + ((numericPrice % 5) * 0.08);
+      const soldCount = 5000 + ((numericPrice % 17) * 420);
+      return {
+        ...product,
+        numericPrice,
+        rating: Number(rating.toFixed(1)),
+        sold: `${(soldCount / 1000).toFixed(1)}k`,
+      };
+    });
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    const activePriceRange =
+      priceRanges.find((range) => range.key === priceRange) || priceRanges[0];
+    const parsedMinimumRating = minimumRating === "all" ? 0 : Number(minimumRating);
+
+    return withComputed.filter((product) => {
+      const categoryMatch = activeCategory === "All" || product.category === activeCategory;
+      const priceMatch =
+        product.numericPrice >= activePriceRange.min && product.numericPrice <= activePriceRange.max;
+      const ratingMatch = product.rating >= parsedMinimumRating;
+      const stockMatch = !inStockOnly || product.inStock;
+
+      return categoryMatch && priceMatch && ratingMatch && stockMatch;
+    });
+  }, [withComputed, activeCategory, priceRange, minimumRating, inStockOnly]);
 
   const visibleProducts = useMemo(() => {
     const sorted = [...filteredProducts];
 
     if (sortBy === "price-low") {
-      sorted.sort(
-        (a, b) =>
-          Number(a.price.replace(/[^0-9]/g, "")) - Number(b.price.replace(/[^0-9]/g, ""))
-      );
+      sorted.sort((a, b) => a.numericPrice - b.numericPrice);
     } else if (sortBy === "price-high") {
-      sorted.sort(
-        (a, b) =>
-          Number(b.price.replace(/[^0-9]/g, "")) - Number(a.price.replace(/[^0-9]/g, ""))
-      );
+      sorted.sort((a, b) => b.numericPrice - a.numericPrice);
     } else if (sortBy === "top-rated") {
       sorted.sort((a, b) => b.rating - a.rating);
     }
@@ -88,17 +142,108 @@ function BestSellers() {
     setSortBy("featured");
   };
 
+  const toPayload = (form, imageUrl) => ({
+    title: form.title.trim(),
+    description: form.description.trim(),
+    price: Number(form.price),
+    inStock: Boolean(form.inStock),
+    section: "Best Sellers",
+    category: form.category.trim() || "Serum",
+    imageUrl,
+  });
+
+  const handleCreateProduct = async () => {
+    try {
+      setIsSaving(true);
+      setAdminNotice("");
+
+      let imageUrl = newProductForm.imageUrl.trim();
+      if (newProductFile) {
+        imageUrl = await uploadCatalogProductImage(newProductFile);
+      }
+
+      const payload = toPayload(newProductForm, imageUrl);
+      const created = await createCatalogProduct(payload);
+      setProducts((current) => [created, ...current]);
+
+      setNewProductForm(buildInitialForm());
+      setNewProductFile(null);
+      setAdminNotice("Best seller added.");
+    } catch (error) {
+      setAdminNotice(error.message || "Failed to add product.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const openEditModal = (product) => {
+    setEditingProductId(product._id);
+    setEditingProductForm({
+      title: product.title || "",
+      description: product.description || "",
+      price: String(product.price || ""),
+      inStock: Boolean(product.inStock),
+      section: "Best Sellers",
+      category: product.category || "Serum",
+      imageUrl: product.imageUrl || "",
+    });
+    setEditingProductFile(null);
+  };
+
+  const handleUpdateProduct = async () => {
+    if (!editingProductId) return;
+
+    try {
+      setIsSaving(true);
+      setAdminNotice("");
+
+      let imageUrl = editingProductForm.imageUrl.trim();
+      if (editingProductFile) {
+        imageUrl = await uploadCatalogProductImage(editingProductFile);
+      }
+
+      const payload = toPayload(editingProductForm, imageUrl);
+      const updated = await updateCatalogProduct(editingProductId, payload);
+
+      setProducts((current) => current.map((item) => (item._id === editingProductId ? updated : item)));
+      setEditingProductId(null);
+      setEditingProductFile(null);
+      setAdminNotice("Best seller updated.");
+    } catch (error) {
+      setAdminNotice(error.message || "Failed to update product.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    const confirmed = window.confirm("Delete this best seller product?");
+    if (!confirmed) return;
+
+    try {
+      setIsSaving(true);
+      setAdminNotice("");
+      await deleteCatalogProduct(productId);
+      setProducts((current) => current.filter((item) => item._id !== productId));
+      setAdminNotice("Best seller deleted.");
+    } catch (error) {
+      setAdminNotice(error.message || "Failed to delete product.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-linear-to-b from-[#f4eee6] via-[#efe6db] to-[#e7dbcd] text-[#2A2520] font-sans selection:bg-[#E8DCCB] selection:text-[#2A2520]">
       <Navbar />
 
-      {/* EDITORIAL HERO SECTION */}
       <section className="relative overflow-hidden border-b border-[#2A2520]/10 px-5 pb-16 pt-28 sm:px-6 sm:pb-20 sm:pt-32 md:px-12 lg:px-24">
-        <motion.div 
-          variants={staggerContainer} initial="hidden" animate="show" 
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          animate="show"
           className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-end"
         >
-          {/* Left Typography */}
           <div className="lg:col-span-7 flex flex-col justify-end">
             <motion.p variants={fadeUp} className="text-[#8B7E72] text-xs tracking-[0.3em] uppercase mb-6">
               The Cult Classics
@@ -111,20 +256,114 @@ function BestSellers() {
             </motion.p>
           </div>
 
-          {/* Right Editorial Image */}
           <motion.div variants={fadeUp} className="lg:col-span-5 h-[300px] sm:h-[400px] w-full relative rounded-t-[10rem] rounded-b-3xl overflow-hidden">
-            <img src={heroImg} alt="Most Desired" className="absolute inset-0 w-full h-full object-cover" />
+            <img
+              src={visibleProducts[0]?.imageUrl || products[0]?.imageUrl || "https://images.unsplash.com/photo-1629198688000-71f23e745b6e?auto=format&fit=crop&w=900&q=80"}
+              alt="Most Desired"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
             <div className="absolute inset-0 bg-[#2A2520]/10 mix-blend-overlay"></div>
           </motion.div>
         </motion.div>
       </section>
 
-      {/* FILTER & PRODUCT SECTION */}
+      {isAdmin ? (
+        <section className="mx-auto max-w-7xl px-5 pt-10 sm:px-6 md:px-12 lg:px-24">
+          <div className="rounded-2xl border border-[#dcc7ae] bg-[#f9efe3] p-4 sm:p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-[#7f674d]">Admin Best Sellers Manager</h3>
+              {adminNotice ? <p className="text-xs font-medium text-[#8a6038]">{adminNotice}</p> : null}
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+              <input
+                value={newProductForm.title}
+                onChange={(event) => setNewProductForm((current) => ({ ...current, title: event.target.value }))}
+                placeholder="Product title"
+                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+              />
+              <input
+                value={newProductForm.price}
+                onChange={(event) => setNewProductForm((current) => ({ ...current, price: event.target.value }))}
+                type="number"
+                min="0"
+                placeholder="Price"
+                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+              />
+              <select
+                value={newProductForm.category}
+                onChange={(event) => setNewProductForm((current) => ({ ...current, category: event.target.value }))}
+                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+              >
+                <option value="Serum">Serum</option>
+                <option value="Cream">Cream</option>
+                <option value="Sunscreen">Sunscreen</option>
+                <option value="Gel">Gel</option>
+              </select>
+            </div>
+
+            <textarea
+              value={newProductForm.description}
+              onChange={(event) =>
+                setNewProductForm((current) => ({ ...current, description: event.target.value }))
+              }
+              rows={3}
+              placeholder="Product description"
+              className="mt-3 w-full rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+            />
+
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <input
+                value={newProductForm.imageUrl}
+                onChange={(event) => setNewProductForm((current) => ({ ...current, imageUrl: event.target.value }))}
+                placeholder="Image URL (optional if uploading file)"
+                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+              />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 10 * 1024 * 1024) {
+                    setAdminNotice("Image must be 10MB or smaller.");
+                    return;
+                  }
+                  setNewProductFile(file);
+                }}
+                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div className="mt-3 flex items-center justify-between">
+              <label className="inline-flex items-center gap-2 text-sm text-[#6e5947]">
+                <input
+                  type="checkbox"
+                  checked={newProductForm.inStock}
+                  onChange={(event) =>
+                    setNewProductForm((current) => ({ ...current, inStock: event.target.checked }))
+                  }
+                />
+                In stock
+              </label>
+              <button
+                type="button"
+                onClick={handleCreateProduct}
+                disabled={isSaving}
+                className="rounded-xl bg-[#8a6038] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white disabled:opacity-60"
+              >
+                {isSaving ? "Saving..." : "Add Best Seller"}
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section className="mx-auto max-w-7xl px-5 py-16 sm:px-6 md:px-12 lg:px-24">
-        
-        {/* Sleek Minimalist Filters */}
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
           className="flex flex-col md:flex-row justify-between items-start md:items-center mb-16 gap-8"
         >
           <div className="flex flex-wrap gap-8 border-b border-[#2A2520]/10 pb-4 w-full md:w-auto">
@@ -140,14 +379,12 @@ function BestSellers() {
               >
                 {category}
                 {activeCategory === category && (
-                  <motion.div 
-                    layoutId="activeFilter"
-                    className="absolute bottom-0 left-0 right-0 h-px bg-[#2A2520]"
-                  />
+                  <motion.div layoutId="activeFilter" className="absolute bottom-0 left-0 right-0 h-px bg-[#2A2520]" />
                 )}
               </button>
             ))}
           </div>
+
           <div className="flex w-full flex-col items-start gap-4 md:w-auto md:items-end">
             <p className="text-sm font-light text-[#8B7E72] uppercase tracking-widest shrink-0">
               {visibleProducts.length} Results
@@ -219,58 +456,78 @@ function BestSellers() {
           </div>
         </div>
 
-        {/* Product Grid */}
         <div className="min-h-[50vh]">
           <AnimatePresence mode="wait">
-            {visibleProducts.length > 0 ? (
+            {!isLoading && visibleProducts.length > 0 ? (
               <motion.div
                 key="grid"
-                variants={staggerContainer} initial="hidden" animate="show" exit={{ opacity: 0 }}
+                variants={staggerContainer}
+                initial="hidden"
+                animate="show"
+                exit={{ opacity: 0 }}
                 className="grid gap-x-6 gap-y-16 sm:grid-cols-2 lg:grid-cols-3"
               >
                 {visibleProducts.map((product) => {
-                  const numericPrice = Number(product.price.replace(/[^0-9]/g, ""));
-                  const mrp = Math.round(numericPrice * 1.25);
+                  const mrp = Math.round(product.numericPrice * 1.25);
 
                   return (
-                  <motion.div layout variants={fadeUp} key={product.id} className="group cursor-pointer flex flex-col">
-                    
-                    {/* Image Container with subtle background framing */}
-                    <div className="relative overflow-hidden rounded-[2rem] bg-[#F7F4F0] mb-6 aspect-[4/5] flex items-center justify-center p-8">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-full h-full object-cover shadow-2xl transform group-hover:scale-105 transition duration-1000 ease-[0.16,1,0.3,1]"
-                      />
-                      
-                      {/* Glassmorphic Add Button on Hover */}
-                      <div className="absolute inset-x-4 bottom-4 translate-y-10 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 ease-[0.16,1,0.3,1]">
-                        <button className="w-full rounded-2xl border border-[#d8c8b6] bg-[#f2e8dc]/85 py-4 text-sm font-medium uppercase tracking-widest text-[#2A2520] backdrop-blur-xl transition-colors hover:bg-[#eadfce]">
-                          Add to Cart — {product.price}
-                        </button>
-                      </div>
-                    </div>
+                    <motion.div layout variants={fadeUp} key={product._id} className="group cursor-pointer flex flex-col">
+                      <div className="relative overflow-hidden rounded-[2rem] bg-[#F7F4F0] mb-6 aspect-[4/5] flex items-center justify-center p-8">
+                        <img
+                          src={product.imageUrl}
+                          alt={product.title}
+                          className="w-full h-full object-cover shadow-2xl transform group-hover:scale-105 transition duration-1000 ease-[0.16,1,0.3,1]"
+                        />
 
-                    {/* Minimalist Details */}
-                    <div className="flex flex-col px-2">
-                      <div className="mb-1 flex items-start justify-between gap-3">
-                        <h3 className="text-lg font-light text-[#2A2520]">{product.name}</h3>
-                        <span className="rounded-full border border-[#e2cfb8] bg-[#f9f1e7] px-2.5 py-1 text-[11px] font-semibold text-[#7f674d]">
-                          {product.rating}/5
-                        </span>
+                        <div className="absolute inset-x-4 bottom-4 translate-y-10 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 ease-[0.16,1,0.3,1]">
+                          <button className="w-full rounded-2xl border border-[#d8c8b6] bg-[#f2e8dc]/85 py-4 text-sm font-medium uppercase tracking-widest text-[#2A2520] backdrop-blur-xl transition-colors hover:bg-[#eadfce]">
+                            Add to Cart — Rs {product.numericPrice}
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-sm text-[#8B7E72] font-light">
-                        {product.category} • {product.sold} sold • {product.inStock ? "In Stock" : "Out of Stock"}
-                      </p>
-                      <p className="mt-2 text-base font-semibold text-[#8a6038]">
-                        {product.price}{" "}
-                        <span className="ml-1 text-sm font-normal text-[#9d9388] line-through">₹{mrp.toLocaleString("en-IN")}</span>
-                      </p>
-                    </div>
-                  </motion.div>
-                );})}
+
+                      <div className="flex flex-col px-2">
+                        <div className="mb-1 flex items-start justify-between gap-3">
+                          <h3 className="text-lg font-light text-[#2A2520]">{product.title}</h3>
+                          <span className="rounded-full border border-[#e2cfb8] bg-[#f9f1e7] px-2.5 py-1 text-[11px] font-semibold text-[#7f674d]">
+                            {product.rating}/5
+                          </span>
+                        </div>
+                        <p className="text-sm text-[#8B7E72] font-light">
+                          {product.category} • {product.sold} sold • {product.inStock ? "In Stock" : "Out of Stock"}
+                        </p>
+                        <p className="mt-2 text-base font-semibold text-[#8a6038]">
+                          Rs {product.numericPrice}{" "}
+                          <span className="ml-1 text-sm font-normal text-[#9d9388] line-through">Rs {mrp}</span>
+                        </p>
+                        <p className="mt-2 text-sm text-[#6f5a47] line-clamp-2">{product.description}</p>
+
+                        {isAdmin ? (
+                          <div className="mt-3 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(product)}
+                              className="flex-1 rounded-xl border border-[#8a6038] bg-[#8a6038] px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteProduct(product._id)}
+                              className="flex-1 rounded-xl border border-red-300 px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-red-700"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </motion.div>
-            ) : (
+            ) : null}
+
+            {!isLoading && visibleProducts.length === 0 ? (
               <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-32 text-center flex flex-col items-center justify-center">
                 <p className="text-xl font-light text-[#7A6E62]">No formulations found in this category.</p>
                 <button
@@ -280,12 +537,130 @@ function BestSellers() {
                   View All Classics
                 </button>
               </motion.div>
-            )}
+            ) : null}
           </AnimatePresence>
+
+          {isLoading ? (
+            <div className="rounded-2xl border border-[#dcc7ae] bg-[#f9efe3] px-5 py-10 text-center text-[#6e5947]">
+              Loading best sellers...
+            </div>
+          ) : null}
         </div>
       </section>
 
-      {/* WHY THESE SELL SECTION */}
+      {editingProductId ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-[#5f3f25]">Edit Best Seller</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingProductId(null);
+                  setEditingProductFile(null);
+                }}
+                className="text-sm text-[#6e5947]"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <input
+                value={editingProductForm.title}
+                onChange={(event) => setEditingProductForm((current) => ({ ...current, title: event.target.value }))}
+                placeholder="Product title"
+                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+              />
+              <input
+                value={editingProductForm.price}
+                onChange={(event) => setEditingProductForm((current) => ({ ...current, price: event.target.value }))}
+                type="number"
+                min="0"
+                placeholder="Price"
+                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+              />
+
+              <select
+                value={editingProductForm.category}
+                onChange={(event) => setEditingProductForm((current) => ({ ...current, category: event.target.value }))}
+                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+              >
+                <option value="Serum">Serum</option>
+                <option value="Cream">Cream</option>
+                <option value="Sunscreen">Sunscreen</option>
+                <option value="Gel">Gel</option>
+              </select>
+
+              <input
+                value={editingProductForm.imageUrl}
+                onChange={(event) => setEditingProductForm((current) => ({ ...current, imageUrl: event.target.value }))}
+                placeholder="Image URL"
+                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+              />
+            </div>
+
+            <textarea
+              value={editingProductForm.description}
+              onChange={(event) =>
+                setEditingProductForm((current) => ({ ...current, description: event.target.value }))
+              }
+              rows={3}
+              placeholder="Description"
+              className="mt-3 w-full rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+            />
+
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 10 * 1024 * 1024) {
+                    setAdminNotice("Image must be 10MB or smaller.");
+                    return;
+                  }
+                  setEditingProductFile(file);
+                }}
+                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+              />
+              <label className="inline-flex items-center gap-2 text-sm text-[#6e5947]">
+                <input
+                  type="checkbox"
+                  checked={editingProductForm.inStock}
+                  onChange={(event) =>
+                    setEditingProductForm((current) => ({ ...current, inStock: event.target.checked }))
+                  }
+                />
+                In stock
+              </label>
+            </div>
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingProductId(null);
+                  setEditingProductFile(null);
+                }}
+                className="rounded-xl border border-[#d8c8b6] bg-white px-4 py-2 text-sm text-[#6e5947]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleUpdateProduct}
+                disabled={isSaving}
+                className="rounded-xl bg-[#8a6038] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                {isSaving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <section className="mx-auto max-w-7xl px-5 pb-6 sm:px-6 md:px-12 lg:px-24">
         <div className="grid grid-cols-1 gap-4 rounded-3xl border border-[#dfcdb7] bg-[#f9efe3] p-6 md:grid-cols-3 md:p-8">
           <div>
@@ -302,82 +677,6 @@ function BestSellers() {
           </div>
         </div>
       </section>
-
-      {/* REFINED CTA BANNER */}
-      <section className="px-5 pb-14 pt-10 sm:px-6 sm:pb-16 sm:pt-12 md:px-12 md:pb-18 md:pt-14 lg:px-24">
-        <motion.div
-          variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-50px" }}
-          className="relative rounded-[2.5rem] bg-[#1A1816] px-10 py-20 text-center shadow-2xl overflow-hidden"
-        >
-          {/* Subtle lighting effect */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#E8DCCB] opacity-10 rounded-full blur-[100px] mix-blend-screen pointer-events-none"></div>
-
-          <div className="relative z-10 max-w-2xl mx-auto flex flex-col items-center">
-            <h2 className="text-3xl md:text-5xl font-light text-[#FCFAF8] tracking-tight mb-6">
-              Elevate Your <span className="font-serif italic text-[#D2C5B5]">Ritual</span>
-            </h2>
-            <p className="text-[#AFA192] font-light leading-relaxed text-lg mb-10">
-              Experience clinical-grade luxury designed for visible results and long-term barrier health. 
-            </p>
-            <button className="rounded-full bg-[#E8DCCB] px-10 py-4 text-sm uppercase tracking-widest font-medium text-[#1A1816] transition-transform duration-300 hover:scale-105">
-              Build Your Routine
-            </button>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* SYNCHRONIZED FOOTER */}
-      <footer className="mt-12 rounded-t-4xl bg-[#1A1816] px-5 pb-12 pt-16 text-[#FCFAF8] sm:rounded-t-[3rem] sm:px-6 sm:pt-20 md:px-12 lg:px-24 lg:pt-24">
-        <div className="mb-16 grid grid-cols-1 gap-12 lg:mb-20 lg:grid-cols-12 lg:gap-16">
-          <div className="lg:col-span-6 pr-0 lg:pr-12">
-            <h2 className="text-3xl font-light mb-4 tracking-tight">Join the <span className="font-serif italic text-[#D2C5B5]">Sanctuary</span></h2>
-            <p className="text-white/50 font-light mb-8 max-w-md">Privileged access to new formulations, clinical insights, and 10% off your introductory ritual.</p>
-            <div className="relative flex max-w-md flex-col gap-3 sm:flex-row sm:items-center sm:gap-0">
-              <input 
-                type="email" 
-                placeholder="Your email address" 
-                className="w-full rounded-none border-b border-white/20 bg-white/5 px-0 py-4 text-white placeholder-white/30 transition-colors focus:border-white focus:outline-none sm:pr-28"
-              />
-              <button className="text-left text-sm uppercase tracking-widest text-[#D2C5B5] transition-colors hover:text-white sm:absolute sm:right-0 sm:top-1/2 sm:-translate-y-1/2 sm:text-right">
-                Subscribe
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-8 text-sm font-light text-white/60 sm:grid-cols-2 md:grid-cols-3 lg:col-span-6">
-            <div className="flex flex-col gap-4">
-              <h4 className="text-white font-medium tracking-widest uppercase text-xs mb-2">Shop</h4>
-              <a href="#" className="hover:text-white transition-colors">All Products</a>
-              <a href="#" className="hover:text-white transition-colors">Best Sellers</a>
-              <a href="#" className="hover:text-white transition-colors">Routines</a>
-              <a href="#" className="hover:text-white transition-colors">Gift Cards</a>
-            </div>
-            <div className="flex flex-col gap-4">
-              <h4 className="text-white font-medium tracking-widest uppercase text-xs mb-2">About</h4>
-              <a href="#" className="hover:text-white transition-colors">Our Story</a>
-              <a href="#" className="hover:text-white transition-colors">Ingredients</a>
-              <a href="#" className="hover:text-white transition-colors">Clinical Trials</a>
-              <a href="#" className="hover:text-white transition-colors">Journal</a>
-            </div>
-            <div className="flex flex-col gap-4">
-              <h4 className="text-white font-medium tracking-widest uppercase text-xs mb-2">Support</h4>
-              <a href="#" className="hover:text-white transition-colors">FAQ</a>
-              <a href="#" className="hover:text-white transition-colors">Shipping</a>
-              <a href="#" className="hover:text-white transition-colors">Returns</a>
-              <a href="#" className="hover:text-white transition-colors">Contact</a>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col items-start justify-between gap-4 border-t border-white/10 pt-8 text-xs font-light text-white/40 md:flex-row md:items-center md:gap-6">
-          <p>© 2026 Clinical Sanctuary. All rights reserved.</p>
-          <div className="flex flex-wrap gap-6">
-            <a href="#" className="hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms</a>
-            <a href="#" className="hover:text-white transition-colors">Instagram</a>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

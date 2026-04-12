@@ -37,7 +37,7 @@ function Login() {
 
       setAuthenticatedUser(payload.user);
       setSuccessMessage(payload.message || "Login successful.");
-      setTimeout(() => navigate("/profile"), 700);
+      setTimeout(() => navigate(payload.user?.role === "admin" ? "/" : "/profile"), 700);
     } catch (error) {
       setErrorMessage(error.message || "Unable to login. Please try again.");
     } finally {
@@ -60,7 +60,7 @@ function Login() {
 
       setAuthenticatedUser(payload.user);
       setSuccessMessage(payload.message || "Google login successful.");
-      setTimeout(() => navigate("/profile"), 700);
+      setTimeout(() => navigate(payload.user?.role === "admin" ? "/" : "/profile"), 700);
     } catch (error) {
       setErrorMessage(error.message || "Google sign-in failed.");
     }

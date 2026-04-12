@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import heroImg from "../assets/hero.jpg";
 
 function CategoryViewAll() {
   const location = useLocation();
@@ -147,10 +146,10 @@ function CategoryViewAll() {
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filteredProducts.map((product, index) => (
               <ProductCard
-                key={`${product.title}-${index}`}
+                key={product._id || `${product.title}-${index}`}
                 title={product.title}
                 price={`Rs ${product.price}`}
-                image={heroImg}
+                image={product.imageUrl}
                 inStock={product.inStock}
               />
             ))}

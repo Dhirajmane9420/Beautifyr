@@ -6,6 +6,13 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Navbar from "../components/Navbar";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import HomeLiveEditor from "../components/admin/HomeLiveEditor";
+import {
+  fetchPageOverrides,
+  savePageOverride,
+  uploadPageOverrideImage,
+} from "../lib/siteOverridesApi";
 
 // Refined, ultra-smooth animation curves
 const fadeUp = {
@@ -32,12 +39,31 @@ const trustStripItems = [
   "Fragrance Free Options",
 ];
 
+const applyOverridesToDom = (overrides) => {
+  overrides.forEach((override) => {
+    const key = (override.key || "").replace(/"/g, "\\\"");
+    const editableNodes = document.querySelectorAll(`[data-edit-key="${key}"]`);
+
+    editableNodes.forEach((node) => {
+      if (override.kind === "image") {
+        node.setAttribute("src", override.value);
+        return;
+      }
+
+      node.textContent = override.value;
+    });
+  });
+};
+
 function Home() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window === "undefined") return true;
     return window.matchMedia("(min-width: 768px)").matches;
   });
   const [activeMobileVideoIndex, setActiveMobileVideoIndex] = useState(0);
+  const [overrides, setOverrides] = useState([]);
 
   const mobileHeroVideos = [heroVideoMobile, heroVideoMobileAlt];
 
@@ -74,6 +100,46 @@ function Home() {
 
     return () => window.clearInterval(rotationId);
   }, [isDesktop, mobileHeroVideos.length]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadOverrides = async () => {
+      try {
+        const records = await fetchPageOverrides("home");
+        if (!isMounted) return;
+        setOverrides(records);
+      } catch {
+        if (!isMounted) return;
+        setOverrides([]);
+      }
+    };
+
+    void loadOverrides();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => applyOverridesToDom(overrides));
+    return () => window.cancelAnimationFrame(frameId);
+  }, [overrides]);
+
+  const handleSaveOverride = async ({ key, kind, value }) => {
+    const saved = await savePageOverride({
+      page: "home",
+      key,
+      kind,
+      value,
+    });
+
+    setOverrides((current) => {
+      const next = current.filter((item) => item.key !== saved.key);
+      return [saved, ...next];
+    });
+  };
 
   return (
     <div className="relative w-full bg-[#FCFAF8] font-sans selection:bg-[#E8DCCB] selection:text-[#2A2520]">
@@ -122,25 +188,25 @@ function Home() {
         >
           <motion.div variants={fadeUp} className="mb-6 inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 backdrop-blur-xl px-5 py-2 shadow-2xl">
             <span className="h-1.5 w-1.5 rounded-full bg-[#E8DCCB] animate-pulse"></span>
-            <span className="text-[10px] sm:text-xs tracking-[0.3em] uppercase text-white/90 font-medium">
+            <span data-edit-key="hero.badge" data-edit-kind="text" data-edit-label="Hero Badge" className="text-[10px] sm:text-xs tracking-[0.3em] uppercase text-white/90 font-medium">
               Clinical Grade
             </span>
           </motion.div>
 
-          <motion.h1 variants={fadeUp} className="text-4xl sm:text-6xl md:text-8xl font-light tracking-tight text-white leading-[1.1]">
+          <motion.h1 data-edit-key="hero.title" data-edit-kind="text" data-edit-label="Hero Title" variants={fadeUp} className="text-4xl sm:text-6xl md:text-8xl font-light tracking-tight text-white leading-[1.1]">
             Elevate Your <br />
             <span className="font-serif italic text-[#E8DCCB] pr-4">Natural Radiance</span>
           </motion.h1>
 
-          <motion.p variants={fadeUp} className="mt-5 max-w-xl text-sm sm:text-base md:text-lg font-light text-white/80 leading-relaxed">
+          <motion.p data-edit-key="hero.subtitle" data-edit-kind="text" data-edit-label="Hero Subtitle" variants={fadeUp} className="mt-5 max-w-xl text-sm sm:text-base md:text-lg font-light text-white/80 leading-relaxed">
             Formulations crafted at the intersection of clinical science and pure botanical luxury. Reveal your healthiest barrier yet.
           </motion.p>
 
           <motion.div variants={fadeUp} className="mt-8 flex w-full flex-col gap-3 sm:mt-10 sm:w-auto sm:flex-row sm:gap-4">
-            <button className="w-full px-8 py-4 bg-white text-[#2A2520] rounded-full text-sm font-medium tracking-wide shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:scale-105 transition-transform duration-300 sm:w-auto">
+            <button data-edit-key="hero.ctaPrimary" data-edit-kind="text" data-edit-label="Hero Primary CTA" className="w-full px-8 py-4 bg-white text-[#2A2520] rounded-full text-sm font-medium tracking-wide shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:scale-105 transition-transform duration-300 sm:w-auto">
               Shop Collection
             </button>
-            <button className="w-full px-8 py-4 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-full text-sm font-medium tracking-wide hover:bg-white/20 transition-all duration-300 sm:w-auto">
+            <button data-edit-key="hero.ctaSecondary" data-edit-kind="text" data-edit-label="Hero Secondary CTA" className="w-full px-8 py-4 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-full text-sm font-medium tracking-wide hover:bg-white/20 transition-all duration-300 sm:w-auto">
               Discover The Science
             </button>
           </motion.div>
@@ -152,7 +218,7 @@ function Home() {
         <div className="flex min-w-max whitespace-nowrap text-[#D2C5B5] text-xs sm:text-sm tracking-[0.2em] uppercase font-light animate-[trustMarquee_20s_linear_infinite]">
           {[...trustStripItems, ...trustStripItems].map((item, index) => (
             <span key={`${item}-${index}`} className="mr-12 inline-flex items-center gap-12">
-              <span>{item}</span>
+              <span data-edit-key={`trustStrip.item${(index % trustStripItems.length) + 1}`} data-edit-kind="text" data-edit-label={`Trust Strip Item ${(index % trustStripItems.length) + 1}`}>{item}</span>
               <span aria-hidden="true">•</span>
             </span>
           ))}
@@ -166,10 +232,10 @@ function Home() {
       >
         <div className="mb-10 flex flex-col gap-5 md:mb-14 md:flex-row md:items-end md:justify-between md:gap-6">
           <motion.div variants={fadeUp} className="max-w-xl">
-            <h2 className="text-3xl md:text-5xl font-light tracking-tight text-[#2A2520]">
+            <h2 data-edit-key="categories.title" data-edit-kind="text" data-edit-label="Categories Title" className="text-3xl md:text-5xl font-light tracking-tight text-[#2A2520]">
               Curated <span className="font-serif italic text-[#8B7E72]">Essentials</span>
             </h2>
-            <p className="mt-4 text-[#7A6E62] font-light leading-relaxed">
+            <p data-edit-key="categories.subtitle" data-edit-kind="text" data-edit-label="Categories Subtitle" className="mt-4 text-[#7A6E62] font-light leading-relaxed">
               Targeted solutions designed to integrate seamlessly into your daily ritual.
             </p>
           </motion.div>
@@ -189,13 +255,13 @@ function Home() {
         <div className="grid h-auto grid-cols-1 gap-5 md:h-[560px] md:grid-cols-12 md:gap-6">
           {/* Main Large Card */}
           <motion.div variants={fadeUp} className="group relative h-[320px] overflow-hidden rounded-[1.5rem] md:col-span-7 md:h-full md:rounded-[2rem]">
-            <img src={heroImg} alt="Serums" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+            <img data-edit-key="categories.mainCard.image" data-edit-kind="image" data-edit-label="Main Category Image" src={heroImg} alt="Serums" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
             <div className="absolute bottom-5 left-5 right-5 sm:bottom-8 sm:left-8 sm:right-8">
               <div className="max-w-xs transform rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-2xl transition-all duration-500 group-hover:translate-y-0 sm:max-w-sm sm:translate-y-4 sm:p-6">
-                <p className="text-[10px] tracking-[0.2em] text-white/80 uppercase mb-2">Bestseller</p>
-                <h3 className="text-3xl font-light text-white mb-2">Active Serums</h3>
-                <Link to="/categories" className="text-sm text-white/90 underline decoration-white/30 underline-offset-4 hover:decoration-white transition-all">Shop Category</Link>
+                <p data-edit-key="categories.mainCard.badge" data-edit-kind="text" data-edit-label="Main Category Badge" className="text-[10px] tracking-[0.2em] text-white/80 uppercase mb-2">Bestseller</p>
+                <h3 data-edit-key="categories.mainCard.title" data-edit-kind="text" data-edit-label="Main Category Title" className="text-3xl font-light text-white mb-2">Active Serums</h3>
+                <Link data-edit-key="categories.mainCard.cta" data-edit-kind="text" data-edit-label="Main Category CTA" to="/categories" className="text-sm text-white/90 underline decoration-white/30 underline-offset-4 hover:decoration-white transition-all">Shop Category</Link>
               </div>
             </div>
           </motion.div>
@@ -203,20 +269,20 @@ function Home() {
           {/* Side Cards Stack */}
           <div className="flex h-full flex-col gap-5 md:col-span-5 md:gap-6">
             <motion.div variants={fadeUp} className="group relative min-h-[220px] flex-1 overflow-hidden rounded-[1.5rem] md:min-h-[250px] md:rounded-[2rem]">
-              <img src={heroImg} alt="Moisturizers" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+              <img data-edit-key="categories.sideTop.image" data-edit-kind="image" data-edit-label="Top Side Category Image" src={heroImg} alt="Moisturizers" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-500"></div>
               <div className="absolute bottom-6 left-6">
-                <h3 className="text-2xl font-light text-white">Moisturizers</h3>
-                <p className="text-white/80 text-sm font-light mt-1">Barrier protection</p>
+                <h3 data-edit-key="categories.sideTop.title" data-edit-kind="text" data-edit-label="Top Side Category Title" className="text-2xl font-light text-white">Moisturizers</h3>
+                <p data-edit-key="categories.sideTop.subtitle" data-edit-kind="text" data-edit-label="Top Side Category Subtitle" className="text-white/80 text-sm font-light mt-1">Barrier protection</p>
               </div>
             </motion.div>
 
             <motion.div variants={fadeUp} className="group relative min-h-[220px] flex-1 overflow-hidden rounded-[1.5rem] md:min-h-[250px] md:rounded-[2rem]">
-              <img src={heroImg} alt="Cleansers" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+              <img data-edit-key="categories.sideBottom.image" data-edit-kind="image" data-edit-label="Bottom Side Category Image" src={heroImg} alt="Cleansers" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-500"></div>
               <div className="absolute bottom-6 left-6">
-                <h3 className="text-2xl font-light text-white">Cleansers</h3>
-                <p className="text-white/80 text-sm font-light mt-1">Gentle purification</p>
+                <h3 data-edit-key="categories.sideBottom.title" data-edit-kind="text" data-edit-label="Bottom Side Category Title" className="text-2xl font-light text-white">Cleansers</h3>
+                <p data-edit-key="categories.sideBottom.subtitle" data-edit-kind="text" data-edit-label="Bottom Side Category Subtitle" className="text-white/80 text-sm font-light mt-1">Gentle purification</p>
               </div>
             </motion.div>
           </div>
@@ -233,7 +299,7 @@ function Home() {
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#F1EBE4] rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
 
         <div className="relative z-10 text-center mb-16">
-          <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-light tracking-tight text-[#2A2520]">
+          <motion.h2 data-edit-key="favorites.title" data-edit-kind="text" data-edit-label="Favorites Title" variants={fadeUp} className="text-3xl md:text-5xl font-light tracking-tight text-[#2A2520]">
             The Cult <span className="font-serif italic text-[#8B7E72]">Favorites</span>
           </motion.h2>
         </div>
@@ -243,8 +309,8 @@ function Home() {
             <motion.div key={item} variants={fadeUp} className="group cursor-pointer">
               <div className="relative rounded-3xl overflow-hidden bg-white/40 backdrop-blur-xl border border-white/60 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 hover:shadow-[0_8px_40px_rgb(0,0,0,0.08)] hover:bg-white/60">
                 <div className="relative h-[250px] overflow-hidden rounded-2xl sm:h-[300px]">
-                  <img src={heroImg} alt="Product" className="w-full h-full object-cover transform group-hover:scale-105 transition duration-700" />
-                  <div className="absolute top-3 left-3 bg-white/80 backdrop-blur-md px-3 py-1 rounded-full text-[10px] uppercase tracking-widest text-[#2A2520]">
+                  <img data-edit-key={`favorites.card${item}.image`} data-edit-kind="image" data-edit-label={`Favorite Product ${item} Image`} src={heroImg} alt="Product" className="w-full h-full object-cover transform group-hover:scale-105 transition duration-700" />
+                  <div data-edit-key={`favorites.card${item}.badge`} data-edit-kind="text" data-edit-label={`Favorite Product ${item} Badge`} className="absolute top-3 left-3 bg-white/80 backdrop-blur-md px-3 py-1 rounded-full text-[10px] uppercase tracking-widest text-[#2A2520]">
                     Award Winner
                   </div>
                   <button className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-[#2A2520] hover:bg-white transition-colors">
@@ -253,10 +319,10 @@ function Home() {
                 </div>
                 <div className="mt-6 px-2 pb-2">
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-lg font-medium text-[#2A2520]">Radiance C-Serum</h3>
-                    <span className="text-sm text-[#8B7E72]">$85</span>
+                    <h3 data-edit-key={`favorites.card${item}.title`} data-edit-kind="text" data-edit-label={`Favorite Product ${item} Title`} className="text-lg font-medium text-[#2A2520]">Radiance C-Serum</h3>
+                    <span data-edit-key={`favorites.card${item}.price`} data-edit-kind="text" data-edit-label={`Favorite Product ${item} Price`} className="text-sm text-[#8B7E72]">$85</span>
                   </div>
-                  <p className="text-sm font-light text-[#7A6E62] line-clamp-2">15% L-Ascorbic Acid formula for unparalleled brightening.</p>
+                  <p data-edit-key={`favorites.card${item}.desc`} data-edit-kind="text" data-edit-label={`Favorite Product ${item} Description`} className="text-sm font-light text-[#7A6E62] line-clamp-2">15% L-Ascorbic Acid formula for unparalleled brightening.</p>
                 </div>
               </div>
             </motion.div>
@@ -271,21 +337,21 @@ function Home() {
           className="flex flex-col overflow-hidden rounded-[1.75rem] bg-[#2A2520] text-[#FCFAF8] sm:rounded-[2.5rem] lg:flex-row"
         >
           <div className="flex flex-col justify-center p-7 sm:p-10 md:p-14 lg:w-1/2 lg:p-20">
-            <motion.p variants={fadeUp} className="text-[#AFA192] text-xs tracking-[0.3em] uppercase mb-6">The Ethos</motion.p>
-            <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-light tracking-tight leading-[1.1] mb-8">
+            <motion.p data-edit-key="about.badge" data-edit-kind="text" data-edit-label="About Badge" variants={fadeUp} className="text-[#AFA192] text-xs tracking-[0.3em] uppercase mb-6">The Ethos</motion.p>
+            <motion.h2 data-edit-key="about.title" data-edit-kind="text" data-edit-label="About Title" variants={fadeUp} className="text-4xl md:text-5xl font-light tracking-tight leading-[1.1] mb-8">
               Science that respects <br/><span className="font-serif italic text-[#D2C5B5]">your biology.</span>
             </motion.h2>
-            <motion.p variants={fadeUp} className="text-white/70 font-light leading-relaxed mb-10 max-w-md">
+            <motion.p data-edit-key="about.description" data-edit-kind="text" data-edit-label="About Description" variants={fadeUp} className="text-white/70 font-light leading-relaxed mb-10 max-w-md">
               We engineer formulations that mimic your skin's natural structure. No harsh stripping, no empty fillers—just precise, biocompatible ingredients that restore optimal health.
             </motion.p>
             <motion.div variants={fadeUp}>
-              <button className="border-b border-white/30 pb-1 text-sm uppercase tracking-widest hover:border-white transition-colors duration-300">
+              <button data-edit-key="about.cta" data-edit-kind="text" data-edit-label="About CTA" className="border-b border-white/30 pb-1 text-sm uppercase tracking-widest hover:border-white transition-colors duration-300">
                 Read Our Story
               </button>
             </motion.div>
           </div>
           <motion.div variants={fadeUp} className="relative min-h-[260px] sm:min-h-[360px] lg:min-h-full lg:w-1/2">
-            <img src={heroImg} alt="Lab/Texture" className="absolute inset-0 w-full h-full object-cover" />
+            <img data-edit-key="about.image" data-edit-kind="image" data-edit-label="About Image" src={heroImg} alt="Lab/Texture" className="absolute inset-0 w-full h-full object-cover" />
           </motion.div>
         </motion.div>
       </section>
@@ -303,8 +369,8 @@ function Home() {
             { title: "Guaranteed", desc: "30-day efficacy return" }
           ].map((item, i) => (
             <motion.div key={i} variants={fadeUp} className="flex flex-col items-center justify-center px-4">
-              <h3 className="text-sm font-medium tracking-wide text-[#2A2520] uppercase">{item.title}</h3>
-              <p className="mt-2 text-xs font-light text-[#8B7E72]">{item.desc}</p>
+              <h3 data-edit-key={`trustBlocks.${i + 1}.title`} data-edit-kind="text" data-edit-label={`Trust Block ${i + 1} Title`} className="text-sm font-medium tracking-wide text-[#2A2520] uppercase">{item.title}</h3>
+              <p data-edit-key={`trustBlocks.${i + 1}.desc`} data-edit-kind="text" data-edit-label={`Trust Block ${i + 1} Description`} className="mt-2 text-xs font-light text-[#8B7E72]">{item.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -321,20 +387,20 @@ function Home() {
           
           <div className="relative z-10 flex flex-col items-start justify-between gap-8 md:flex-row md:items-center md:gap-12">
             <div className="max-w-xl">
-              <p className="text-[10px] tracking-[0.3em] uppercase text-[#2A2520]/60 font-medium mb-4">Limited Allocation</p>
-              <h2 className="text-4xl md:text-5xl font-light text-[#2A2520] tracking-tight mb-6">
+              <p data-edit-key="promo.badge" data-edit-kind="text" data-edit-label="Promo Badge" className="text-[10px] tracking-[0.3em] uppercase text-[#2A2520]/60 font-medium mb-4">Limited Allocation</p>
+              <h2 data-edit-key="promo.title" data-edit-kind="text" data-edit-label="Promo Title" className="text-4xl md:text-5xl font-light text-[#2A2520] tracking-tight mb-6">
                 The <span className="font-serif italic">Restoration</span> Protocol
               </h2>
-              <p className="mb-8 text-base font-light leading-relaxed text-[#5C534A] sm:text-lg">
+              <p data-edit-key="promo.description" data-edit-kind="text" data-edit-label="Promo Description" className="mb-8 text-base font-light leading-relaxed text-[#5C534A] sm:text-lg">
                 A highly concentrated 3-step regimen designed to repair the epidermal barrier in 14 days. Exclusively bundled.
               </p>
-              <button className="px-8 py-4 bg-[#2A2520] text-white rounded-full text-sm font-medium tracking-wide shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
+              <button data-edit-key="promo.cta" data-edit-kind="text" data-edit-label="Promo CTA" className="px-8 py-4 bg-[#2A2520] text-white rounded-full text-sm font-medium tracking-wide shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
                 Unlock The Bundle — $145
               </button>
             </div>
             <div className="relative mx-auto w-full max-w-[260px] flex-shrink-0 sm:max-w-[320px] md:mx-0 md:w-auto">
               <div className="flex h-56 w-56 items-center justify-center overflow-hidden rounded-full border border-white/50 bg-white/30 shadow-2xl backdrop-blur-3xl sm:h-64 sm:w-64 md:h-80 md:w-80">
-                 <img src={heroImg} alt="Bundle" className="w-[120%] h-[120%] object-cover opacity-90 mix-blend-multiply" />
+                 <img data-edit-key="promo.image" data-edit-kind="image" data-edit-label="Promo Image" src={heroImg} alt="Bundle" className="w-[120%] h-[120%] object-cover opacity-90 mix-blend-multiply" />
               </div>
             </div>
           </div>
@@ -346,12 +412,12 @@ function Home() {
         <div className="mb-10 rounded-3xl border border-[#3a3129] bg-[#221c18] p-5 sm:p-6 md:p-7">
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.25em] text-[#cdb89f]">Need Routine Help?</p>
-              <h3 className="mt-2 text-2xl font-light tracking-tight text-white sm:text-3xl">
+              <p data-edit-key="footer.quiz.badge" data-edit-kind="text" data-edit-label="Footer Quiz Badge" className="text-[11px] uppercase tracking-[0.25em] text-[#cdb89f]">Need Routine Help?</p>
+              <h3 data-edit-key="footer.quiz.title" data-edit-kind="text" data-edit-label="Footer Quiz Title" className="mt-2 text-2xl font-light tracking-tight text-white sm:text-3xl">
                 Get a personalized skincare ritual in under 60 seconds.
               </h3>
             </div>
-            <button className="rounded-full border border-[#cdb89f] px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#e9dbc8] transition hover:bg-[#e9dbc8] hover:text-[#1A1816]">
+            <button data-edit-key="footer.quiz.cta" data-edit-kind="text" data-edit-label="Footer Quiz CTA" className="rounded-full border border-[#cdb89f] px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#e9dbc8] transition hover:bg-[#e9dbc8] hover:text-[#1A1816]">
               Take Skin Quiz
             </button>
           </div>
@@ -359,8 +425,8 @@ function Home() {
 
         <div className="mb-14 grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
           <div className="lg:col-span-5">
-            <h2 className="text-3xl font-light tracking-tight">Join the <span className="font-serif italic text-[#D2C5B5]">Sanctuary</span></h2>
-            <p className="mt-4 max-w-md text-sm font-light leading-relaxed text-white/55 sm:text-base">
+            <h2 data-edit-key="footer.newsletter.title" data-edit-kind="text" data-edit-label="Newsletter Title" className="text-3xl font-light tracking-tight">Join the <span className="font-serif italic text-[#D2C5B5]">Sanctuary</span></h2>
+            <p data-edit-key="footer.newsletter.description" data-edit-kind="text" data-edit-label="Newsletter Description" className="mt-4 max-w-md text-sm font-light leading-relaxed text-white/55 sm:text-base">
               Early access to launches, ingredient deep-dives, and members-only ritual sets.
             </p>
 
@@ -370,7 +436,7 @@ function Home() {
                 placeholder="Your email address"
                 className="w-full rounded-full border border-[#3a3129] bg-[#26201b] px-5 py-3 text-sm text-white placeholder:text-white/35 focus:border-[#D2C5B5] focus:outline-none"
               />
-              <button className="rounded-full bg-[#D2C5B5] px-6 py-3 text-xs font-semibold uppercase tracking-[0.15em] text-[#1A1816] transition hover:bg-[#e5d7c4]">
+              <button data-edit-key="footer.newsletter.cta" data-edit-kind="text" data-edit-label="Newsletter CTA" className="rounded-full bg-[#D2C5B5] px-6 py-3 text-xs font-semibold uppercase tracking-[0.15em] text-[#1A1816] transition hover:bg-[#e5d7c4]">
                 Subscribe
               </button>
             </div>
@@ -407,7 +473,7 @@ function Home() {
         </div>
 
         <div className="flex flex-col gap-4 border-t border-white/10 pt-7 text-xs font-light text-white/40 md:flex-row md:items-center md:justify-between">
-          <p>© 2026 Clinical Sanctuary. All rights reserved.</p>
+          <p data-edit-key="footer.copyright" data-edit-kind="text" data-edit-label="Footer Copyright">© 2026 Clinical Sanctuary. All rights reserved.</p>
           <div className="flex flex-wrap gap-5">
             <a href="#" className="transition-colors hover:text-white">Privacy</a>
             <a href="#" className="transition-colors hover:text-white">Terms</a>
@@ -415,6 +481,13 @@ function Home() {
           </div>
         </div>
       </footer>
+
+      <HomeLiveEditor
+        isAdmin={isAdmin}
+        onSaveOverride={handleSaveOverride}
+        onUploadImage={uploadPageOverrideImage}
+      />
+
 
       <style>{`
         @keyframes trustMarquee {
