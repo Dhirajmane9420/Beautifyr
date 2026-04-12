@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
 import {
   createCatalogCategory,
   createCatalogProduct,
@@ -18,6 +19,7 @@ import {
   savePageOverride,
   uploadPageOverrideImage,
 } from "../lib/siteOverridesApi";
+import { toProductSlug } from "../lib/productUtils";
 
 const SECTION_OPTIONS = ["Cleansers", "Serums", "Moisturizers"];
 
@@ -1072,46 +1074,103 @@ function Section({ title, products, content, onViewAll, isAdmin, onEdit, onDelet
 
             <div ref={scrollRef} onScroll={updateArrowState} className="flex gap-3 overflow-x-auto pb-2">
               {products.map((product) => (
-                <article
+                <ProductCard
                   key={product._id}
-                  className="w-[260px] shrink-0 rounded-xl border border-[#edd8bc] bg-white p-2"
-                >
-                  <img src={product.imageUrl} alt={product.title} className="h-40 w-full rounded-lg object-cover" />
-                  <p className={`mt-2 text-[11px] font-semibold ${product.inStock ? "text-green-700" : "text-red-600"}`}>
-                    {product.inStock ? "In Stock" : "Out of Stock"}
-                  </p>
-                  <h4 className="mt-1 text-sm font-bold text-[#2b2018]">{product.title}</h4>
-                  <p className="mt-1 text-xs text-[#6e5947] line-clamp-2">{product.description}</p>
-                  <p className="mt-2 text-sm font-bold text-[#8a6038]">Rs {product.price}</p>
-
-                  {isAdmin ? (
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onEdit?.(product)}
-                        className="flex-1 rounded-md bg-[#8a6038] px-2 py-1.5 text-[11px] font-semibold text-white"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onDelete?.(product._id)}
-                        className="flex-1 rounded-md border border-red-300 px-2 py-1.5 text-[11px] font-semibold text-red-700"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  ) : (
-                    <button className="mt-3 w-full rounded-md bg-[#8a6038] px-2 py-1.5 text-[11px] font-semibold text-white">
-                      Add to Cart
-                    </button>
-                  )}
-                </article>
+                  product={product}
+                  isAdmin={isAdmin}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
               ))}
             </div>
           </div>
         </div>
       )}
     </section>
+  );
+}
+
+function ProductCard({ product, isAdmin, onEdit, onDelete }) {
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
+  const numericPrice = Number(product.price) || 0;
+  const discountPct = Math.max(4, numericPrice % 37);
+
+  return (
+    <article className="w-[260px] shrink-0 rounded-xl border border-[#edd8bc] bg-white p-2">
+      <button
+        type="button"
+        onClick={() =>
+          navigate(`/product/${toProductSlug(product.title)}`, {
+            state: {
+              product: {
+                name: product.title,
+                price: numericPrice,
+                originalPrice: Math.round(numericPrice * 1.3),
+                image: product.imageUrl,
+                category: product.category,
+                inStock: product.inStock,
+                description: product.description,
+              },
+            },
+          })
+        }
+        className="w-full text-left"
+      >
+        <div className="relative overflow-hidden rounded-lg bg-white">
+          <span className="absolute right-2 top-2 rounded-full bg-[#b67d4a] px-2 py-1 text-[10px] font-semibold text-white">
+            {discountPct}% OFF
+          </span>
+          <img
+            src={product.imageUrl}
+            alt={product.title}
+            className="h-40 w-full rounded-lg object-cover"
+          />
+        </div>
+        <p className={`mt-2 text-[11px] font-semibold ${product.inStock ? "text-green-700" : "text-red-600"}`}>
+          {product.inStock ? "In Stock" : "Out of Stock"}
+        </p>
+        <h4 className="mt-1 text-sm font-bold text-[#2b2018]">{product.title}</h4>
+        <p className="mt-1 text-xs text-[#6e5947] line-clamp-2">{product.description}</p>
+        <p className="mt-2 text-sm font-bold text-[#8a6038]">
+          Rs {numericPrice} <span className="text-[#8f8f8f] line-through">Rs {Math.round(numericPrice * 1.3)}</span>
+        </p>
+      </button>
+
+      {isAdmin ? (
+        <div className="mt-3 flex gap-2">
+          <button
+            type="button"
+            onClick={() => onEdit?.(product)}
+            className="flex-1 rounded-md bg-[#8a6038] px-2 py-1.5 text-[11px] font-semibold text-white"
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete?.(product._id)}
+            className="flex-1 rounded-md border border-red-300 px-2 py-1.5 text-[11px] font-semibold text-red-700"
+          >
+            Delete
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() =>
+            addToCart({
+              id: `cat-${product._id || product.title}`,
+              name: product.title,
+              price: numericPrice,
+              originalPrice: Math.round(numericPrice * 1.3),
+              image: product.imageUrl,
+            })
+          }
+          className="mt-3 w-full rounded-md bg-[#8a6038] px-2 py-1.5 text-[11px] font-semibold text-white"
+        >
+          Add to Cart
+        </button>
+      )}
+    </article>
   );
 }

@@ -5,13 +5,16 @@ import { GoogleOAuthProvider } from '@react-oauth/google'
 import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
+import { CartProvider } from './context/CartContext.jsx'
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
 const appTree = (
   <BrowserRouter>
     <AuthProvider>
-      <App />
+      <CartProvider>
+        <App />
+      </CartProvider>
     </AuthProvider>
   </BrowserRouter>
 )

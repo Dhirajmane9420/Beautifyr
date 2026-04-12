@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import { useCart } from "../context/CartContext";
+import { toProductSlug } from "../lib/productUtils";
 
 function CategoryViewAll() {
   const location = useLocation();
@@ -151,6 +153,7 @@ function CategoryViewAll() {
                 price={`Rs ${product.price}`}
                 image={product.imageUrl}
                 inStock={product.inStock}
+                category={title}
               />
             ))}
           </div>
@@ -160,12 +163,23 @@ function CategoryViewAll() {
   );
 }
 
-function ProductCard({ title, price, image, inStock }) {
+function ProductCard({ title, price, image, inStock, category }) {
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
   const numericPrice = Number(String(price).replace(/[^0-9]/g, "")) || 0;
   const discountPct = Math.max(4, numericPrice % 37);
 
   return (
     <div className="rounded-xl border border-[#edd8bc] bg-white p-4 transition hover:shadow-xl">
+      <button
+        type="button"
+        onClick={() =>
+          navigate(`/product/${toProductSlug(title)}`, {
+            state: { product: { name: title, price: numericPrice, originalPrice: Math.round(numericPrice * 1.3), image, category } },
+          })
+        }
+        className="w-full text-left"
+      >
       <div className="relative overflow-hidden rounded-md bg-white">
         <span className="absolute right-3 top-3 rounded-full bg-[#b67d4a] px-3 py-1 text-[11px] font-semibold text-white">
           {discountPct}% OFF
@@ -180,8 +194,20 @@ function ProductCard({ title, price, image, inStock }) {
       <p className="font-bold text-[#8a6038]">
         {price} <span className="text-[#8f8f8f] line-through">Rs {Math.round(numericPrice * 1.3)}</span>
       </p>
+      </button>
 
-      <button className="mt-4 w-full rounded-lg bg-[#8a6038] py-2 text-sm text-white transition hover:bg-[#b67d4a]">
+      <button
+        onClick={() =>
+          addToCart({
+            id: `view-all-${title}`,
+            name: title,
+            price: numericPrice,
+            originalPrice: Math.round(numericPrice * 1.3),
+            image,
+          })
+        }
+        className="mt-4 w-full rounded-lg bg-[#8a6038] py-2 text-sm text-white transition hover:bg-[#b67d4a]"
+      >
         Add to Cart
       </button>
     </div>
