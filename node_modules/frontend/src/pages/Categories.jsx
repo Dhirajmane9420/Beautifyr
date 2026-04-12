@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import heroImg from "../assets/hero.jpg";
+import { useCart } from "../context/CartContext";
+import { toProductSlug } from "../lib/productUtils";
 
 const CATEGORY_PILLS = [
   "Cleansers",
@@ -469,6 +471,7 @@ function Section({ title, products, onViewAll }) {
               price={`₹${product.price}`}
               image={heroImg}
               inStock={product.inStock}
+              category={product.category}
             />
           ))}
         </div>
@@ -481,12 +484,23 @@ function Section({ title, products, onViewAll }) {
 }
 
 /* PRODUCT CARD */
-function ProductCard({ title, price, image, inStock }) {
+function ProductCard({ title, price, image, inStock, category }) {
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
   const numericPrice = Number(String(price).replace(/[^0-9]/g, "")) || 0;
   const discountPct = Math.max(4, (numericPrice % 37));
 
   return (
     <div className="min-w-65 bg-white border border-[#edd8bc] rounded-xl p-4 hover:shadow-xl transition">
+      <button
+        type="button"
+        onClick={() =>
+          navigate(`/product/${toProductSlug(title)}`, {
+            state: { product: { name: title, price: numericPrice, originalPrice: Math.round(numericPrice * 1.3), image, category } },
+          })
+        }
+        className="w-full text-left"
+      >
       <div className="bg-white rounded-md overflow-hidden relative">
         <span className="absolute right-3 top-3 rounded-full bg-[#b67d4a] px-3 py-1 text-[11px] font-semibold text-white">
           {discountPct}% OFF
@@ -499,8 +513,20 @@ function ProductCard({ title, price, image, inStock }) {
       </p>
       <h3 className="text-sm font-bold mt-3 text-[#2b2018]">{title}</h3>
       <p className="font-bold text-[#8a6038]">{price} <span className="text-[#8f8f8f] line-through">₹{Math.round(numericPrice * 1.3)}</span></p>
+      </button>
 
-      <button className="mt-4 w-full bg-[#8a6038] hover:bg-[#b67d4a] text-white py-2 rounded-lg text-sm transition">
+      <button
+        onClick={() =>
+          addToCart({
+            id: `cat-${title}`,
+            name: title,
+            price: numericPrice,
+            originalPrice: Math.round(numericPrice * 1.3),
+            image,
+          })
+        }
+        className="mt-4 w-full bg-[#8a6038] hover:bg-[#b67d4a] text-white py-2 rounded-lg text-sm transition"
+      >
         Add to Cart
       </button>
     </div>
