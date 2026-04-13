@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Eye, Shield, Share2, Truck } from "lucide-react";
 import Navbar from "../components/Navbar";
@@ -18,6 +18,7 @@ function resolveProductFromSlug(slug) {
     name: match.title,
     price: match.price,
     category: match.category,
+    description: match.description,
   });
 }
 
@@ -105,6 +106,8 @@ export default function ProductDetails() {
 
   const [quantity, setQuantity] = useState(1);
   const [selectedThumb, setSelectedThumb] = useState(0);
+  const [selectedSize, setSelectedSize] = useState("");
+  const [selectedSizeVariant, setSelectedSizeVariant] = useState(null);
 
   const reviews = useMemo(() => buildDynamicReviews(resolved), [resolved]);
 
@@ -126,29 +129,60 @@ export default function ProductDetails() {
     );
   }, [resolved.category, resolved.name]);
 
-  const images = [
-    resolved.image,
-    resolved.image,
-    resolved.image,
-    resolved.image,
-    resolved.image,
-  ];
+  const images =
+    Array.isArray(resolved.images) && resolved.images.length
+      ? resolved.images
+      : [resolved.image, resolved.image, resolved.image, resolved.image, resolved.image];
 
-  const discountPct = Math.max(
-    1,
-    Math.round(((resolved.originalPrice - resolved.price) / Math.max(resolved.originalPrice, 1)) * 100)
-  );
+  const sizeVariants = Array.isArray(resolved.sizeVariants) ? resolved.sizeVariants : [];
+  const activeSizeVariant = selectedSizeVariant || sizeVariants[0] || null;
+  const activePrice = activeSizeVariant ? Number(activeSizeVariant.price) || Number(resolved.price) || 0 : Number(resolved.price) || 0;
+  const activeOriginalPrice = activeSizeVariant
+    ? Number(activeSizeVariant.originalPrice) || activePrice
+    : Number(resolved.originalPrice) || activePrice;
+  const hasDiscount = activeOriginalPrice > activePrice;
+  const discountPct = hasDiscount
+    ? Math.max(
+        0,
+        Math.round(((activeOriginalPrice - activePrice) / Math.max(activeOriginalPrice, 1)) * 100)
+      )
+    : 0;
 
   const liquidProduct = isLiquidProduct(resolved);
+  const availableSizes = useMemo(() => {
+    if (sizeVariants.length > 0) {
+      return sizeVariants.map((variant) => variant.label);
+    }
+
+    if (Array.isArray(resolved.sizes) && resolved.sizes.length) {
+      return resolved.sizes;
+    }
+
+    if (liquidProduct) {
+      return ["125 ml", "250 ml", "500 ml"];
+    }
+
+    return [];
+  }, [liquidProduct, resolved.sizes, sizeVariants]);
+
+  useEffect(() => {
+    setSelectedThumb(0);
+    const defaultSize = availableSizes[0] || resolved.size || "";
+    setSelectedSize(defaultSize);
+    setSelectedSizeVariant(
+      sizeVariants.find((variant) => variant.label === defaultSize) || sizeVariants[0] || null
+    );
+  }, [resolved.id, resolved.size, sizeVariants, availableSizes]);
 
   const addCurrentToCart = () => {
     addToCart({
       id: resolved.id,
       name: resolved.name,
-      price: resolved.price,
-      originalPrice: resolved.originalPrice,
+      price: activePrice,
+      originalPrice: activeOriginalPrice,
       image: resolved.image,
-      size: liquidProduct ? resolved.size : "",
+      size: liquidProduct ? (selectedSize || resolved.size) : "",
+      sizeVariant: activeSizeVariant,
       quantity,
     });
   };
@@ -160,7 +194,7 @@ export default function ProductDetails() {
       <main className="mx-auto grid max-w-6xl gap-6 px-5 pb-8 pt-26 lg:grid-cols-[1fr_1fr]">
         <section>
           <div className="rounded-2xl border border-[#edd8bc] bg-white p-3 shadow-sm">
-            <img src={images[selectedThumb]} alt={resolved.name} className="h-[420px] w-full rounded-xl object-cover" />
+            <img src={images[selectedThumb]} alt={resolved.name} className="h-105 w-full rounded-xl object-cover" />
           </div>
           <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
             {images.map((src, index) => (
@@ -187,9 +221,14 @@ export default function ProductDetails() {
 
           <div className="mt-8">
             <p className="text-2xl text-[#2b2018] md:text-3xl">
-              {formatINR(resolved.price)} <span className="text-xl text-[#9f9386] line-through">{formatINR(resolved.originalPrice)}</span>
+              {formatINR(activePrice)}{" "}
+              {hasDiscount ? (
+                <span className="text-xl text-[#9f9386] line-through">{formatINR(activeOriginalPrice)}</span>
+              ) : null}
             </p>
-            <span className="mt-3 inline-flex rounded-lg bg-[#0f8b4c] px-3 py-1 text-sm font-semibold text-white">SAVE {discountPct}%</span>
+            {hasDiscount ? (
+              <span className="mt-3 inline-flex rounded-lg bg-[#0f8b4c] px-3 py-1 text-sm font-semibold text-white">SAVE {discountPct}%</span>
+            ) : null}
           </div>
 
           <p className="mt-6 inline-flex items-center gap-2 text-lg font-semibold text-[#b67d4a]"><Truck size={20} /> Get delivery in 3-5 business days.</p>
@@ -198,11 +237,31 @@ export default function ProductDetails() {
           {liquidProduct ? (
             <div className="mt-6">
               <label className="mb-2 block text-base">Size</label>
-              <select className="w-full rounded-lg border border-[#ddc4a4] bg-white px-4 py-2.5 text-base outline-none">
-                <option>{resolved.size || "125 ml"}</option>
-                <option>250 ml</option>
-                <option>500 ml</option>
+              <select
+                value={selectedSize}
+                onChange={(event) => {
+                  const nextSize = event.target.value;
+                  setSelectedSize(nextSize);
+                  setSelectedSizeVariant(sizeVariants.find((variant) => variant.label === nextSize) || null);
+                }}
+                className="w-full rounded-lg border border-[#ddc4a4] bg-white px-4 py-2.5 text-base outline-none"
+              >
+                {availableSizes.map((sizeValue) => (
+                  <option key={sizeValue} value={sizeValue}>{sizeValue}</option>
+                ))}
               </select>
+              {activeSizeVariant ? (
+                <p className="mt-2 text-sm text-[#6e5947]">
+                  Selected size price: {formatINR(activePrice)}{hasDiscount ? `, MRP ${formatINR(activeOriginalPrice)}` : ""}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {resolved.description ? (
+            <div className="mt-6 rounded-xl border border-[#eadbc6] bg-white px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#8a6038]">Product Description</p>
+              <p className="mt-2 text-sm leading-6 text-[#6e5947]">{resolved.description}</p>
             </div>
           ) : null}
 

@@ -468,7 +468,8 @@ function BestSellers() {
                 className="grid gap-x-6 gap-y-16 sm:grid-cols-2 lg:grid-cols-3"
               >
                 {visibleProducts.map((product) => {
-                  const mrp = Math.round(product.numericPrice * 1.25);
+                  const mrp = Number(product.originalPrice) || product.numericPrice;
+                  const hasDiscount = mrp > product.numericPrice;
 
                   return (
                     <motion.div layout variants={fadeUp} key={product._id} className="group cursor-pointer flex flex-col">
@@ -498,7 +499,9 @@ function BestSellers() {
                         </p>
                         <p className="mt-2 text-base font-semibold text-[#8a6038]">
                           Rs {product.numericPrice}{" "}
-                          <span className="ml-1 text-sm font-normal text-[#9d9388] line-through">Rs {mrp}</span>
+                          {hasDiscount ? (
+                            <span className="ml-1 text-sm font-normal text-[#9d9388] line-through">Rs {mrp}</span>
+                          ) : null}
                         </p>
                         <p className="mt-2 text-sm text-[#6f5a47] line-clamp-2">{product.description}</p>
 

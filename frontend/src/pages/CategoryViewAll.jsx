@@ -151,9 +151,11 @@ function CategoryViewAll() {
                 key={product._id || `${product.title}-${index}`}
                 title={product.title}
                 price={`Rs ${product.price}`}
+                originalPrice={Number(product.originalPrice) || Number(product.price) || 0}
                 image={product.imageUrl}
                 inStock={product.inStock}
                 category={title}
+                sizeVariants={product.sizeVariants}
               />
             ))}
           </div>
@@ -163,11 +165,15 @@ function CategoryViewAll() {
   );
 }
 
-function ProductCard({ title, price, image, inStock, category }) {
+function ProductCard({ title, price, originalPrice, image, inStock, category, sizeVariants }) {
   const { addToCart } = useCart();
   const navigate = useNavigate();
   const numericPrice = Number(String(price).replace(/[^0-9]/g, "")) || 0;
-  const discountPct = Math.max(4, numericPrice % 37);
+  const normalizedOriginalPrice = Number(originalPrice) || numericPrice;
+  const hasDiscount = normalizedOriginalPrice > numericPrice;
+  const discountPct = hasDiscount
+    ? Math.max(0, Math.round(((normalizedOriginalPrice - numericPrice) / Math.max(normalizedOriginalPrice, 1)) * 100))
+    : 0;
 
   return (
     <div className="rounded-xl border border-[#edd8bc] bg-white p-4 transition hover:shadow-xl">
@@ -175,15 +181,17 @@ function ProductCard({ title, price, image, inStock, category }) {
         type="button"
         onClick={() =>
           navigate(`/product/${toProductSlug(title)}`, {
-            state: { product: { name: title, price: numericPrice, originalPrice: Math.round(numericPrice * 1.3), image, category } },
+            state: { product: { name: title, price: numericPrice, originalPrice: normalizedOriginalPrice, image, category, sizeVariants } },
           })
         }
         className="w-full text-left"
       >
       <div className="relative overflow-hidden rounded-md bg-white">
-        <span className="absolute right-3 top-3 rounded-full bg-[#b67d4a] px-3 py-1 text-[11px] font-semibold text-white">
-          {discountPct}% OFF
-        </span>
+        {hasDiscount ? (
+          <span className="absolute right-3 top-3 rounded-full bg-[#b67d4a] px-3 py-1 text-[11px] font-semibold text-white">
+            {discountPct}% OFF
+          </span>
+        ) : null}
         <img src={image} alt={title} className="h-64 w-full object-cover" />
       </div>
 
@@ -192,7 +200,8 @@ function ProductCard({ title, price, image, inStock, category }) {
       </p>
       <h3 className="mt-3 text-sm font-bold text-[#2b2018]">{title}</h3>
       <p className="font-bold text-[#8a6038]">
-        {price} <span className="text-[#8f8f8f] line-through">Rs {Math.round(numericPrice * 1.3)}</span>
+        {price}{" "}
+        {hasDiscount ? <span className="text-[#8f8f8f] line-through">Rs {normalizedOriginalPrice}</span> : null}
       </p>
       </button>
 
@@ -202,8 +211,9 @@ function ProductCard({ title, price, image, inStock, category }) {
             id: `view-all-${title}`,
             name: title,
             price: numericPrice,
-            originalPrice: Math.round(numericPrice * 1.3),
+            originalPrice: normalizedOriginalPrice,
             image,
+            sizeVariant: Array.isArray(sizeVariants) && sizeVariants[0] ? sizeVariants[0] : null,
           })
         }
         className="mt-4 w-full rounded-lg bg-[#8a6038] py-2 text-sm text-white transition hover:bg-[#b67d4a]"

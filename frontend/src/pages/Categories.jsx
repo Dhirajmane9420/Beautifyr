@@ -22,6 +22,7 @@ import {
 import { toProductSlug } from "../lib/productUtils";
 
 const SECTION_OPTIONS = ["Cleansers", "Serums", "Moisturizers"];
+const MAX_PRODUCT_IMAGES = 7;
 
 const CONTENT_DEFAULTS = {
   "hero.badge": "Curated Categories",
@@ -67,15 +68,101 @@ const riseIn = {
   },
 };
 
-const buildInitialProductForm = () => ({
+const buildImageInput = (url = "") => ({
+  url,
+  file: null,
+});
+
+const buildSizeVariantInput = () => ({
+  label: "",
+  stock: "",
+  price: "",
+  originalPrice: "",
+});
+
+const normalizeSizeVariants = (entries) => {
+  if (!Array.isArray(entries)) {
+    return [];
+  }
+
+  return entries
+    .map((item) => {
+      const label = String(item?.label || "").trim();
+      const stock = Number(item?.stock);
+      const price = Number(item?.price);
+      const originalPrice = Number(item?.originalPrice);
+
+      if (!label) {
+        return null;
+      }
+
+      if (!Number.isFinite(stock) || stock < 0) {
+        return null;
+      }
+
+      if (!Number.isFinite(price) || price < 0) {
+        return null;
+      }
+
+      if (!Number.isFinite(originalPrice) || originalPrice < price) {
+        return null;
+      }
+
+      return {
+        label,
+        stock: Math.floor(stock),
+        price,
+        originalPrice,
+      };
+    })
+    .filter(Boolean);
+};
+
+const formatSizeVariants = (entries) => {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return [buildSizeVariantInput()];
+  }
+
+  return entries.map((item) => ({
+    label: String(item?.label || ""),
+    stock: String(item?.stock ?? ""),
+    price: String(item?.price ?? ""),
+    originalPrice: String(item?.originalPrice ?? ""),
+  }));
+};
+
+const resolveSectionFromCategory = (categoryValue, fallbackSection = "Cleansers") => {
+  const normalized = String(categoryValue || "").trim().toLowerCase();
+
+  if (normalized === "cleansers" || normalized.includes("cleanser")) {
+    return "Cleansers";
+  }
+
+  if (normalized === "serums" || normalized.includes("serum")) {
+    return "Serums";
+  }
+
+  if (normalized === "moisturizers" || normalized.includes("moisturizer")) {
+    return "Moisturizers";
+  }
+
+  return SECTION_OPTIONS.includes(fallbackSection) ? fallbackSection : "Cleansers";
+};
+
+const buildInitialProductForm = (defaultCategory = "") => ({
   title: "",
   description: "",
-  price: "",
+  originalPrice: "",
+  discountedPrice: "",
   inStock: true,
-  section: "Cleansers",
-  category: "Cleansers",
-  imageUrl: "",
+  existingSection: "Cleansers",
+  category: defaultCategory,
+  imageInputs: [buildImageInput()],
+  sizeVariants: [buildSizeVariantInput()],
 });
+
+const matchesCategory = (product, categoryName) =>
+  String(product?.category || "").trim().toLowerCase() === String(categoryName || "").trim().toLowerCase();
 
 export default function CategoriesPage() {
   const navigate = useNavigate();
@@ -93,12 +180,10 @@ export default function CategoriesPage() {
 
   const [newCategoryName, setNewCategoryName] = useState("");
 
-  const [newProductForm, setNewProductForm] = useState(buildInitialProductForm());
-  const [newProductFile, setNewProductFile] = useState(null);
+  const [newProductForm, setNewProductForm] = useState(buildInitialProductForm("Cleansers"));
 
   const [editingProductId, setEditingProductId] = useState(null);
-  const [editingProductForm, setEditingProductForm] = useState(buildInitialProductForm());
-  const [editingProductFile, setEditingProductFile] = useState(null);
+  const [editingProductForm, setEditingProductForm] = useState(buildInitialProductForm("Cleansers"));
 
   const [contentDraft, setContentDraft] = useState(CONTENT_DEFAULTS);
 
@@ -165,21 +250,44 @@ export default function CategoriesPage() {
     return Array.from(new Set(names));
   }, [categories]);
 
+  const categoryDropdownOptions = useMemo(() => {
+    return pillNames.length ? pillNames : ["Cleansers"];
+  }, [pillNames]);
+
+  const editingCategoryOptions = useMemo(() => {
+    const values = new Set(categoryDropdownOptions);
+    if (editingProductForm.category) {
+      values.add(editingProductForm.category);
+    }
+    return Array.from(values);
+  }, [categoryDropdownOptions, editingProductForm.category]);
+
+  useEffect(() => {
+    const defaultCategory = categoryDropdownOptions[0] || "Cleansers";
+
+    setNewProductForm((current) => {
+      if (current.category) {
+        return current;
+      }
+
+      return {
+        ...current,
+        category: defaultCategory,
+      };
+    });
+  }, [categoryDropdownOptions]);
+
   const selectedCategoryProducts = useMemo(() => {
     if (!selectedCategory) return [];
 
-    if (SECTION_OPTIONS.includes(selectedCategory)) {
-      return products.filter((item) => item.section === selectedCategory);
-    }
-
-    return products.filter((item) => item.category === selectedCategory);
+    return products.filter((item) => matchesCategory(item, selectedCategory));
   }, [products, selectedCategory]);
 
   const sectionProducts = useMemo(() => {
     return {
-      Cleansers: products.filter((item) => item.section === "Cleansers"),
-      Serums: products.filter((item) => item.section === "Serums"),
-      Moisturizers: products.filter((item) => item.section === "Moisturizers"),
+      Cleansers: products.filter((item) => matchesCategory(item, "Cleansers")),
+      Serums: products.filter((item) => matchesCategory(item, "Serums")),
+      Moisturizers: products.filter((item) => matchesCategory(item, "Moisturizers")),
     };
   }, [products]);
 
@@ -221,10 +329,7 @@ export default function CategoriesPage() {
     navigate("/categories/view-all", {
       state: {
         title,
-        products: (SECTION_OPTIONS.includes(title)
-          ? products.filter((item) => item.section === title)
-          : products.filter((item) => item.category === title)
-        ).map((item) => ({
+        products: products.filter((item) => matchesCategory(item, title)).map((item) => ({
           ...item,
           price: Number(item.price),
         })),
@@ -232,32 +337,197 @@ export default function CategoriesPage() {
     });
   };
 
-  const toPayload = (form, imageUrl) => ({
-    title: form.title.trim(),
-    description: form.description.trim(),
-    price: Number(form.price),
-    inStock: Boolean(form.inStock),
-    section: form.section,
-    category: form.category.trim(),
-    imageUrl,
-  });
+  const updateImageInput = (setFormState, index, patch) => {
+    setFormState((current) => {
+      const imageInputs = [...current.imageInputs];
+      imageInputs[index] = {
+        ...imageInputs[index],
+        ...patch,
+      };
+
+      return {
+        ...current,
+        imageInputs,
+      };
+    });
+  };
+
+  const addImageInput = (setFormState) => {
+    setFormState((current) => {
+      if (current.imageInputs.length >= MAX_PRODUCT_IMAGES) {
+        return current;
+      }
+
+      return {
+        ...current,
+        imageInputs: [...current.imageInputs, buildImageInput()],
+      };
+    });
+  };
+
+  const removeImageInput = (setFormState, index) => {
+    setFormState((current) => {
+      if (current.imageInputs.length === 1) {
+        return {
+          ...current,
+          imageInputs: [buildImageInput()],
+        };
+      }
+
+      return {
+        ...current,
+        imageInputs: current.imageInputs.filter((_, idx) => idx !== index),
+      };
+    });
+  };
+
+  const updateSizeVariant = (setFormState, index, patch) => {
+    setFormState((current) => {
+      const sizeVariants = [...current.sizeVariants];
+      sizeVariants[index] = {
+        ...sizeVariants[index],
+        ...patch,
+      };
+
+      return {
+        ...current,
+        sizeVariants,
+      };
+    });
+  };
+
+  const addSizeVariant = (setFormState) => {
+    setFormState((current) => ({
+      ...current,
+      sizeVariants: [...current.sizeVariants, buildSizeVariantInput()],
+    }));
+  };
+
+  const removeSizeVariant = (setFormState, index) => {
+    setFormState((current) => {
+      if (current.sizeVariants.length === 1) {
+        return { ...current, sizeVariants: [buildSizeVariantInput()] };
+      }
+
+      return {
+        ...current,
+        sizeVariants: current.sizeVariants.filter((_, idx) => idx !== index),
+      };
+    });
+  };
+
+  const resolveImageUrls = async (imageInputs) => {
+    const resolved = [];
+
+    for (const input of imageInputs.slice(0, MAX_PRODUCT_IMAGES)) {
+      let imageUrl = String(input?.url || "").trim();
+
+      if (input?.file) {
+        if (input.file.size > 10 * 1024 * 1024) {
+          throw new Error("Each image must be 10MB or smaller.");
+        }
+        imageUrl = await uploadCatalogProductImage(input.file);
+      }
+
+      if (imageUrl) {
+        resolved.push(imageUrl);
+      }
+    }
+
+    return Array.from(new Set(resolved));
+  };
+
+  const toPayload = (form, resolvedImageUrls) => {
+    const discountedPrice = Number(form.discountedPrice);
+    const originalPrice = Number(form.originalPrice);
+    const sizeVariants = normalizeSizeVariants(form.sizeVariants);
+    const imageUrls = resolvedImageUrls.slice(0, MAX_PRODUCT_IMAGES);
+    const imageUrl = imageUrls[0] || "";
+
+    return {
+      title: form.title.trim(),
+      description: form.description.trim(),
+      price: discountedPrice,
+      discountedPrice,
+      originalPrice,
+      inStock: Boolean(form.inStock),
+      section: resolveSectionFromCategory(form.category, form.existingSection),
+      category: form.category.trim(),
+      imageUrl,
+      imageUrls,
+      sizeVariants,
+      sizeStock: sizeVariants.map((variant) => ({ label: variant.label, stock: variant.stock })),
+    };
+  };
+
+  const validateProductForm = (form) => {
+    if (!form.title.trim()) {
+      return "Product title is required.";
+    }
+
+    if (!form.description.trim()) {
+      return "Product description is required.";
+    }
+
+    if (form.description.trim().length > 3000) {
+      return "Description is too long. Keep it under 3000 characters.";
+    }
+
+    const originalPrice = Number(form.originalPrice);
+    const discountedPrice = Number(form.discountedPrice);
+
+    if (!Number.isFinite(originalPrice) || originalPrice < 0) {
+      return "Original price must be a valid non-negative number.";
+    }
+
+    if (!Number.isFinite(discountedPrice) || discountedPrice < 0) {
+      return "Discounted price must be a valid non-negative number.";
+    }
+
+    if (originalPrice < discountedPrice) {
+      return "Original price must be greater than or equal to discounted price.";
+    }
+
+    if (!form.category.trim()) {
+      return "Please select a category.";
+    }
+
+    const sizeVariants = normalizeSizeVariants(form.sizeVariants);
+    if (sizeVariants.length === 0) {
+      return "Add at least one size with stock and prices.";
+    }
+
+    const hasMissingFields = form.sizeVariants.some((variant) => {
+      return !String(variant?.label || "").trim() || variant.price === "" || variant.originalPrice === "" || variant.stock === "";
+    });
+
+    if (hasMissingFields) {
+      return "Each size must include size, stock, actual price, and discount price.";
+    }
+
+    return null;
+  };
 
   const handleCreateProduct = async () => {
     try {
       setIsSaving(true);
       setAdminNotice("");
 
-      let imageUrl = newProductForm.imageUrl.trim();
-      if (newProductFile) {
-        imageUrl = await uploadCatalogProductImage(newProductFile);
+      const validationError = validateProductForm(newProductForm);
+      if (validationError) {
+        throw new Error(validationError);
       }
 
-      const payload = toPayload(newProductForm, imageUrl);
+      const imageUrls = await resolveImageUrls(newProductForm.imageInputs);
+      if (imageUrls.length === 0) {
+        throw new Error("Add at least one image using URL or browse.");
+      }
+
+      const payload = toPayload(newProductForm, imageUrls);
       const created = await createCatalogProduct(payload);
 
       setProducts((current) => [created, ...current]);
-      setNewProductForm(buildInitialProductForm());
-      setNewProductFile(null);
+      setNewProductForm(buildInitialProductForm(categoryDropdownOptions[0] || "Cleansers"));
       setAdminNotice("Product created.");
     } catch (error) {
       setAdminNotice(error.message || "Failed to create product.");
@@ -267,17 +537,32 @@ export default function CategoriesPage() {
   };
 
   const openEditModal = (product) => {
+    const existingImageUrls = Array.from(
+      new Set(
+        [
+          ...(Array.isArray(product.imageUrls) ? product.imageUrls : []),
+          product.imageUrl,
+        ].filter(Boolean)
+      )
+    ).slice(0, MAX_PRODUCT_IMAGES);
+
     setEditingProductId(product._id);
     setEditingProductForm({
       title: product.title || "",
       description: product.description || "",
-      price: String(product.price || ""),
+      originalPrice: String(product.originalPrice || Number(product.price) || 0),
+      discountedPrice: String(product.price || ""),
       inStock: Boolean(product.inStock),
-      section: product.section || "Cleansers",
+      existingSection: product.section || "Cleansers",
       category: product.category || "",
-      imageUrl: product.imageUrl || "",
+      imageInputs: (existingImageUrls.length ? existingImageUrls : [""]).map((url) => buildImageInput(url)),
+      sizeVariants: formatSizeVariants(product.sizeVariants && product.sizeVariants.length ? product.sizeVariants : (product.sizeStock || []).map((item) => ({
+        label: item?.label || "",
+        stock: item?.stock,
+        price: product.price,
+        originalPrice: product.originalPrice || product.price,
+      }))),
     });
-    setEditingProductFile(null);
   };
 
   const handleUpdateProduct = async () => {
@@ -287,17 +572,21 @@ export default function CategoriesPage() {
       setIsSaving(true);
       setAdminNotice("");
 
-      let imageUrl = editingProductForm.imageUrl.trim();
-      if (editingProductFile) {
-        imageUrl = await uploadCatalogProductImage(editingProductFile);
+      const validationError = validateProductForm(editingProductForm);
+      if (validationError) {
+        throw new Error(validationError);
       }
 
-      const payload = toPayload(editingProductForm, imageUrl);
+      const imageUrls = await resolveImageUrls(editingProductForm.imageInputs);
+      if (imageUrls.length === 0) {
+        throw new Error("Add at least one image using URL or browse.");
+      }
+
+      const payload = toPayload(editingProductForm, imageUrls);
       const updated = await updateCatalogProduct(editingProductId, payload);
 
       setProducts((current) => current.map((item) => (item._id === editingProductId ? updated : item)));
       setEditingProductId(null);
-      setEditingProductFile(null);
       setAdminNotice("Product updated.");
     } catch (error) {
       setAdminNotice(error.message || "Failed to update product.");
@@ -424,13 +713,13 @@ export default function CategoriesPage() {
       <Navbar />
 
       <motion.section
-        className="flex flex-col lg:flex-row w-full max-w-[1440px] mx-auto min-h-[650px] px-6 lg:px-12 items-center pt-24"
+        className="flex flex-col lg:flex-row w-full max-w-360 mx-auto min-h-162.5 px-6 lg:px-12 items-center pt-24"
         initial="hidden"
         animate="show"
         variants={sectionStagger}
       >
-        <motion.div variants={riseIn} className="w-full lg:w-1/2 relative h-[420px] flex items-center justify-center">
-          <div className="absolute inset-0 bg-gradient-to-tr from-[#ffbda7]/20 to-transparent blur-3xl rounded-full"></div>
+        <motion.div variants={riseIn} className="w-full lg:w-1/2 relative h-105 flex items-center justify-center">
+          <div className="absolute inset-0 bg-linear-to-tr from-[#ffbda7]/20 to-transparent blur-3xl rounded-full"></div>
           <div className="relative z-10 rounded-2xl border border-[#edd8bc] bg-white p-4 shadow-xl">
             <img
               src={pageContent["hero.image"]}
@@ -645,6 +934,12 @@ export default function CategoriesPage() {
               <h3 className="text-lg font-semibold text-[#6f4a2b]">Admin Product Manager</h3>
             </div>
 
+            {adminNotice ? (
+              <p className="mb-3 rounded-lg border border-[#e8d4bc] bg-[#fff9f1] px-3 py-2 text-sm text-[#8a6038]">
+                {adminNotice}
+              </p>
+            ) : null}
+
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
               <input
                 value={newProductForm.title}
@@ -655,42 +950,41 @@ export default function CategoriesPage() {
                 className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
               />
               <input
-                value={newProductForm.price}
+                value={newProductForm.originalPrice}
                 onChange={(event) =>
-                  setNewProductForm((current) => ({ ...current, price: event.target.value }))
+                  setNewProductForm((current) => ({ ...current, originalPrice: event.target.value }))
                 }
-                placeholder="Price"
+                placeholder="Original price"
                 type="number"
                 min="0"
                 className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
               />
-              <select
-                value={newProductForm.section}
-                onChange={(event) =>
-                  setNewProductForm((current) => ({ ...current, section: event.target.value }))
-                }
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              >
-                {SECTION_OPTIONS.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
               <input
+                value={newProductForm.discountedPrice}
+                onChange={(event) =>
+                  setNewProductForm((current) => ({ ...current, discountedPrice: event.target.value }))
+                }
+                placeholder="Discounted price"
+                type="number"
+                min="0"
+                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <select
                 value={newProductForm.category}
                 onChange={(event) =>
                   setNewProductForm((current) => ({ ...current, category: event.target.value }))
                 }
-                list="category-options"
-                placeholder="Category tag"
                 className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-              <datalist id="category-options">
-                {pillNames.map((name) => (
-                  <option key={name} value={name} />
+              >
+                {categoryDropdownOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
                 ))}
-              </datalist>
+              </select>
             </div>
 
             <textarea
@@ -703,29 +997,98 @@ export default function CategoriesPage() {
               className="mt-3 w-full rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
             />
 
-            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <input
-                value={newProductForm.imageUrl}
-                onChange={(event) =>
-                  setNewProductForm((current) => ({ ...current, imageUrl: event.target.value }))
-                }
-                placeholder="Image URL (optional if uploading file)"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (!file) return;
-                  if (file.size > 10 * 1024 * 1024) {
-                    setAdminNotice("Image must be 10MB or smaller.");
-                    return;
-                  }
-                  setNewProductFile(file);
-                }}
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
+            <div className="mt-3 space-y-2">
+              {newProductForm.imageInputs.map((input, index) => (
+                <div key={`new-image-${index}`} className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_220px_auto]">
+                  <input
+                    value={input.url}
+                    onChange={(event) => updateImageInput(setNewProductForm, index, { url: event.target.value })}
+                    placeholder={`Image ${index + 1} URL`}
+                    className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] || null;
+                      if (file && file.size > 10 * 1024 * 1024) {
+                        setAdminNotice("Each image must be 10MB or smaller.");
+                        return;
+                      }
+                      updateImageInput(setNewProductForm, index, { file });
+                    }}
+                    className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImageInput(setNewProductForm, index)}
+                    className="rounded-lg border border-[#d3b48f] px-3 py-2 text-sm text-[#8a6038]"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => addImageInput(setNewProductForm)}
+                disabled={newProductForm.imageInputs.length >= MAX_PRODUCT_IMAGES}
+                className="rounded-lg border border-[#d3b48f] px-3 py-2 text-sm font-semibold text-[#8a6038] disabled:opacity-50"
+              >
+                + Add Image ({newProductForm.imageInputs.length}/{MAX_PRODUCT_IMAGES})
+              </button>
+            </div>
+
+            <div className="mt-3 space-y-2">
+              {newProductForm.sizeVariants.map((variant, index) => (
+                <div key={`new-size-${index}`} className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_110px_110px_110px_auto]">
+                  <input
+                    value={variant.label}
+                    onChange={(event) => updateSizeVariant(setNewProductForm, index, { label: event.target.value })}
+                    placeholder="Size (e.g. 50 ml)"
+                    className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
+                  />
+                  <input
+                    value={variant.stock}
+                    onChange={(event) => updateSizeVariant(setNewProductForm, index, { stock: event.target.value })}
+                    type="number"
+                    min="0"
+                    placeholder="Stock"
+                    className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
+                  />
+                  <input
+                    value={variant.originalPrice}
+                    onChange={(event) => updateSizeVariant(setNewProductForm, index, { originalPrice: event.target.value })}
+                    type="number"
+                    min="0"
+                    placeholder="Actual price"
+                    className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
+                  />
+                  <input
+                    value={variant.price}
+                    onChange={(event) => updateSizeVariant(setNewProductForm, index, { price: event.target.value })}
+                    type="number"
+                    min="0"
+                    placeholder="Discount price"
+                    className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeSizeVariant(setNewProductForm, index)}
+                    className="rounded-lg border border-[#d3b48f] px-3 py-2 text-sm text-[#8a6038]"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => addSizeVariant(setNewProductForm)}
+                className="rounded-lg border border-[#d3b48f] px-3 py-2 text-sm font-semibold text-[#8a6038]"
+              >
+                + Add Size Variant
+              </button>
             </div>
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
@@ -819,7 +1182,6 @@ export default function CategoriesPage() {
                 type="button"
                 onClick={() => {
                   setEditingProductId(null);
-                  setEditingProductFile(null);
                 }}
                 className="text-sm text-[#6e5947]"
               >
@@ -837,39 +1199,40 @@ export default function CategoriesPage() {
                 className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
               />
               <input
-                value={editingProductForm.price}
+                value={editingProductForm.originalPrice}
                 onChange={(event) =>
-                  setEditingProductForm((current) => ({ ...current, price: event.target.value }))
+                  setEditingProductForm((current) => ({ ...current, originalPrice: event.target.value }))
                 }
                 type="number"
                 min="0"
-                placeholder="Price"
+                placeholder="Original price"
+                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
+              />
+
+              <input
+                value={editingProductForm.discountedPrice}
+                onChange={(event) =>
+                  setEditingProductForm((current) => ({ ...current, discountedPrice: event.target.value }))
+                }
+                type="number"
+                min="0"
+                placeholder="Discounted price"
                 className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
               />
 
               <select
-                value={editingProductForm.section}
-                onChange={(event) =>
-                  setEditingProductForm((current) => ({ ...current, section: event.target.value }))
-                }
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              >
-                {SECTION_OPTIONS.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-
-              <input
                 value={editingProductForm.category}
                 onChange={(event) =>
                   setEditingProductForm((current) => ({ ...current, category: event.target.value }))
                 }
-                list="category-options"
-                placeholder="Category"
                 className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
+              >
+                {editingCategoryOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <textarea
@@ -882,29 +1245,98 @@ export default function CategoriesPage() {
               className="mt-3 w-full rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
             />
 
-            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <input
-                value={editingProductForm.imageUrl}
-                onChange={(event) =>
-                  setEditingProductForm((current) => ({ ...current, imageUrl: event.target.value }))
-                }
-                placeholder="Image URL"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (!file) return;
-                  if (file.size > 10 * 1024 * 1024) {
-                    setAdminNotice("Image must be 10MB or smaller.");
-                    return;
-                  }
-                  setEditingProductFile(file);
-                }}
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
+            <div className="mt-3 space-y-2">
+              {editingProductForm.imageInputs.map((input, index) => (
+                <div key={`edit-image-${index}`} className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_220px_auto]">
+                  <input
+                    value={input.url}
+                    onChange={(event) => updateImageInput(setEditingProductForm, index, { url: event.target.value })}
+                    placeholder={`Image ${index + 1} URL`}
+                    className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] || null;
+                      if (file && file.size > 10 * 1024 * 1024) {
+                        setAdminNotice("Each image must be 10MB or smaller.");
+                        return;
+                      }
+                      updateImageInput(setEditingProductForm, index, { file });
+                    }}
+                    className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImageInput(setEditingProductForm, index)}
+                    className="rounded-lg border border-[#d3b48f] px-3 py-2 text-sm text-[#8a6038]"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => addImageInput(setEditingProductForm)}
+                disabled={editingProductForm.imageInputs.length >= MAX_PRODUCT_IMAGES}
+                className="rounded-lg border border-[#d3b48f] px-3 py-2 text-sm font-semibold text-[#8a6038] disabled:opacity-50"
+              >
+                + Add Image ({editingProductForm.imageInputs.length}/{MAX_PRODUCT_IMAGES})
+              </button>
+            </div>
+
+            <div className="mt-3 space-y-2">
+              {editingProductForm.sizeVariants.map((variant, index) => (
+                <div key={`edit-size-${index}`} className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_110px_110px_110px_auto]">
+                  <input
+                    value={variant.label}
+                    onChange={(event) => updateSizeVariant(setEditingProductForm, index, { label: event.target.value })}
+                    placeholder="Size (e.g. 50 ml)"
+                    className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
+                  />
+                  <input
+                    value={variant.stock}
+                    onChange={(event) => updateSizeVariant(setEditingProductForm, index, { stock: event.target.value })}
+                    type="number"
+                    min="0"
+                    placeholder="Stock"
+                    className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
+                  />
+                  <input
+                    value={variant.originalPrice}
+                    onChange={(event) => updateSizeVariant(setEditingProductForm, index, { originalPrice: event.target.value })}
+                    type="number"
+                    min="0"
+                    placeholder="Actual price"
+                    className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
+                  />
+                  <input
+                    value={variant.price}
+                    onChange={(event) => updateSizeVariant(setEditingProductForm, index, { price: event.target.value })}
+                    type="number"
+                    min="0"
+                    placeholder="Discount price"
+                    className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeSizeVariant(setEditingProductForm, index)}
+                    className="rounded-lg border border-[#d3b48f] px-3 py-2 text-sm text-[#8a6038]"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => addSizeVariant(setEditingProductForm)}
+                className="rounded-lg border border-[#d3b48f] px-3 py-2 text-sm font-semibold text-[#8a6038]"
+              >
+                + Add Size Variant
+              </button>
             </div>
 
             <div className="mt-4 flex items-center justify-between">
@@ -1037,7 +1469,7 @@ function Section({ title, products, content, onViewAll, isAdmin, onEdit, onDelet
             viewport={{ once: true, amount: 0.35 }}
             transition={{ duration: 0.55, ease: "easeOut" }}
           >
-            <img src={content.image} alt={content.title} className="h-[260px] w-full object-cover" />
+            <img src={content.image} alt={content.title} className="h-65 w-full object-cover" />
             <div className="p-4">
               <h3 className="text-2xl font-bold text-[#2b2018]">{content.title}</h3>
               <p className="mt-2 text-sm text-[#6e5947]">{content.subtitle}</p>
@@ -1094,10 +1526,14 @@ function ProductCard({ product, isAdmin, onEdit, onDelete }) {
   const { addToCart } = useCart();
   const navigate = useNavigate();
   const numericPrice = Number(product.price) || 0;
-  const discountPct = Math.max(4, numericPrice % 37);
+  const numericOriginalPrice = Number(product.originalPrice) || numericPrice;
+  const hasDiscount = numericOriginalPrice > numericPrice;
+  const discountPct = hasDiscount
+    ? Math.max(0, Math.round(((numericOriginalPrice - numericPrice) / Math.max(numericOriginalPrice, 1)) * 100))
+    : 0;
 
   return (
-    <article className="w-[260px] shrink-0 rounded-xl border border-[#edd8bc] bg-white p-2">
+    <article className="w-65 shrink-0 rounded-xl border border-[#edd8bc] bg-white p-2">
       <button
         type="button"
         onClick={() =>
@@ -1106,11 +1542,20 @@ function ProductCard({ product, isAdmin, onEdit, onDelete }) {
               product: {
                 name: product.title,
                 price: numericPrice,
-                originalPrice: Math.round(numericPrice * 1.3),
+                originalPrice: numericOriginalPrice,
                 image: product.imageUrl,
+                images: product.imageUrls,
                 category: product.category,
                 inStock: product.inStock,
                 description: product.description,
+                sizeVariants: Array.isArray(product.sizeVariants)
+                  ? product.sizeVariants
+                  : (Array.isArray(product.sizeStock) ? product.sizeStock : []).map((entry) => ({
+                      label: entry?.label,
+                      stock: entry?.stock,
+                      price: numericPrice,
+                      originalPrice: numericOriginalPrice,
+                    })),
               },
             },
           })
@@ -1118,9 +1563,11 @@ function ProductCard({ product, isAdmin, onEdit, onDelete }) {
         className="w-full text-left"
       >
         <div className="relative overflow-hidden rounded-lg bg-white">
-          <span className="absolute right-2 top-2 rounded-full bg-[#b67d4a] px-2 py-1 text-[10px] font-semibold text-white">
-            {discountPct}% OFF
-          </span>
+          {hasDiscount ? (
+            <span className="absolute right-2 top-2 rounded-full bg-[#b67d4a] px-2 py-1 text-[10px] font-semibold text-white">
+              {discountPct}% OFF
+            </span>
+          ) : null}
           <img
             src={product.imageUrl}
             alt={product.title}
@@ -1133,7 +1580,8 @@ function ProductCard({ product, isAdmin, onEdit, onDelete }) {
         <h4 className="mt-1 text-sm font-bold text-[#2b2018]">{product.title}</h4>
         <p className="mt-1 text-xs text-[#6e5947] line-clamp-2">{product.description}</p>
         <p className="mt-2 text-sm font-bold text-[#8a6038]">
-          Rs {numericPrice} <span className="text-[#8f8f8f] line-through">Rs {Math.round(numericPrice * 1.3)}</span>
+          Rs {numericPrice}{" "}
+          {hasDiscount ? <span className="text-[#8f8f8f] line-through">Rs {numericOriginalPrice}</span> : null}
         </p>
       </button>
 
@@ -1162,8 +1610,11 @@ function ProductCard({ product, isAdmin, onEdit, onDelete }) {
               id: `cat-${product._id || product.title}`,
               name: product.title,
               price: numericPrice,
-              originalPrice: Math.round(numericPrice * 1.3),
+              originalPrice: numericOriginalPrice,
               image: product.imageUrl,
+              sizeVariant: Array.isArray(product.sizeVariants) && product.sizeVariants[0]
+                ? product.sizeVariants[0]
+                : null,
             })
           }
           className="mt-3 w-full rounded-md bg-[#8a6038] px-2 py-1.5 text-[11px] font-semibold text-white"

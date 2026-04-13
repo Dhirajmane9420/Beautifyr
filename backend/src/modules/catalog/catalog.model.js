@@ -6,18 +6,23 @@ const catalogProductSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      maxlength: 140,
+      maxlength: 220,
     },
     description: {
       type: String,
       required: true,
       trim: true,
-      maxlength: 500,
+      maxlength: 3000,
     },
     price: {
       type: Number,
       required: true,
       min: 0,
+    },
+    originalPrice: {
+      type: Number,
+      min: 0,
+      default: null,
     },
     inStock: {
       type: Boolean,
@@ -38,6 +43,58 @@ const catalogProductSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+    },
+    imageUrls: {
+      type: [String],
+      default: [],
+    },
+    sizeStock: {
+      type: [
+        {
+          label: {
+            type: String,
+            trim: true,
+            required: true,
+          },
+          stock: {
+            type: Number,
+            min: 0,
+            default: 0,
+          },
+        },
+      ],
+      default: [],
+    },
+    sizeVariants: {
+      type: [
+        {
+          label: {
+            type: String,
+            trim: true,
+            required: true,
+          },
+          stock: {
+            type: Number,
+            min: 0,
+            default: 0,
+          },
+          price: {
+            type: Number,
+            min: 0,
+            default: 0,
+          },
+          originalPrice: {
+            type: Number,
+            min: 0,
+            default: 0,
+          },
+        },
+      ],
+      default: [],
+    },
+    features: {
+      type: [String],
+      default: [],
     },
   },
   {
