@@ -114,6 +114,21 @@ function Navbar() {
     };
   }, [isMenuOpen]);
 
+  useEffect(() => {
+    const isDesktop = window.innerWidth >= 768;
+    const previousPaddingTop = document.body.style.paddingTop;
+
+    if (isSearchOpen && isDesktop) {
+      document.body.style.paddingTop = `calc(${previousPaddingTop || "0px"} + 13rem)`;
+    } else {
+      document.body.style.paddingTop = previousPaddingTop;
+    }
+
+    return () => {
+      document.body.style.paddingTop = previousPaddingTop;
+    };
+  }, [isSearchOpen]);
+
   return (
     <header
       className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${

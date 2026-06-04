@@ -59,7 +59,7 @@ function App() {
         <button
           type="button"
           onClick={dismissToast}
-          className="fixed bottom-6 right-6 z-[70] rounded-xl bg-[#2d2219] px-4 py-3 text-sm font-medium text-[#fff7ee] shadow-lg"
+          className="fixed bottom-6 right-6 z-70 rounded-xl bg-[#2d2219] px-4 py-3 text-sm font-medium text-[#fff7ee] shadow-lg"
         >
           {toast.message}
         </button>

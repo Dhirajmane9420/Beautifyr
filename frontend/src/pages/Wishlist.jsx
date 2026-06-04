@@ -1,54 +1,19 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { ArrowRight, Heart, ShoppingBag, Sparkles, Trash2 } from "lucide-react";
-import heroImg from "../assets/hero.jpg";
+import { useWishlist } from "../context/WishlistContext";
 
 function Wishlist() {
   const navigate = useNavigate();
-  
-  // FIXED BUG: Replaced hardcoded string paths with the imported heroImg variable
-  const [wishlist, setWishlist] = useState([
-    {
-      id: 1,
-      name: "Hydrating Serum",
-      desc: "Deep hydration for glowing skin",
-      price: "₹1,299",
-      image: heroImg,
-    },
-    {
-      id: 2,
-      name: "Vitamin C Cream",
-      desc: "Brightens and evens tone",
-      price: "₹999",
-      image: heroImg,
-    },
-    {
-      id: 3,
-      name: "Niacinamide Booster",
-      desc: "Reduces pores & controls oil",
-      price: "₹1,199",
-      image: heroImg,
-    },
-    {
-      id: 4,
-      name: "Sunscreen SPF 50",
-      desc: "Lightweight daily protection",
-      price: "₹799",
-      image: heroImg,
-    },
-  ]);
-
-  const removeItem = (id) => {
-    setWishlist(wishlist.filter((item) => item.id !== id));
-  };
+  const { wishlistItems, removeFromWishlist } = useWishlist();
 
   const totalValue = useMemo(() => {
-    return wishlist
-      .map((item) => Number(item.price.replace(/[^0-9]/g, "")))
+    return wishlistItems
+      .map((item) => Number(item.price) || 0)
       .reduce((sum, value) => sum + value, 0);
-  }, [wishlist]);
+  }, [wishlistItems]);
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#FCFAF8] text-[#2A2520]">
@@ -77,7 +42,7 @@ function Wishlist() {
 
             <div className="mt-8 flex flex-wrap gap-3 text-sm font-medium">
               <span className="rounded-full border border-[#d7c8af] bg-[#fff8ec] px-5 py-2.5 text-[#7A6E62]">
-                {wishlist.length} saved picks
+                {wishlistItems.length} saved picks
               </span>
               <span className="rounded-full border border-[#d7c8af] bg-[#fff8ec] px-5 py-2.5 text-[#7A6E62]">
                 Total value: ₹{totalValue.toLocaleString("en-IN")}
@@ -104,7 +69,7 @@ function Wishlist() {
         </section>
 
         {/* Empty State vs Populated State */}
-        {wishlist.length === 0 ? (
+        {wishlistItems.length === 0 ? (
           <section className="mx-auto mt-10 max-w-7xl">
             <div className="rounded-[34px] border border-dashed border-[#d9c6a8] bg-[#fff7eb] p-12 md:p-20 text-center shadow-[0_18px_48px_-34px_rgba(34,42,50,0.55)]">
               <h2 className="text-3xl md:text-4xl text-[#2A2520]" style={{ fontFamily: '"Bodoni Moda", "Times New Roman", serif' }}>
@@ -126,7 +91,7 @@ function Wishlist() {
         ) : (
           <section className="mx-auto mt-10 max-w-7xl">
             <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 xl:grid-cols-3">
-              {wishlist.map((item, index) => (
+              {wishlistItems.map((item, index) => (
                 <article
                   key={item.id}
                   className="group relative flex flex-col overflow-hidden rounded-[26px] border border-[#e6d6bc] bg-[#fffdf7] p-4 shadow-[0_18px_46px_-34px_rgba(28,33,39,0.65)] transition duration-500 hover:-translate-y-1 hover:shadow-[0_28px_62px_-34px_rgba(27,39,53,0.75)]"
@@ -136,13 +101,13 @@ function Wishlist() {
 
                   <div className="relative overflow-hidden rounded-2xl bg-[#f4ebe1]">
                     <img
-                      src={item.image}
+                      src={item.image || "https://via.placeholder.com/600x800?text=Wishlist"}
                       alt={item.name}
                       className="h-60 w-full object-cover transition duration-700 group-hover:scale-105"
                     />
 
                     <button
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => removeFromWishlist(item.id)}
                       className="absolute right-3 top-3 rounded-full border border-white/70 bg-white/85 p-2 text-[#c95252] shadow-sm backdrop-blur transition hover:bg-white hover:scale-105"
                       aria-label={`Remove ${item.name} from wishlist`}
                     >
@@ -158,7 +123,7 @@ function Wishlist() {
                     <p className="mt-2 flex-grow text-sm leading-relaxed text-[#7A6E62]">{item.desc}</p>
 
                     <div className="mt-5 flex items-center justify-between">
-                      <p className="text-xl font-semibold text-[#8a6038]">{item.price}</p>
+                      <p className="text-xl font-semibold text-[#8a6038]">₹{Number(item.price || 0).toLocaleString("en-IN")}</p>
                       <span className="rounded-full border border-[#e1cfb3] bg-[#fff3e2] px-3 py-1 text-[11px] font-semibold tracking-wide text-[#8b6a44] uppercase">
                         Limited stock
                       </span>
@@ -171,7 +136,7 @@ function Wishlist() {
                       </button>
 
                       <button
-                        onClick={() => removeItem(item.id)}
+                        onClick={() => removeFromWishlist(item.id)}
                         className="inline-flex items-center justify-center rounded-full border border-[#e1cfb3] px-4 text-[#7a5b38] transition duration-300 hover:bg-[#fff4e4] hover:text-[#c95252] hover:border-[#c95252]/30"
                         aria-label={`Delete ${item.name}`}
                       >

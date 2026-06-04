@@ -114,27 +114,6 @@ function Contact() {
               ))}
             </ul>
           </section>
-
-          <section className="px-6 py-5">
-            <p className="text-xs font-bold tracking-wide text-[#7a522f] uppercase">Help topics</p>
-            <ul className="mt-4 space-y-1">
-              {helpTopics.map((topic) => (
-                <li key={topic}>
-                  <button
-                    onClick={() => {
-                      setSelectedTopic(topic);
-                      setOpenFaq(0);
-                    }}
-                    className={`w-full rounded px-3 py-3 text-left text-lg transition ${
-                      selectedTopic === topic ? "bg-[#f3e6d3] text-[#8a6038]" : "text-[#2b2018] hover:bg-[#fbf1e3]"
-                    }`}
-                  >
-                    {topic}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
         </aside>
 
         <section className="space-y-4">
@@ -156,6 +135,56 @@ function Contact() {
                 </button>
               </div>
 
+              <div className="mt-10 grid gap-4 lg:grid-cols-[280px_1fr] lg:items-start">
+                <div className="rounded-2xl border border-[#edd8bc] bg-[#fffaf4] p-5">
+                  <p className="text-xs font-bold uppercase tracking-wide text-[#7a522f]">Help topics</p>
+                  <ul className="mt-4 space-y-2">
+                    {helpTopics.map((topic) => (
+                      <li key={topic}>
+                        <button
+                          onClick={() => {
+                            setSelectedTopic(topic);
+                            setOpenFaq(0);
+                          }}
+                          className={`w-full rounded px-3 py-3 text-left text-base transition ${
+                            selectedTopic === topic ? "bg-[#f3e6d3] text-[#8a6038]" : "text-[#2b2018] hover:bg-[#fbf1e3]"
+                          }`}
+                        >
+                          {topic}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="rounded-2xl border border-[#edd8bc] bg-white">
+                  <div className="px-6 py-5">
+                    <h2 className="text-4xl font-semibold text-[#2b2018]">What issue are you facing?</h2>
+                    <p className="mt-2 text-lg text-[#8a6038]">{selectedTopic}</p>
+                  </div>
+                  <div className="border-t border-[#f0e3d3]">
+                    {faqs.map((item, index) => {
+                      const isOpen = openFaq === index;
+                      return (
+                        <article key={item.q} className="border-b border-[#f0e3d3] last:border-b-0">
+                          <button
+                            onClick={() => setOpenFaq(isOpen ? -1 : index)}
+                            className="flex w-full items-center justify-between px-6 py-5 text-left"
+                          >
+                            <div>
+                              <p className="text-xl text-[#2b2018]">{item.q}</p>
+                              {!isOpen ? <p className="mt-1 text-sm text-[#8a775f]">Tap to view answer</p> : null}
+                            </div>
+                            <ChevronRight className={`text-[#8a6038] transition ${isOpen ? "rotate-90" : ""}`} size={18} />
+                          </button>
+                          {isOpen ? <p className="px-6 pb-5 text-base leading-7 text-[#6e5947]">{item.a}</p> : null}
+                        </article>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
               <div className="mx-auto mt-10 max-w-xl rounded-2xl border border-dashed border-[#e6cdb0] bg-[#fffaf4] px-6 py-10 text-center">
                 <MessageCircleQuestion className="mx-auto text-[#c4a27c]" size={72} strokeWidth={1.5} />
                 <p className="mt-5 text-3xl text-[#2b2018]">Need faster help?</p>
@@ -170,33 +199,6 @@ function Contact() {
                   Log in
                 </button>
               </div>
-            </div>
-          </div>
-
-          <div className="rounded border border-[#edd8bc] bg-white">
-            <div className="px-6 py-5">
-              <h2 className="text-4xl font-semibold text-[#2b2018]">What issue are you facing?</h2>
-              <p className="mt-2 text-lg text-[#8a6038]">{selectedTopic}</p>
-            </div>
-            <div className="border-t border-[#f0e3d3]">
-              {faqs.map((item, index) => {
-                const isOpen = openFaq === index;
-                return (
-                  <article key={item.q} className="border-b border-[#f0e3d3] last:border-b-0">
-                    <button
-                      onClick={() => setOpenFaq(isOpen ? -1 : index)}
-                      className="flex w-full items-center justify-between px-6 py-5 text-left"
-                    >
-                      <div>
-                        <p className="text-xl text-[#2b2018]">{item.q}</p>
-                        {!isOpen ? <p className="mt-1 text-sm text-[#8a775f]">Tap to view answer</p> : null}
-                      </div>
-                      <ChevronRight className={`text-[#8a6038] transition ${isOpen ? "rotate-90" : ""}`} size={18} />
-                    </button>
-                    {isOpen ? <p className="px-6 pb-5 text-base leading-7 text-[#6e5947]">{item.a}</p> : null}
-                  </article>
-                );
-              })}
             </div>
           </div>
         </section>

@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Heart } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useCart } from "../context/CartContext";
+import { useWishlist } from "../context/WishlistContext";
 import { toProductSlug } from "../lib/productUtils";
 import heroImage from "../assets/hero.jpg";
 
@@ -169,27 +171,65 @@ function CategoryViewAll() {
 function ProductCard({ title, price, originalPrice, image, inStock, category, sizeVariants }) {
   const { addToCart } = useCart();
   const navigate = useNavigate();
+  const { isInWishlist, toggleWishlist } = useWishlist();
   const numericPrice = Number(String(price).replace(/[^0-9]/g, "")) || 0;
   const normalizedOriginalPrice = Number(originalPrice) || numericPrice;
   const hasDiscount = normalizedOriginalPrice > numericPrice;
   const discountPct = hasDiscount
     ? Math.max(0, Math.round(((normalizedOriginalPrice - numericPrice) / Math.max(normalizedOriginalPrice, 1)) * 100))
     : 0;
+  const productId = `view-all-${title}`;
+  const wishlisted = isInWishlist(productId);
 
   return (
     <div className="rounded-xl border border-[#edd8bc] bg-white p-4 transition hover:shadow-xl">
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() =>
           navigate(`/product/${toProductSlug(title)}`, {
             state: { product: { name: title, price: numericPrice, originalPrice: Math.round(numericPrice * 1.3), image: heroImage, category } },
           })
         }
-        className="w-full text-left"
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            navigate(`/product/${toProductSlug(title)}`, {
+              state: { product: { name: title, price: numericPrice, originalPrice: Math.round(numericPrice * 1.3), image: heroImage, category } },
+            });
+          }
+        }}
+        className="w-full cursor-pointer text-left"
       >
       <div className="relative overflow-hidden rounded-md bg-white">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            toggleWishlist({
+              _id: productId,
+              title,
+              name: title,
+              description: `${category} product`,
+              price: numericPrice,
+              originalPrice: normalizedOriginalPrice,
+              image,
+              category,
+              inStock,
+            });
+          }}
+          aria-label={wishlisted ? `Remove ${title} from wishlist` : `Add ${title} to wishlist`}
+          aria-pressed={wishlisted}
+          className={`absolute right-3 top-3 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border shadow-sm backdrop-blur-md transition ${
+            wishlisted
+              ? "border-rose-200 bg-rose-500 text-white"
+              : "border-white/70 bg-white/85 text-[#7f674d] hover:bg-white"
+          }`}
+        >
+          <Heart size={16} className={wishlisted ? "fill-current" : ""} />
+        </button>
         {hasDiscount ? (
-          <span className="absolute right-3 top-3 rounded-full bg-[#b67d4a] px-3 py-1 text-[11px] font-semibold text-white">
+          <span className="absolute left-3 top-3 rounded-full bg-[#b67d4a] px-3 py-1 text-[11px] font-semibold text-white">
             {discountPct}% OFF
           </span>
         ) : null}
@@ -204,7 +244,7 @@ function ProductCard({ title, price, originalPrice, image, inStock, category, si
         {price}{" "}
         {hasDiscount ? <span className="text-[#8f8f8f] line-through">Rs {normalizedOriginalPrice}</span> : null}
       </p>
-      </button>
+      </div>
 
       <button
         onClick={() =>
