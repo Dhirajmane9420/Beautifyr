@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Bell, MapPinHouse, PackageCheck, Star, Truck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 
@@ -218,6 +219,7 @@ export default function Checkout() {
           ) : null}
         </section>
       </main>
+      <Footer />
     </div>
   );
 }

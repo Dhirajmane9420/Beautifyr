@@ -3,6 +3,7 @@ import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { request } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 
@@ -68,7 +69,7 @@ function Signup() {
   };
 
   return (
-    <>
+    <div className="flex min-h-screen flex-col">
       <Navbar />
       <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-[#fff7ee] via-[#fffaf2] to-[#f7eadb] px-4 pt-28">
       {/* CARD */}
@@ -178,7 +179,8 @@ function Signup() {
         </p>
       </div>
     </div>
-    </>
+      <Footer />
+    </div>
   );
 }
 

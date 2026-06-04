@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
+import heroImage from "../assets/hero.jpg";
+import { toProductSlug } from "../lib/productUtils";
 import {
   createCatalogProduct,
   deleteCatalogProduct,
@@ -20,13 +24,18 @@ const priceRanges = [
 ];
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } },
+  hidden: { opacity: 0, y: 40 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.9, ease: [0.16, 1, 0.3, 1] } },
 };
 
 const staggerContainer = {
   hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.1 } },
+  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
+};
+
+const scaleIn = {
+  hidden: { opacity: 0, scale: 0.92 },
+  show: { opacity: 1, scale: 1, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } },
 };
 
 const buildInitialForm = () => ({
@@ -41,6 +50,7 @@ const buildInitialForm = () => ({
 
 function BestSellers() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = user?.role === "admin";
 
   const [products, setProducts] = useState([]);
@@ -234,45 +244,90 @@ function BestSellers() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-[#f4eee6] via-[#efe6db] to-[#e7dbcd] text-[#2A2520] font-sans selection:bg-[#E8DCCB] selection:text-[#2A2520]">
+    <div className="min-h-screen bg-[#f6f1ec] text-[#2A2520] font-sans selection:bg-[#C8A97E] selection:text-white">
       <Navbar />
 
-      <section className="relative overflow-hidden border-b border-[#2A2520]/10 px-5 pb-16 pt-28 sm:px-6 sm:pb-20 sm:pt-32 md:px-12 lg:px-24">
+      {/* ─── HERO SECTION ─── */}
+      <section className="relative overflow-hidden px-5 pb-20 pt-28 sm:px-8 sm:pb-28 sm:pt-36 md:px-16 lg:px-28">
+        {/* Decorative background elements */}
+        <div className="pointer-events-none absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-[#C8A97E]/5 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-40 -left-40 h-[400px] w-[400px] rounded-full bg-[#D4B896]/5 blur-3xl" />
+
         <motion.div
           variants={staggerContainer}
           initial="hidden"
           animate="show"
-          className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-end"
+          className="relative mx-auto max-w-7xl"
         >
-          <div className="lg:col-span-7 flex flex-col justify-end">
-            <motion.p variants={fadeUp} className="text-[#8B7E72] text-xs tracking-[0.3em] uppercase mb-6">
-              The Cult Classics
-            </motion.p>
-            <motion.h1 variants={fadeUp} className="text-5xl sm:text-6xl md:text-8xl font-light tracking-tight leading-[1.05]">
-              Most <span className="font-serif italic text-[#8B7E72]">Desired.</span>
-            </motion.h1>
-            <motion.p variants={fadeUp} className="mt-8 max-w-md text-[#7A6E62] font-light leading-relaxed text-lg">
-              Explore the formulations that have defined our sanctuary. Clinically proven, universally adored.
-            </motion.p>
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-14 items-center">
+            {/* Text content */}
+            <div className="lg:col-span-6">
+              <motion.div variants={fadeUp} className="mb-4 inline-flex items-center gap-3 rounded-full border border-[#D4B896]/40 bg-white/60 px-5 py-2 text-xs font-medium uppercase tracking-[0.25em] text-[#8B7359] shadow-sm backdrop-blur-md">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#C8A97E]" />
+                The Cult Classics
+              </motion.div>
+              <motion.h1 variants={fadeUp} className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-light tracking-tight leading-[1.05]">
+                Most{" "}
+                <span className="relative">
+                  <span className="font-serif italic text-[#C8A97E]">Desired.</span>
+                  <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 200 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2 10C42 3 84 3 124 5C144 6 164 3 198 1" stroke="#C8A97E" strokeWidth="1.5" strokeLinecap="round" opacity="0.4" />
+                  </svg>
+                </span>
+              </motion.h1>
+              <motion.p variants={fadeUp} className="mt-6 max-w-lg text-[#7A6E62] font-light leading-relaxed text-base sm:text-lg">
+                Explore the formulations that have defined our sanctuary. Clinically proven, universally adored — each bottle tells a story of devotion.
+              </motion.p>
 
-          <motion.div variants={fadeUp} className="lg:col-span-5 h-[300px] sm:h-[400px] w-full relative rounded-t-[10rem] rounded-b-3xl overflow-hidden">
-            <img
-              src={visibleProducts[0]?.imageUrl || products[0]?.imageUrl || "https://images.unsplash.com/photo-1629198688000-71f23e745b6e?auto=format&fit=crop&w=900&q=80"}
-              alt="Most Desired"
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-[#2A2520]/10 mix-blend-overlay"></div>
-          </motion.div>
+              <motion.div variants={fadeUp} className="mt-10 flex flex-wrap gap-6">
+                <div className="flex items-center gap-2 text-sm text-[#8B7359]">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Clinically Tested</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-[#8B7359]">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                  </svg>
+                  <span>50k+ Happy Users</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-[#8B7359]">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                  </svg>
+                  <span>4.8 Avg Rating</span>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Hero image */}
+            <motion.div variants={scaleIn} className="lg:col-span-6">
+              <div className="relative mx-auto aspect-[4/5] w-full max-w-lg overflow-hidden rounded-[2.5rem] shadow-2xl">
+                {/* Gradient overlay */}
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#2A2520]/30 via-transparent to-transparent z-10" />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#C8A97E]/10 via-transparent to-[#D4B896]/10 z-10" />
+                <img
+                  src={heroImage}
+                  alt="Most Desired"
+                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                {/* Decorative corner accent */}
+                <div className="pointer-events-none absolute -top-3 -right-3 z-20 h-16 w-16 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl" />
+                <div className="pointer-events-none absolute -bottom-3 -left-3 z-20 h-16 w-16 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl" />
+              </div>
+            </motion.div>
+          </div>
         </motion.div>
       </section>
 
+      {/* ─── ADMIN PANEL ─── */}
       {isAdmin ? (
-        <section className="mx-auto max-w-7xl px-5 pt-10 sm:px-6 md:px-12 lg:px-24">
-          <div className="rounded-2xl border border-[#dcc7ae] bg-[#f9efe3] p-4 sm:p-5">
+        <section className="mx-auto max-w-7xl px-5 pt-6 sm:px-8 md:px-16 lg:px-28">
+          <div className="rounded-2xl border border-[#D4B896]/40 bg-white/70 p-5 shadow-lg backdrop-blur-xl sm:p-6">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-[#7f674d]">Admin Best Sellers Manager</h3>
-              {adminNotice ? <p className="text-xs font-medium text-[#8a6038]">{adminNotice}</p> : null}
+              {adminNotice ? <p className="rounded-full bg-[#C8A97E]/10 px-4 py-1 text-xs font-medium text-[#8a6038]">{adminNotice}</p> : null}
             </div>
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -280,7 +335,7 @@ function BestSellers() {
                 value={newProductForm.title}
                 onChange={(event) => setNewProductForm((current) => ({ ...current, title: event.target.value }))}
                 placeholder="Product title"
-                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+                className="rounded-xl border border-[#D4B896]/40 bg-white/80 px-3 py-2 text-sm outline-none transition focus:border-[#C8A97E] focus:ring-1 focus:ring-[#C8A97E]/20"
               />
               <input
                 value={newProductForm.price}
@@ -288,12 +343,12 @@ function BestSellers() {
                 type="number"
                 min="0"
                 placeholder="Price"
-                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+                className="rounded-xl border border-[#D4B896]/40 bg-white/80 px-3 py-2 text-sm outline-none transition focus:border-[#C8A97E] focus:ring-1 focus:ring-[#C8A97E]/20"
               />
               <select
                 value={newProductForm.category}
                 onChange={(event) => setNewProductForm((current) => ({ ...current, category: event.target.value }))}
-                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+                className="rounded-xl border border-[#D4B896]/40 bg-white/80 px-3 py-2 text-sm outline-none transition focus:border-[#C8A97E] focus:ring-1 focus:ring-[#C8A97E]/20"
               >
                 <option value="Serum">Serum</option>
                 <option value="Cream">Cream</option>
@@ -309,7 +364,7 @@ function BestSellers() {
               }
               rows={3}
               placeholder="Product description"
-              className="mt-3 w-full rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+              className="mt-3 w-full rounded-xl border border-[#D4B896]/40 bg-white/80 px-3 py-2 text-sm outline-none transition focus:border-[#C8A97E] focus:ring-1 focus:ring-[#C8A97E]/20"
             />
 
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -317,7 +372,7 @@ function BestSellers() {
                 value={newProductForm.imageUrl}
                 onChange={(event) => setNewProductForm((current) => ({ ...current, imageUrl: event.target.value }))}
                 placeholder="Image URL (optional if uploading file)"
-                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+                className="rounded-xl border border-[#D4B896]/40 bg-white/80 px-3 py-2 text-sm outline-none transition focus:border-[#C8A97E] focus:ring-1 focus:ring-[#C8A97E]/20"
               />
               <input
                 type="file"
@@ -331,7 +386,7 @@ function BestSellers() {
                   }
                   setNewProductFile(file);
                 }}
-                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+                className="rounded-xl border border-[#D4B896]/40 bg-white/80 px-3 py-2 text-sm outline-none file:mr-3 file:rounded-lg file:border-0 file:bg-[#C8A97E] file:px-3 file:py-1 file:text-xs file:font-medium file:text-white"
               />
             </div>
 
@@ -343,6 +398,7 @@ function BestSellers() {
                   onChange={(event) =>
                     setNewProductForm((current) => ({ ...current, inStock: event.target.checked }))
                   }
+                  className="accent-[#C8A97E]"
                 />
                 In stock
               </label>
@@ -350,7 +406,7 @@ function BestSellers() {
                 type="button"
                 onClick={handleCreateProduct}
                 disabled={isSaving}
-                className="rounded-xl bg-[#8a6038] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white disabled:opacity-60"
+                className="rounded-xl bg-[#C8A97E] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-white shadow-lg shadow-[#C8A97E]/20 transition hover:bg-[#B8976E] disabled:opacity-60"
               >
                 {isSaving ? "Saving..." : "Add Best Seller"}
               </button>
@@ -359,56 +415,67 @@ function BestSellers() {
         </section>
       ) : null}
 
-      <section className="mx-auto max-w-7xl px-5 py-16 sm:px-6 md:px-12 lg:px-24">
+      {/* ─── PRODUCTS SECTION ─── */}
+      <section className="mx-auto max-w-7xl px-5 py-20 sm:px-8 md:px-16 lg:px-28">
+        {/* Category & Sort Bar */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="flex flex-col md:flex-row justify-between items-start md:items-center mb-16 gap-8"
+          className="mb-14"
         >
-          <div className="flex flex-wrap gap-8 border-b border-[#2A2520]/10 pb-4 w-full md:w-auto">
-            {categories.map((category) => (
-              <button
-                key={category}
-                onClick={() => setActiveCategory(category)}
-                className={`text-sm uppercase tracking-widest transition-all duration-300 relative pb-2 ${
-                  activeCategory === category
-                    ? "text-[#2A2520] font-medium"
-                    : "text-[#AFA192] font-light hover:text-[#2A2520]"
-                }`}
-              >
-                {category}
-                {activeCategory === category && (
-                  <motion.div layoutId="activeFilter" className="absolute bottom-0 left-0 right-0 h-px bg-[#2A2520]" />
-                )}
-              </button>
-            ))}
-          </div>
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            {/* Category pills */}
+            <div className="flex flex-wrap gap-2">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setActiveCategory(category)}
+                  className={`relative rounded-full px-5 py-2.5 text-xs font-medium uppercase tracking-[0.15em] transition-all duration-300 ${
+                    activeCategory === category
+                      ? "bg-[#2A2520] text-white shadow-lg"
+                      : "bg-white/60 text-[#8B7359] hover:bg-white hover:text-[#2A2520]"
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
 
-          <div className="flex w-full flex-col items-start gap-4 md:w-auto md:items-end">
-            <p className="text-sm font-light text-[#8B7E72] uppercase tracking-widest shrink-0">
-              {visibleProducts.length} Results
-            </p>
-            <select
-              value={sortBy}
-              onChange={(event) => setSortBy(event.target.value)}
-              className="rounded-full border border-[#d8c8b6] bg-[#f7efe5] px-4 py-2 text-xs font-medium uppercase tracking-[0.12em] text-[#6e5947] outline-none"
-            >
-              <option value="featured">Featured</option>
-              <option value="top-rated">Top Rated</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
-            </select>
+            {/* Sort & Count */}
+            <div className="flex items-center gap-6">
+              <p className="text-sm font-light text-[#8B7E72] whitespace-nowrap">
+                <span className="font-medium text-[#2A2520]">{visibleProducts.length}</span>{" "}
+                {visibleProducts.length === 1 ? "Formulation" : "Formulations"}
+              </p>
+              <div className="h-6 w-px bg-[#D4B896]/40" />
+              <select
+                value={sortBy}
+                onChange={(event) => setSortBy(event.target.value)}
+                className="rounded-full border border-[#D4B896]/40 bg-white/70 px-4 py-2 text-xs font-medium uppercase tracking-[0.12em] text-[#6e5947] outline-none backdrop-blur-sm transition focus:border-[#C8A97E]"
+              >
+                <option value="featured">Featured</option>
+                <option value="top-rated">Top Rated</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+              </select>
+            </div>
           </div>
         </motion.div>
 
-        <div className="mb-10 grid grid-cols-1 gap-4 rounded-3xl border border-[#dcc7ae] bg-[#f9efe3] p-4 sm:p-5 md:grid-cols-4">
+        {/* Advanced Filters */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="mb-14 grid grid-cols-1 gap-3 rounded-2xl border border-[#D4B896]/30 bg-white/50 p-4 shadow-sm backdrop-blur-md sm:grid-cols-4 sm:p-5"
+        >
           <div>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8b7359]">Price Range</p>
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8b7359]">Price Range</p>
             <select
               value={priceRange}
               onChange={(event) => setPriceRange(event.target.value)}
-              className="w-full rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-xs font-medium text-[#6e5947] outline-none"
+              className="w-full rounded-xl border border-[#D4B896]/30 bg-white/80 px-3 py-2.5 text-xs font-medium text-[#6e5947] outline-none transition focus:border-[#C8A97E]"
             >
               {priceRanges.map((range) => (
                 <option key={range.key} value={range.key}>{range.label}</option>
@@ -417,11 +484,11 @@ function BestSellers() {
           </div>
 
           <div>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8b7359]">Minimum Rating</p>
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8b7359]">Minimum Rating</p>
             <select
               value={minimumRating}
               onChange={(event) => setMinimumRating(event.target.value)}
-              className="w-full rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-xs font-medium text-[#6e5947] outline-none"
+              className="w-full rounded-xl border border-[#D4B896]/30 bg-white/80 px-3 py-2.5 text-xs font-medium text-[#6e5947] outline-none transition focus:border-[#C8A97E]"
             >
               <option value="all">Any Rating</option>
               <option value="4.5">4.5+</option>
@@ -434,13 +501,20 @@ function BestSellers() {
             <button
               type="button"
               onClick={() => setInStockOnly((current) => !current)}
-              className={`w-full rounded-xl border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition ${
+              className={`w-full rounded-xl border px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.14em] transition-all ${
                 inStockOnly
-                  ? "border-[#8a6038] bg-[#8a6038] text-white"
-                  : "border-[#d8c8b6] bg-[#fff8ef] text-[#6e5947]"
+                  ? "border-[#C8A97E] bg-[#C8A97E] text-white shadow-md"
+                  : "border-[#D4B896]/30 bg-white/80 text-[#6e5947] hover:border-[#C8A97E]/50"
               }`}
             >
-              {inStockOnly ? "In Stock Only" : "Show All Stock"}
+              <span className="flex items-center justify-center gap-2">
+                {inStockOnly ? (
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                ) : null}
+                {inStockOnly ? "In Stock Only" : "Show All Stock"}
+              </span>
             </button>
           </div>
 
@@ -449,13 +523,14 @@ function BestSellers() {
               type="button"
               onClick={resetAdvancedFilters}
               disabled={!hasAdvancedFilters && sortBy === "featured"}
-              className="w-full rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#6e5947] transition hover:bg-[#f4e7d8] disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-xl border border-[#D4B896]/30 bg-white/80 px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#6e5947] transition hover:border-[#C8A97E]/50 hover:bg-[#C8A97E]/5 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Reset Filters
             </button>
           </div>
-        </div>
+        </motion.div>
 
+        {/* Product Grid */}
         <div className="min-h-[50vh]">
           <AnimatePresence mode="wait">
             {!isLoading && visibleProducts.length > 0 ? (
@@ -465,56 +540,104 @@ function BestSellers() {
                 initial="hidden"
                 animate="show"
                 exit={{ opacity: 0 }}
-                className="grid gap-x-6 gap-y-16 sm:grid-cols-2 lg:grid-cols-3"
+                className="grid gap-x-8 gap-y-20 sm:grid-cols-2 lg:grid-cols-3"
               >
-                {visibleProducts.map((product) => {
+                {visibleProducts.map((product, index) => {
                   const mrp = Math.round(product.numericPrice * 1.25);
+                  const isEven = index % 2 === 0;
 
                   return (
-                    <motion.div layout variants={fadeUp} key={product._id} className="group cursor-pointer flex flex-col">
-                      <div className="relative overflow-hidden rounded-[2rem] bg-[#F7F4F0] mb-6 aspect-[4/5] flex items-center justify-center p-8">
+                    <motion.div
+                      layout
+                      variants={fadeUp}
+                      key={product._id}
+                      onClick={() =>
+                        navigate(`/product/${toProductSlug(product.title)}`, {
+                          state: { product },
+                        })
+                      }
+                      className="group flex cursor-pointer flex-col"
+                    >
+                      {/* Image container */}
+                      <div
+                        className={`relative mb-6 overflow-hidden rounded-[2.5rem] bg-[#F7F4F0] shadow-lg shadow-black/5 transition-all duration-700 hover:shadow-2xl hover:shadow-black/10 ${
+                          isEven ? "aspect-[4/5]" : "aspect-[4/5.5]"
+                        }`}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 z-10" />
                         <img
-                          src={product.imageUrl}
+                          src={heroImage}
                           alt={product.title}
-                          className="w-full h-full object-cover shadow-2xl transform group-hover:scale-105 transition duration-1000 ease-[0.16,1,0.3,1]"
+                          className="h-full w-full object-cover transition-all duration-700 ease-[0.16,1,0.3,1] group-hover:scale-[1.08]"
                         />
 
-                        <div className="absolute inset-x-4 bottom-4 translate-y-10 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 ease-[0.16,1,0.3,1]">
-                          <button className="w-full rounded-2xl border border-[#d8c8b6] bg-[#f2e8dc]/85 py-4 text-sm font-medium uppercase tracking-widest text-[#2A2520] backdrop-blur-xl transition-colors hover:bg-[#eadfce]">
+                        {/* Rating badge */}
+                        <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-[11px] font-semibold text-[#7f674d] shadow-sm backdrop-blur-md">
+                          <svg className="h-3 w-3 text-[#C8A97E]" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                          {product.rating}
+                        </div>
+
+                        {/* Hover add-to-cart */}
+                        <div className="absolute inset-x-4 bottom-4 z-20 translate-y-8 opacity-0 transition-all duration-500 ease-[0.16,1,0.3,1] group-hover:translate-y-0 group-hover:opacity-100">
+                          <button className="w-full rounded-2xl border border-[#D4B896]/30 bg-white/90 py-3.5 text-sm font-medium uppercase tracking-widest text-[#2A2520] shadow-lg backdrop-blur-xl transition-all hover:bg-white hover:shadow-xl">
                             Add to Cart — Rs {product.numericPrice}
                           </button>
                         </div>
                       </div>
 
-                      <div className="flex flex-col px-2">
-                        <div className="mb-1 flex items-start justify-between gap-3">
-                          <h3 className="text-lg font-light text-[#2A2520]">{product.title}</h3>
-                          <span className="rounded-full border border-[#e2cfb8] bg-[#f9f1e7] px-2.5 py-1 text-[11px] font-semibold text-[#7f674d]">
-                            {product.rating}/5
+                      {/* Product info */}
+                      <div className="flex flex-col px-1">
+                        <div className="mb-2 flex items-start justify-between gap-3">
+                          <h3 className="text-lg font-light text-[#2A2520] leading-snug">{product.title}</h3>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs text-[#9A8C80]">
+                          <span className="rounded-full bg-[#C8A97E]/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-[#7f674d]">
+                            {product.category}
+                          </span>
+                          <span>•</span>
+                          <span>{product.sold} sold</span>
+                          {product.inStock ? (
+                            <>
+                              <span>•</span>
+                              <span className="inline-flex items-center gap-1 text-emerald-600">
+                                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                In Stock
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span>•</span>
+                              <span className="text-rose-500">Out of Stock</span>
+                            </>
+                          )}
+                        </div>
+
+                        <div className="mt-3 flex items-baseline gap-2.5">
+                          <span className="text-lg font-semibold text-[#2A2520]">Rs {product.numericPrice}</span>
+                          <span className="text-sm font-normal text-[#B0A398] line-through">Rs {mrp}</span>
+                          <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+                            {Math.round((1 - product.numericPrice / mrp) * 100)}% OFF
                           </span>
                         </div>
-                        <p className="text-sm text-[#8B7E72] font-light">
-                          {product.category} • {product.sold} sold • {product.inStock ? "In Stock" : "Out of Stock"}
-                        </p>
-                        <p className="mt-2 text-base font-semibold text-[#8a6038]">
-                          Rs {product.numericPrice}{" "}
-                          <span className="ml-1 text-sm font-normal text-[#9d9388] line-through">Rs {mrp}</span>
-                        </p>
-                        <p className="mt-2 text-sm text-[#6f5a47] line-clamp-2">{product.description}</p>
+
+                        <p className="mt-3 text-sm leading-relaxed text-[#7A6E62] line-clamp-2">{product.description}</p>
 
                         {isAdmin ? (
-                          <div className="mt-3 flex gap-2">
+                          <div className="mt-4 flex gap-2">
                             <button
                               type="button"
                               onClick={() => openEditModal(product)}
-                              className="flex-1 rounded-xl border border-[#8a6038] bg-[#8a6038] px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-white"
+                              className="flex-1 rounded-xl bg-[#C8A97E] px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.08em] text-white shadow-sm transition hover:bg-[#B8976E]"
                             >
                               Edit
                             </button>
                             <button
                               type="button"
                               onClick={() => handleDeleteProduct(product._id)}
-                              className="flex-1 rounded-xl border border-red-300 px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-red-700"
+                              className="flex-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.08em] text-rose-600 transition hover:bg-rose-100"
                             >
                               Delete
                             </button>
@@ -528,30 +651,53 @@ function BestSellers() {
             ) : null}
 
             {!isLoading && visibleProducts.length === 0 ? (
-              <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-32 text-center flex flex-col items-center justify-center">
-                <p className="text-xl font-light text-[#7A6E62]">No formulations found in this category.</p>
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col items-center justify-center py-32 text-center"
+              >
+                <div className="mb-6 rounded-full bg-[#C8A97E]/10 p-6">
+                  <svg className="h-10 w-10 text-[#C8A97E]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                </div>
+                <p className="text-2xl font-light text-[#7A6E62]">No formulations found in this category.</p>
                 <button
                   onClick={() => setActiveCategory("All")}
-                  className="mt-6 border-b border-[#2A2520] pb-1 text-sm uppercase tracking-widest hover:text-[#8B7E72] hover:border-[#8B7E72] transition-colors"
+                  className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#2A2520] px-6 py-3 text-xs font-medium uppercase tracking-widest text-white shadow-lg transition hover:bg-[#3D3530]"
                 >
                   View All Classics
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                  </svg>
                 </button>
               </motion.div>
             ) : null}
           </AnimatePresence>
 
           {isLoading ? (
-            <div className="rounded-2xl border border-[#dcc7ae] bg-[#f9efe3] px-5 py-10 text-center text-[#6e5947]">
-              Loading best sellers...
+            <div className="flex items-center justify-center py-20">
+              <div className="flex flex-col items-center gap-4">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-[#C8A97E] border-t-transparent" />
+                <p className="text-sm font-light text-[#8B7359]">Loading best sellers...</p>
+              </div>
             </div>
           ) : null}
         </div>
       </section>
 
+      {/* ─── EDIT MODAL ─── */}
       {editingProductId ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+            className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl"
+          >
+            <div className="mb-5 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-[#5f3f25]">Edit Best Seller</h3>
               <button
                 type="button"
@@ -559,9 +705,11 @@ function BestSellers() {
                   setEditingProductId(null);
                   setEditingProductFile(null);
                 }}
-                className="text-sm text-[#6e5947]"
+                className="rounded-lg p-2 text-sm text-[#6e5947] transition hover:bg-gray-100"
               >
-                Close
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
@@ -570,7 +718,7 @@ function BestSellers() {
                 value={editingProductForm.title}
                 onChange={(event) => setEditingProductForm((current) => ({ ...current, title: event.target.value }))}
                 placeholder="Product title"
-                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+                className="rounded-xl border border-[#D4B896]/40 bg-[#fff8ef] px-3 py-2.5 text-sm outline-none transition focus:border-[#C8A97E]"
               />
               <input
                 value={editingProductForm.price}
@@ -578,13 +726,13 @@ function BestSellers() {
                 type="number"
                 min="0"
                 placeholder="Price"
-                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+                className="rounded-xl border border-[#D4B896]/40 bg-[#fff8ef] px-3 py-2.5 text-sm outline-none transition focus:border-[#C8A97E]"
               />
 
               <select
                 value={editingProductForm.category}
                 onChange={(event) => setEditingProductForm((current) => ({ ...current, category: event.target.value }))}
-                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+                className="rounded-xl border border-[#D4B896]/40 bg-[#fff8ef] px-3 py-2.5 text-sm outline-none transition focus:border-[#C8A97E]"
               >
                 <option value="Serum">Serum</option>
                 <option value="Cream">Cream</option>
@@ -596,7 +744,7 @@ function BestSellers() {
                 value={editingProductForm.imageUrl}
                 onChange={(event) => setEditingProductForm((current) => ({ ...current, imageUrl: event.target.value }))}
                 placeholder="Image URL"
-                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+                className="rounded-xl border border-[#D4B896]/40 bg-[#fff8ef] px-3 py-2.5 text-sm outline-none transition focus:border-[#C8A97E]"
               />
             </div>
 
@@ -607,7 +755,7 @@ function BestSellers() {
               }
               rows={3}
               placeholder="Description"
-              className="mt-3 w-full rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+              className="mt-3 w-full rounded-xl border border-[#D4B896]/40 bg-[#fff8ef] px-3 py-2.5 text-sm outline-none transition focus:border-[#C8A97E]"
             />
 
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -623,7 +771,7 @@ function BestSellers() {
                   }
                   setEditingProductFile(file);
                 }}
-                className="rounded-xl border border-[#d8c8b6] bg-[#fff8ef] px-3 py-2 text-sm"
+                className="rounded-xl border border-[#D4B896]/40 bg-[#fff8ef] px-3 py-2.5 text-sm outline-none file:mr-3 file:rounded-lg file:border-0 file:bg-[#C8A97E] file:px-3 file:py-1 file:text-xs file:font-medium file:text-white"
               />
               <label className="inline-flex items-center gap-2 text-sm text-[#6e5947]">
                 <input
@@ -632,19 +780,20 @@ function BestSellers() {
                   onChange={(event) =>
                     setEditingProductForm((current) => ({ ...current, inStock: event.target.checked }))
                   }
+                  className="accent-[#C8A97E]"
                 />
                 In stock
               </label>
             </div>
 
-            <div className="mt-4 flex justify-end gap-2">
+            <div className="mt-5 flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => {
                   setEditingProductId(null);
                   setEditingProductFile(null);
                 }}
-                className="rounded-xl border border-[#d8c8b6] bg-white px-4 py-2 text-sm text-[#6e5947]"
+                className="rounded-xl border border-[#D4B896]/30 px-5 py-2.5 text-sm text-[#6e5947] transition hover:bg-gray-50"
               >
                 Cancel
               </button>
@@ -652,31 +801,65 @@ function BestSellers() {
                 type="button"
                 onClick={handleUpdateProduct}
                 disabled={isSaving}
-                className="rounded-xl bg-[#8a6038] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                className="rounded-xl bg-[#C8A97E] px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-[#B8976E] disabled:opacity-60"
               >
                 {isSaving ? "Saving..." : "Save Changes"}
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
       ) : null}
 
-      <section className="mx-auto max-w-7xl px-5 pb-6 sm:px-6 md:px-12 lg:px-24">
-        <div className="grid grid-cols-1 gap-4 rounded-3xl border border-[#dfcdb7] bg-[#f9efe3] p-6 md:grid-cols-3 md:p-8">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-[#8b7359]">Why Customers Love These</p>
-            <h3 className="mt-2 text-2xl font-light text-[#2A2520]">Top Picks, Real Results</h3>
+      {/* ─── BOTTOM TRUST SECTION ─── */}
+      <section className="mx-auto max-w-7xl px-5 pb-20 sm:px-8 md:px-16 lg:px-28">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="relative overflow-hidden rounded-3xl border border-[#D4B896]/30 bg-gradient-to-br from-[#F7F1EA] via-[#F0E8DD] to-[#EBE1D4] p-8 shadow-lg md:p-12"
+        >
+          {/* Decorative bg */}
+          <div className="pointer-events-none absolute -top-20 -right-20 h-40 w-40 rounded-full bg-[#C8A97E]/10 blur-2xl" />
+          <div className="pointer-events-none absolute -bottom-20 -left-20 h-40 w-40 rounded-full bg-[#D4B896]/10 blur-2xl" />
+
+          <div className="relative grid grid-cols-1 gap-8 md:grid-cols-3">
+            <div className="flex flex-col gap-2">
+              <div className="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#C8A97E]/10">
+                <svg className="h-5 w-5 text-[#C8A97E]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-[#8b7359] font-semibold">Why Customers Love These</p>
+              <h3 className="mt-1 text-2xl font-light text-[#2A2520]">Top Picks, <span className="font-serif italic text-[#C8A97E]">Real Results</span></h3>
+            </div>
+            <div className="rounded-2xl border border-[#D4B896]/20 bg-white/50 p-5 shadow-sm backdrop-blur-sm">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-[#C8A97E]">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+                  </svg>
+                </span>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b7359]">Fast Moving</p>
+              </div>
+              <p className="text-sm leading-relaxed text-[#6f5a47]">Most products in this list restock every 7-10 days due to overwhelming demand.</p>
+            </div>
+            <div className="rounded-2xl border border-[#D4B896]/20 bg-white/50 p-5 shadow-sm backdrop-blur-sm">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-[#C8A97E]">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342" />
+                  </svg>
+                </span>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b7359]">Dermatologist Curated</p>
+              </div>
+              <p className="text-sm leading-relaxed text-[#6f5a47]">Each bestseller is selected for efficacy, tolerance, and routine compatibility.</p>
+            </div>
           </div>
-          <div className="rounded-2xl border border-[#e3d3be] bg-[#fff8ef] p-4">
-            <p className="text-xs uppercase tracking-[0.16em] text-[#8b7359]">Fast Moving</p>
-            <p className="mt-2 text-sm text-[#6f5a47]">Most products in this list restock every 7-10 days due to demand.</p>
-          </div>
-          <div className="rounded-2xl border border-[#e3d3be] bg-[#fff8ef] p-4">
-            <p className="text-xs uppercase tracking-[0.16em] text-[#8b7359]">Dermatologist Curated</p>
-            <p className="mt-2 text-sm text-[#6f5a47]">Each bestseller is selected for efficacy, tolerance, and routine compatibility.</p>
-          </div>
-        </div>
+        </motion.div>
       </section>
+
+      <Footer />
     </div>
   );
 }

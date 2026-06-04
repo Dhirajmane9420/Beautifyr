@@ -1,11 +1,11 @@
 import { CatalogProduct } from "./catalog.model.js";
 
 const DEFAULT_IMAGE =
-  "https://images.unsplash.com/photo-1629198688000-71f23e745b6e?auto=format&fit=crop&w=900&q=80";
+  "/hero.jpg";
 
 const seedProducts = [
   {
-    title: "Pore Reset Tonic Cleanser",
+    title: "LuminaTone Pore Refining Tonic",
     description: "Gentle daily cleanser that clears excess oil without stripping hydration.",
     price: 980,
     inStock: true,
@@ -14,7 +14,7 @@ const seedProducts = [
     imageUrl: DEFAULT_IMAGE,
   },
   {
-    title: "Charcoal Enzyme Cleanser",
+    title: "Dermadetox Charcoal Enzyme Foam",
     description: "Detoxifying charcoal foam for deep pore refresh and smooth texture.",
     price: 1100,
     inStock: false,
@@ -23,7 +23,7 @@ const seedProducts = [
     imageUrl: DEFAULT_IMAGE,
   },
   {
-    title: "Radiance C-Serum",
+    title: "GlowAid 15% Vitamin C Serum",
     description: "Vitamin C concentrate for glow, tone correction, and brightness support.",
     price: 1250,
     inStock: true,
@@ -32,7 +32,7 @@ const seedProducts = [
     imageUrl: DEFAULT_IMAGE,
   },
   {
-    title: "Blemish Repair Serum",
+    title: "AcneClenz Niacinamide + Zinc Serum",
     description: "Niacinamide and zinc serum that supports acne-prone skin barrier repair.",
     price: 1170,
     inStock: true,
@@ -41,7 +41,7 @@ const seedProducts = [
     imageUrl: DEFAULT_IMAGE,
   },
   {
-    title: "Barrier Rescue Cream",
+    title: "Cerashield Barrier Rescue Cream",
     description: "Ceramide-rich moisturizer that locks in hydration and calms irritation.",
     price: 1390,
     inStock: true,
@@ -50,7 +50,7 @@ const seedProducts = [
     imageUrl: DEFAULT_IMAGE,
   },
   {
-    title: "Cloud Dew Gel Moisturizer",
+    title: "AquaCloud Dewy Gel Moisturizer",
     description: "Lightweight gel-cream for all-day hydration and smooth skin texture.",
     price: 990,
     inStock: true,
@@ -59,7 +59,7 @@ const seedProducts = [
     imageUrl: DEFAULT_IMAGE,
   },
   {
-    title: "Hydrating Glow Serum",
+    title: "HydroGlow Barrier Support Serum",
     description: "Best-selling hydration serum with clinically proven barrier support.",
     price: 1299,
     inStock: true,
@@ -68,7 +68,7 @@ const seedProducts = [
     imageUrl: DEFAULT_IMAGE,
   },
   {
-    title: "Vitamin C Bright Cream",
+    title: "LumiBright Vitamin C Cream",
     description: "Customer-favorite brightening cream for daily radiance and tone correction.",
     price: 1499,
     inStock: true,
@@ -77,7 +77,7 @@ const seedProducts = [
     imageUrl: DEFAULT_IMAGE,
   },
   {
-    title: "SPF 50 Sunscreen",
+    title: "SolarGuard SPF 50 PA+++",
     description: "High-protection sunscreen with lightweight finish and no white cast.",
     price: 799,
     inStock: true,
@@ -86,7 +86,7 @@ const seedProducts = [
     imageUrl: DEFAULT_IMAGE,
   },
   {
-    title: "Under Eye Revival Gel",
+    title: "RevitaEye Peptide Eye Gel",
     description: "Cooling peptide eye gel loved for depuffing and brighter-looking under-eyes.",
     price: 1099,
     inStock: true,
@@ -95,7 +95,7 @@ const seedProducts = [
     imageUrl: DEFAULT_IMAGE,
   },
   {
-    title: "Dew Barrier Essence",
+    title: "DewSkin Rice Barrier Essence",
     description: "Rice peptides plus ceramide support for lightweight daily barrier care.",
     price: 1299,
     inStock: true,
@@ -104,7 +104,7 @@ const seedProducts = [
     imageUrl: DEFAULT_IMAGE,
   },
   {
-    title: "Cloud Clean Gel",
+    title: "PureFoam Low-Ph Gel Cleanser",
     description: "Low-foam cleanser designed for a fresh daily reset.",
     price: 899,
     inStock: true,
@@ -113,7 +113,7 @@ const seedProducts = [
     imageUrl: DEFAULT_IMAGE,
   },
   {
-    title: "Peptide Lift Mist",
+    title: "AirLift Peptide Hydration Mist",
     description: "Ultra-fine hydration mist with peptide complex and glow finish.",
     price: 1099,
     inStock: true,
@@ -122,7 +122,7 @@ const seedProducts = [
     imageUrl: DEFAULT_IMAGE,
   },
   {
-    title: "Luminous Night Oil",
+    title: "MidnightGlow Squalane Night Oil",
     description: "Squalane-rich overnight treatment for nourishment and softness.",
     price: 1699,
     inStock: true,

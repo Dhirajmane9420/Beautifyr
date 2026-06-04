@@ -1,4 +1,5 @@
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
@@ -12,7 +13,7 @@ function Profile() {
   };
 
   return (
-    <>
+    <div className="flex min-h-screen flex-col">
       <Navbar />
       <div className="min-h-screen bg-linear-to-br from-[#fff7ee] via-[#fffaf2] to-[#f7eadb] px-4 pt-28">
         <div className="mx-auto w-full max-w-2xl rounded-3xl border border-[#eadfc8] bg-[#fffaf2]/90 p-8 shadow-xl backdrop-blur-xl">
@@ -40,7 +41,8 @@ function Profile() {
           </button>
         </div>
       </div>
-    </>
+      <Footer />
+    </div>
   );
 }
 

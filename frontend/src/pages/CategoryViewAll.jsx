@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { useCart } from "../context/CartContext";
 import { toProductSlug } from "../lib/productUtils";
+import heroImage from "../assets/hero.jpg";
 
 function CategoryViewAll() {
   const location = useLocation();
@@ -151,7 +153,7 @@ function CategoryViewAll() {
                 key={product._id || `${product.title}-${index}`}
                 title={product.title}
                 price={`Rs ${product.price}`}
-                image={product.imageUrl}
+                image={heroImage}
                 inStock={product.inStock}
                 category={title}
               />
@@ -175,7 +177,7 @@ function ProductCard({ title, price, image, inStock, category }) {
         type="button"
         onClick={() =>
           navigate(`/product/${toProductSlug(title)}`, {
-            state: { product: { name: title, price: numericPrice, originalPrice: Math.round(numericPrice * 1.3), image, category } },
+            state: { product: { name: title, price: numericPrice, originalPrice: Math.round(numericPrice * 1.3), image: heroImage, category } },
           })
         }
         className="w-full text-left"
@@ -203,13 +205,14 @@ function ProductCard({ title, price, image, inStock, category }) {
             name: title,
             price: numericPrice,
             originalPrice: Math.round(numericPrice * 1.3),
-            image,
+            image: heroImage,
           })
         }
         className="mt-4 w-full rounded-lg bg-[#8a6038] py-2 text-sm text-white transition hover:bg-[#b67d4a]"
       >
         Add to Cart
       </button>
+      <Footer />
     </div>
   );
 }

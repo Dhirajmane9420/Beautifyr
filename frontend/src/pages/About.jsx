@@ -2,6 +2,7 @@
 import aboutImg from "../assets/hero.jpg"; // replace later with actual image
 import { motion } from "framer-motion";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
 import AboutLiveEditor from "../components/admin/AboutLiveEditor";
 import {
@@ -396,61 +397,7 @@ function About() {
         </div>
       </motion.section>
 
-      {/* REFINED FOOTER & NEWSLETTER */}
-      <footer className="mt-12 rounded-t-4xl bg-[#1A1816] px-5 pb-12 pt-16 text-[#FCFAF8] sm:rounded-t-[3rem] sm:px-6 sm:pt-20 md:px-12 lg:px-24 lg:pt-24">
-        <div className="mb-16 grid grid-cols-1 gap-12 lg:mb-20 lg:grid-cols-12 lg:gap-16">
-          
-          {/* Newsletter */}
-          <div className="lg:col-span-6 pr-0 lg:pr-12">
-            <h2 className="text-3xl font-light mb-4 tracking-tight">Join the <span className="font-serif italic text-[#D2C5B5]">Sanctuary</span></h2>
-            <p className="text-white/50 font-light mb-8 max-w-md">Privileged access to new formulations, clinical insights, and 10% off your introductory ritual.</p>
-            <div className="relative flex max-w-md flex-col gap-3 sm:flex-row sm:items-center sm:gap-0">
-              <input 
-                type="email" 
-                placeholder="Your email address" 
-                className="w-full rounded-none border-b border-white/20 bg-white/5 px-0 py-4 text-white placeholder-white/30 transition-colors focus:border-white focus:outline-none sm:pr-28"
-              />
-              <button className="text-left text-sm uppercase tracking-widest text-[#D2C5B5] transition-colors hover:text-white sm:absolute sm:right-0 sm:top-1/2 sm:-translate-y-1/2 sm:text-right">
-                Subscribe
-              </button>
-            </div>
-          </div>
-
-          {/* Links Grid */}
-          <div className="grid grid-cols-1 gap-8 text-sm font-light text-white/60 sm:grid-cols-2 md:grid-cols-3 lg:col-span-6">
-            <div className="flex flex-col gap-4">
-              <h4 className="text-white font-medium tracking-widest uppercase text-xs mb-2">Shop</h4>
-              <a href="#" className="hover:text-white transition-colors">All Products</a>
-              <a href="#" className="hover:text-white transition-colors">Best Sellers</a>
-              <a href="#" className="hover:text-white transition-colors">Routines</a>
-              <a href="#" className="hover:text-white transition-colors">Gift Cards</a>
-            </div>
-            <div className="flex flex-col gap-4">
-              <h4 className="text-white font-medium tracking-widest uppercase text-xs mb-2">About</h4>
-              <a href="#" className="hover:text-white transition-colors">Our Story</a>
-              <a href="#" className="hover:text-white transition-colors">Ingredients</a>
-              <a href="#" className="hover:text-white transition-colors">Clinical Trials</a>
-              <a href="#" className="hover:text-white transition-colors">Journal</a>
-            </div>
-            <div className="flex flex-col gap-4">
-              <h4 className="text-white font-medium tracking-widest uppercase text-xs mb-2">Support</h4>
-              <a href="#" className="hover:text-white transition-colors">FAQ</a>
-              <a href="#" className="hover:text-white transition-colors">Shipping</a>
-              <a href="#" className="hover:text-white transition-colors">Returns</a>
-              <a href="#" className="hover:text-white transition-colors">Contact</a>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col items-start justify-between gap-4 border-t border-white/10 pt-8 text-xs font-light text-white/40 md:flex-row md:items-center md:gap-6">
-          <p>© 2026 Clinical Sanctuary. All rights reserved.</p>
-          <div className="flex flex-wrap gap-6">
-            <a href="#" className="hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms</a>
-            <a href="#" className="hover:text-white transition-colors">Instagram</a>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

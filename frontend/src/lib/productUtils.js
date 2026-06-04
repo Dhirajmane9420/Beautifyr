@@ -27,10 +27,10 @@ export function toProductPayload(input) {
   const liquid = isLiquidProduct(input);
 
   return {
-    id: input?.id || `p-${toProductSlug(input?.name || input?.title)}`,
+    id: input?.id || input?._id || `p-${toProductSlug(input?.name || input?.title)}`,
     name: input?.name || input?.title || "Product",
     category: input?.category || "Skincare",
-    image: input?.image || "https://via.placeholder.com/700x700",
+    image: input?.image || input?.imageUrl || "/hero.jpg",
     price: priceNumber,
     originalPrice,
     size: liquid ? normalizeMlSize(input?.size) : "",

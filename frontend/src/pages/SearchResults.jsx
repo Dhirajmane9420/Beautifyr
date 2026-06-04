@@ -1,8 +1,10 @@
 import React, { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { findCategoryIntent, findProductIntent, searchCatalog } from "../lib/searchIndex";
 import { toProductSlug } from "../lib/productUtils";
+import heroImage from "../assets/hero.jpg";
 
 const typeStyles = {
   Category: "bg-[#f3e6d3] text-[#7a522f]",
@@ -58,7 +60,7 @@ export default function SearchResults() {
                     name: productIntent.title,
                     price: productIntent.price,
                     category: productIntent.category,
-                    image: "https://via.placeholder.com/700x700",
+                    image: heroImage,
                   },
                 }}
                 className="mt-4 inline-flex rounded-full border border-[#d3b48f] px-5 py-2 text-sm font-semibold text-[#8a6038] transition hover:bg-[#8a6038] hover:text-white"
@@ -83,7 +85,7 @@ export default function SearchResults() {
                           name: item.title,
                           price: item.price,
                           category: productIntent.category,
-                          image: "https://via.placeholder.com/700x700",
+                          image: heroImage,
                         },
                       }}
                       className="rounded-xl border border-[#e7d6be] bg-[#fffaf4] p-4 transition hover:border-[#d3b48f]"
@@ -151,7 +153,7 @@ export default function SearchResults() {
                           name: item.title,
                           price: item.price,
                           category: item.category,
-                          image: "https://via.placeholder.com/700x700",
+                          image: heroImage,
                         },
                       }
                     : item.state
@@ -169,6 +171,7 @@ export default function SearchResults() {
           </section>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

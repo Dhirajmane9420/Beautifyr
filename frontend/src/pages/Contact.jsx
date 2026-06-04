@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, HelpCircle, LogIn, MessageCircleQuestion } from "lucide-react";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 const issueTypes = [
   "Help with your issues",
@@ -200,6 +201,7 @@ function Contact() {
           </div>
         </section>
       </main>
+      <Footer />
     </div>
   );
 }

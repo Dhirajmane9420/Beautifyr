@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { ArrowRight, Heart, ShoppingBag, Sparkles, Trash2 } from "lucide-react";
 import heroImg from "../assets/hero.jpg";
 
@@ -198,6 +199,7 @@ function Wishlist() {
           }
         }
       `}</style>
+      <Footer />
     </div>
   );
 }

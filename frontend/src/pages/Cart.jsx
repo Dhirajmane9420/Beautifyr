@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { BadgePercent, ShieldCheck, ShoppingCart, Trash2, Zap } from "lucide-react";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { useCart } from "../context/CartContext";
 import { toProductSlug } from "../lib/productUtils";
 
@@ -280,64 +281,7 @@ export default function Cart() {
           </main>
         )}
 
-        <footer className="mt-10 bg-[#fff7ee] px-6 py-12 sm:mt-14 lg:py-20">
-          <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 sm:grid-cols-2 md:gap-12 lg:grid-cols-4">
-            <div>
-              <h3 className="text-2xl font-bold text-[#7a522f] sm:text-3xl">Clinical Sanctuary</h3>
-              <p className="mt-4 max-w-sm text-base leading-relaxed text-gray-500 sm:mt-6 sm:text-lg">
-                Dermatologist-formulated skincare that respects your biology and enhances your natural beauty.
-              </p>
-
-              <div className="mt-6 flex items-center gap-5 text-2xl text-[#8a6038] sm:mt-8 sm:text-3xl">
-                <span>🌐</span>
-                <span>@</span>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-xl font-semibold text-[#7a522f] sm:text-2xl">Products</h4>
-              <ul className="mt-4 space-y-3 text-base text-gray-500 sm:mt-6 sm:space-y-4 sm:text-lg">
-                <li>Face Wash</li>
-                <li>Serums</li>
-                <li>Moisturizers</li>
-                <li>Sunscreens</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-xl font-semibold text-[#7a522f] sm:text-2xl">Support</h4>
-              <ul className="mt-4 space-y-3 text-base text-gray-500 sm:mt-6 sm:space-y-4 sm:text-lg">
-                <li>Contact Support</li>
-                <li>Shipping & Returns</li>
-                <li>FAQs</li>
-                <li>Privacy Policy</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-xl font-semibold text-[#7a522f] sm:text-2xl">Newsletter</h4>
-              <p className="mt-4 text-base leading-relaxed text-gray-500 sm:mt-6 sm:text-lg">
-                The latest in skin science, delivered to your inbox.
-              </p>
-
-              <input
-                type="email"
-                placeholder="Email"
-                className="mt-6 w-full rounded-2xl border border-gray-100 bg-white px-5 py-3.5 text-base text-gray-700 shadow-sm outline-none sm:mt-8 sm:py-4 sm:text-lg"
-              />
-            </div>
-          </div>
-
-          <div className="mt-12 flex flex-col items-center justify-between gap-6 border-t border-gray-200 pt-8 text-center text-xs text-gray-400 sm:mt-16 sm:text-sm md:flex-row md:text-left">
-            <p>© 2024 Clinical Sanctuary. Dermatologist Recommended.</p>
-
-            <div className="flex flex-wrap justify-center gap-4 sm:gap-8 md:justify-end">
-              <span>Privacy Policy</span>
-              <span>Terms of Service</span>
-              <span>Accessibility</span>
-            </div>
-          </div>
-        </footer>
+        <Footer />
       </div>
 
       <style>{`

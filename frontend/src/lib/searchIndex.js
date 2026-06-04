@@ -1,35 +1,6 @@
-export const categoryProducts = {
-  Cleansers: [
-    { title: "Pore Reset Tonic Cleanser", price: 980, inStock: true },
-    { title: "Foam Polish Exfoliant", price: 999, inStock: true },
-    { title: "Charcoal Enzyme Cleanser", price: 1100, inStock: false },
-    { title: "Night Calm Cleansing Balm", price: 1390, inStock: true },
-  ],
-  Serums: [
-    { title: "Hydrating Glow Serum", price: 1299, inStock: true },
-    { title: "Niacinamide Booster", price: 1199, inStock: true },
-    { title: "Luxury Night Elixir", price: 1899, inStock: true },
-    { title: "Retinol Renewal Serum", price: 1599, inStock: true },
-  ],
-  Moisturizers: [
-    { title: "Daily Repair Moisturizer", price: 999, inStock: true },
-    { title: "Vitamin C Bright Cream", price: 1499, inStock: true },
-    { title: "Barrier Recovery Cream", price: 1099, inStock: true },
-    { title: "Hydra Comfort Gel Cream", price: 899, inStock: true },
-  ],
-  Sunscreens: [
-    { title: "SPF 50 Sunscreen", price: 799, inStock: true },
-    { title: "Oil-Free SPF Lotion", price: 799, inStock: true },
-    { title: "Ultra Shield SPF 50 Cream", price: 1190, inStock: true },
-    { title: "Sunveil Daily Sunscreen Gel", price: 920, inStock: true },
-  ],
-  Toners: [
-    { title: "Balancing AHA Toner", price: 1120, inStock: true },
-    { title: "Hydra Tone Moisture Milk", price: 980, inStock: true },
-    { title: "Hyaluronic Serum Toner", price: 1100, inStock: false },
-    { title: "Clarifying Daily Toner", price: 890, inStock: true },
-  ],
-};
+import { categoryProducts } from "./products-data";
+
+export { categoryProducts };
 
 export const categoryKeywords = {
   Cleansers: ["cleanser", "face wash", "foam", "wash", "cleansing"],
@@ -37,11 +8,13 @@ export const categoryKeywords = {
   Moisturizers: ["moisturizer", "cream", "hydration", "barrier"],
   Sunscreens: ["sunscreen", "spf", "sun", "uv"],
   Toners: ["toner", "balancing", "mist", "aha"],
+  "Best Sellers": ["best", "sellers", "top", "popular", "trending"],
+  "New Arrivals": ["new", "arrivals", "latest", "just", "launched"],
 };
 
 function createEntries() {
   const categoryEntries = Object.entries(categoryProducts).map(([category, products]) => ({
-    id: `cat-${category.toLowerCase()}`,
+    id: `cat-${category.toLowerCase().replace(/\s+/g, "-")}`,
     title: category,
     type: "Category",
     description: `${products.length} products`,
@@ -52,7 +25,7 @@ function createEntries() {
 
   const productEntries = Object.entries(categoryProducts).flatMap(([category, products]) =>
     products.map((product) => ({
-      id: `prod-${category.toLowerCase()}-${product.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+      id: `prod-${category.toLowerCase().replace(/\s+/g, "-")}-${product.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
       title: product.title,
       type: "Product",
       category,
@@ -155,7 +128,6 @@ function scoreEntry(entry, terms, query) {
     if (description.includes(term)) score += 2;
     if (type.includes(term)) score += 1;
 
-    // Partial token matching: `ser` should match `serum`, `moist` -> `moisturizer`.
     if (titleTokens.some((token) => token.startsWith(term) || term.startsWith(token) || token.includes(term))) {
       score += 5;
     }

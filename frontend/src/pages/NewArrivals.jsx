@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import heroImage from "../assets/hero.jpg";
 import { motion } from "framer-motion";
+import { toProductSlug } from "../lib/productUtils";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
 import {
   createCatalogProduct,
@@ -36,14 +40,20 @@ const buildInitialForm = () => ({
 });
 
 const ProductCard = ({ item, isAdmin, onEdit, onDelete }) => {
+  const navigate = useNavigate();
   return (
     <motion.article
       variants={fadeUp}
+      onClick={() =>
+        navigate(`/product/${toProductSlug(item.title)}`, {
+          state: { product: item },
+        })
+      }
       className="group cursor-pointer flex flex-col items-center text-center"
     >
       <div className="relative w-full aspect-[4/5] overflow-hidden rounded-[2.5rem] bg-gradient-to-b from-slate-50 to-slate-100 mb-8 transition-all duration-700 ease-out group-hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)] group-hover:-translate-y-2">
         <img
-          src={item.imageUrl}
+          src={heroImage}
           alt={item.title}
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-1000 ease-[0.16,1,0.3,1] group-hover:scale-105 opacity-90 mix-blend-multiply"
         />
@@ -135,10 +145,6 @@ export default function NewArrivals() {
       isMounted = false;
     };
   }, []);
-
-  const heroImage = useMemo(() => {
-    return arrivals[0]?.imageUrl || "https://images.unsplash.com/photo-1629198688000-71f23e745b6e?auto=format&fit=crop&w=900&q=80";
-  }, [arrivals]);
 
   const toPayload = (form, imageUrl) => ({
     title: form.title.trim(),
@@ -491,6 +497,7 @@ export default function NewArrivals() {
           </div>
         </div>
       ) : null}
+      <Footer />
     </div>
   );
 }

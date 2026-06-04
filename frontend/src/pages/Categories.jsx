@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import heroImg from "../assets/hero.jpg";
+import { useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import {
@@ -21,53 +23,28 @@ import {
 } from "../lib/siteOverridesApi";
 import { toProductSlug } from "../lib/productUtils";
 
-const SECTION_OPTIONS = ["Cleansers", "Serums", "Moisturizers"];
+const SECTIONS = ["Cleansers", "Serums", "Moisturizers"];
 
 const CONTENT_DEFAULTS = {
   "hero.badge": "Curated Categories",
   "hero.titlePrefix": "Shop by",
   "hero.titleAccent": "Category",
-  "hero.description":
-    "Explore our skincare essentials crafted for radiant, healthy skin.",
-  "hero.image":
-    "https://images.unsplash.com/photo-1556227702-d1e4e7b8c232?auto=format&fit=crop&w=900&q=80",
+  "hero.description": "Explore our skincare essentials crafted for radiant, healthy skin.",
+  "hero.image": heroImg,
   "section.cleansers.title": "Cleansers",
-  "section.cleansers.subtitle": "High-performance formulas for healthy, glowing skin.",
-  "section.cleansers.image":
-    "https://images.unsplash.com/photo-1556227702-d1e4e7b8c232?auto=format&fit=crop&w=900&q=80",
+  "section.cleansers.subtitle": "Gentle formulas that purify without stripping.",
+  "section.cleansers.image": heroImg,
   "section.serums.title": "Serums",
-  "section.serums.subtitle": "High-performance formulas for healthy, glowing skin.",
-  "section.serums.image":
-    "https://images.unsplash.com/photo-1629198688000-71f23e745b6e?auto=format&fit=crop&w=900&q=80",
+  "section.serums.subtitle": "Concentrated treatments for targeted skin concerns.",
+  "section.serums.image": heroImg,
   "section.moisturizers.title": "Moisturizers",
-  "section.moisturizers.subtitle": "High-performance formulas for healthy, glowing skin.",
-  "section.moisturizers.image":
-    "https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?auto=format&fit=crop&w=900&q=80",
+  "section.moisturizers.subtitle": "Deep hydration for a dewy, healthy complexion.",
+  "section.moisturizers.image": heroImg,
   "section.dynamic.subtitle": "Explore products from this category.",
-  "section.dynamic.image":
-    "https://images.unsplash.com/photo-1580870069867-74c57ee1bb07?auto=format&fit=crop&w=900&q=80",
+  "section.dynamic.image": heroImg,
 };
 
-const sectionStagger = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const riseIn = {
-  hidden: { opacity: 0, y: 24 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.55, ease: "easeOut" },
-  },
-};
-
-const buildInitialProductForm = () => ({
+const buildInitialForm = () => ({
   title: "",
   description: "",
   price: "",
@@ -77,143 +54,124 @@ const buildInitialProductForm = () => ({
   imageUrl: "",
 });
 
+/* ── ANIMATION VARIANTS ── */
+const fadeUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: (i = 0) => ({ opacity: 1, y: 0, transition: { delay: i * 0.12, duration: 0.6, ease: [0.25, 0.1, 0, 1] } }),
+};
+
+const stagger = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08, delayChildren: 0.15 } },
+};
+
+const fadeIn = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.1, 0, 1] } },
+};
+
+/* ── GOLD ACCENT ── */
+const GOLD = "#C8A97E";
+
 export default function CategoriesPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const { isAdmin } = useAuth();
+  const { addToCart } = useCart();
 
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  /* ── STATE ── */
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [pageOverrides, setPageOverrides] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [adminNotice, setAdminNotice] = useState("");
+  const [pageOverrides, setPageOverrides] = useState({});
 
-  const [newCategoryName, setNewCategoryName] = useState("");
-
-  const [newProductForm, setNewProductForm] = useState(buildInitialProductForm());
-  const [newProductFile, setNewProductFile] = useState(null);
-
+  /* Admin product state */
+  const [form, setForm] = useState(buildInitialForm());
   const [editingProductId, setEditingProductId] = useState(null);
-  const [editingProductForm, setEditingProductForm] = useState(buildInitialProductForm());
+  const [editingProductForm, setEditingProductForm] = useState(buildInitialForm());
   const [editingProductFile, setEditingProductFile] = useState(null);
 
-  const [contentDraft, setContentDraft] = useState(CONTENT_DEFAULTS);
+  /* Admin category state */
+  const [newCategoryName, setNewCategoryName] = useState("");
 
+  /* Content editor state */
+  const [activeContentTab, setActiveContentTab] = useState("hero");
+  const [contentForm, setContentForm] = useState({});
+
+  /* ── LOADING ── */
   useEffect(() => {
-    let isMounted = true;
-
-    const loadData = async () => {
+    const load = async () => {
       try {
-        setIsLoading(true);
-
-        const [catalog, catalogCategories, overrides] = await Promise.all([
+        const [catalog, catalogCats, overrides] = await Promise.all([
           fetchCatalogProducts(),
           fetchCatalogCategories(),
           fetchPageOverrides("categories"),
         ]);
-
-        if (!isMounted) return;
-
-        setProducts(catalog);
-        setCategories(catalogCategories);
-        setPageOverrides(overrides);
-      } catch {
-        if (!isMounted) return;
-        setProducts([]);
-        setCategories([]);
-        setPageOverrides([]);
+        setProducts(Array.isArray(catalog) ? catalog : []);
+        setCategories(Array.isArray(catalogCats) ? catalogCats : []);
+        setPageOverrides(overrides?.content || {});
+      } catch (err) {
+        console.error("Failed to load catalog data", err);
       } finally {
-        if (!isMounted) return;
         setIsLoading(false);
       }
     };
-
-    void loadData();
-
-    return () => {
-      isMounted = false;
-    };
+    load();
   }, []);
 
-  const overrideMap = useMemo(() => {
-    const map = new Map();
-    pageOverrides.forEach((item) => {
-      map.set(item.key, item.value);
-    });
-    return map;
-  }, [pageOverrides]);
-
-  const pageContent = useMemo(() => {
-    const merged = { ...CONTENT_DEFAULTS };
-    Object.keys(merged).forEach((key) => {
-      if (overrideMap.has(key)) {
-        merged[key] = overrideMap.get(key);
-      }
-    });
-    return merged;
-  }, [overrideMap]);
-
-  useEffect(() => {
-    setContentDraft(pageContent);
-  }, [pageContent]);
-
-  const pillNames = useMemo(() => {
-    const names = categories.map((item) => item.name).filter(Boolean);
-    return Array.from(new Set(names));
+  /* ── DERIVED ── */
+  const categoryNames = useMemo(() => {
+    const names = categories.map((c) => c.name);
+    return [...new Set(names)];
   }, [categories]);
 
-  const selectedCategoryProducts = useMemo(() => {
-    if (!selectedCategory) return [];
-
-    if (SECTION_OPTIONS.includes(selectedCategory)) {
-      return products.filter((item) => item.section === selectedCategory);
-    }
-
-    return products.filter((item) => item.category === selectedCategory);
+  const filteredProducts = useMemo(() => {
+    if (!selectedCategory) return products;
+    return products.filter((p) => {
+      const cat = (p.category || "").toLowerCase().trim();
+      const sel = selectedCategory.toLowerCase().trim();
+      return cat === sel;
+    });
   }, [products, selectedCategory]);
 
   const sectionProducts = useMemo(() => {
-    return {
-      Cleansers: products.filter((item) => item.section === "Cleansers"),
-      Serums: products.filter((item) => item.section === "Serums"),
-      Moisturizers: products.filter((item) => item.section === "Moisturizers"),
-    };
+    const map = {};
+    SECTIONS.forEach((sec) => {
+      map[sec] = products.filter(
+        (p) => (p.section || "").toLowerCase().trim() === sec.toLowerCase().trim()
+      );
+    });
+    return map;
   }, [products]);
 
-  const sectionContentByTitle = (title) => {
-    const normalized = title.toLowerCase();
+  const getContent = (title) => {
+    const key = title?.toLowerCase().trim();
+    const overrides = pageOverrides;
+    const defs = CONTENT_DEFAULTS;
 
-    if (normalized === "cleansers") {
+    if (title === "hero") {
       return {
-        title: pageContent["section.cleansers.title"],
-        subtitle: pageContent["section.cleansers.subtitle"],
-        image: pageContent["section.cleansers.image"],
+        badge: overrides["hero.badge"] ?? defs["hero.badge"],
+        titlePrefix: overrides["hero.titlePrefix"] ?? defs["hero.titlePrefix"],
+        titleAccent: overrides["hero.titleAccent"] ?? defs["hero.titleAccent"],
+        description: overrides["hero.description"] ?? defs["hero.description"],
+        image: overrides["hero.image"] ?? defs["hero.image"],
       };
     }
 
-    if (normalized === "serums") {
+    if (SECTIONS.map((s) => s.toLowerCase()).includes(key)) {
       return {
-        title: pageContent["section.serums.title"],
-        subtitle: pageContent["section.serums.subtitle"],
-        image: pageContent["section.serums.image"],
-      };
-    }
-
-    if (normalized === "moisturizers") {
-      return {
-        title: pageContent["section.moisturizers.title"],
-        subtitle: pageContent["section.moisturizers.subtitle"],
-        image: pageContent["section.moisturizers.image"],
+        title: overrides[`section.${key}.title`] ?? defs[`section.${key}.title`] ?? title,
+        subtitle: overrides[`section.${key}.subtitle`] ?? defs[`section.${key}.subtitle`] ?? "",
+        image: overrides[`section.${key}.image`] ?? defs[`section.${key}.image`] ?? heroImg,
       };
     }
 
     return {
       title,
-      subtitle: pageContent["section.dynamic.subtitle"],
-      image: pageContent["section.dynamic.image"],
+      subtitle: overrides["section.dynamic.subtitle"] ?? defs["section.dynamic.subtitle"],
+      image: overrides["section.dynamic.image"] ?? defs["section.dynamic.image"] ?? heroImg,
     };
   };
 
@@ -221,46 +179,36 @@ export default function CategoriesPage() {
     navigate("/categories/view-all", {
       state: {
         title,
-        products: (SECTION_OPTIONS.includes(title)
-          ? products.filter((item) => item.section === title)
-          : products.filter((item) => item.category === title)
-        ).map((item) => ({
-          ...item,
-          price: Number(item.price),
-        })),
+        products: products.filter(
+          (p) => (p.category || "").toLowerCase().trim() === title.toLowerCase().trim()
+        ),
+        image: heroImg,
       },
     });
   };
 
+  /* ── CRUD PRODUCTS ── */
   const toPayload = (form, imageUrl) => ({
     title: form.title.trim(),
     description: form.description.trim(),
     price: Number(form.price),
-    inStock: Boolean(form.inStock),
-    section: form.section,
-    category: form.category.trim(),
-    imageUrl,
+    inStock: form.inStock,
+    section: form.section || "Cleansers",
+    category: form.category || "Cleansers",
+    imageUrl: imageUrl || heroImg,
   });
 
   const handleCreateProduct = async () => {
+    if (!form.title.trim() || !form.price) return;
+    setIsSaving(true);
     try {
-      setIsSaving(true);
-      setAdminNotice("");
-
-      let imageUrl = newProductForm.imageUrl.trim();
-      if (newProductFile) {
-        imageUrl = await uploadCatalogProductImage(newProductFile);
-      }
-
-      const payload = toPayload(newProductForm, imageUrl);
-      const created = await createCatalogProduct(payload);
-
-      setProducts((current) => [created, ...current]);
-      setNewProductForm(buildInitialProductForm());
-      setNewProductFile(null);
-      setAdminNotice("Product created.");
-    } catch (error) {
-      setAdminNotice(error.message || "Failed to create product.");
+      const payload = toPayload(form);
+      await createCatalogProduct(payload);
+      const updated = await fetchCatalogProducts();
+      setProducts(Array.isArray(updated) ? updated : []);
+      setForm(buildInitialForm());
+    } catch (err) {
+      console.error("Failed to create product", err);
     } finally {
       setIsSaving(false);
     }
@@ -271,10 +219,10 @@ export default function CategoriesPage() {
     setEditingProductForm({
       title: product.title || "",
       description: product.description || "",
-      price: String(product.price || ""),
-      inStock: Boolean(product.inStock),
+      price: String(product.price ?? ""),
+      inStock: product.inStock ?? true,
       section: product.section || "Cleansers",
-      category: product.category || "",
+      category: product.category || "Cleansers",
       imageUrl: product.imageUrl || "",
     });
     setEditingProductFile(null);
@@ -282,895 +230,901 @@ export default function CategoriesPage() {
 
   const handleUpdateProduct = async () => {
     if (!editingProductId) return;
-
+    setIsSaving(true);
     try {
-      setIsSaving(true);
-      setAdminNotice("");
-
-      let imageUrl = editingProductForm.imageUrl.trim();
+      let imageUrl = editingProductForm.imageUrl;
       if (editingProductFile) {
-        imageUrl = await uploadCatalogProductImage(editingProductFile);
+        const uploaded = await uploadCatalogProductImage(editingProductFile);
+        imageUrl = uploaded.url || uploaded.imageUrl || heroImg;
       }
-
       const payload = toPayload(editingProductForm, imageUrl);
-      const updated = await updateCatalogProduct(editingProductId, payload);
-
-      setProducts((current) => current.map((item) => (item._id === editingProductId ? updated : item)));
+      await updateCatalogProduct(editingProductId, payload);
+      const updated = await fetchCatalogProducts();
+      setProducts(Array.isArray(updated) ? updated : []);
       setEditingProductId(null);
-      setEditingProductFile(null);
-      setAdminNotice("Product updated.");
-    } catch (error) {
-      setAdminNotice(error.message || "Failed to update product.");
+    } catch (err) {
+      console.error("Failed to update product", err);
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDeleteProduct = async (productId) => {
-    const confirmed = window.confirm("Delete this product?");
-    if (!confirmed) return;
-
+  const handleDeleteProduct = async (id) => {
+    if (!window.confirm("Delete this product?")) return;
     try {
-      setIsSaving(true);
-      setAdminNotice("");
-      await deleteCatalogProduct(productId);
-      setProducts((current) => current.filter((item) => item._id !== productId));
-      setAdminNotice("Product deleted.");
-    } catch (error) {
-      setAdminNotice(error.message || "Failed to delete product.");
-    } finally {
-      setIsSaving(false);
+      await deleteCatalogProduct(id);
+      setProducts((prev) => prev.filter((p) => p._id !== id));
+    } catch (err) {
+      console.error("Failed to delete product", err);
     }
   };
 
+  /* ── CRUD CATEGORIES ── */
   const handleCreateCategory = async () => {
-    const trimmed = newCategoryName.trim();
-    if (!trimmed) {
-      setAdminNotice("Category name is required.");
-      return;
-    }
-
+    if (!newCategoryName.trim()) return;
     try {
-      setIsSaving(true);
-      setAdminNotice("");
-      const created = await createCatalogCategory(trimmed);
-      setCategories((current) => [...current, created]);
+      await createCatalogCategory(newCategoryName.trim());
+      const updated = await fetchCatalogCategories();
+      setCategories(Array.isArray(updated) ? updated : []);
       setNewCategoryName("");
-      setAdminNotice("Category created.");
-    } catch (error) {
-      setAdminNotice(error.message || "Failed to create category.");
-    } finally {
-      setIsSaving(false);
+    } catch (err) {
+      console.error("Failed to create category", err);
     }
   };
 
-  const handleDeleteCategory = async (categoryId) => {
-    const confirmed = window.confirm("Delete this category?");
-    if (!confirmed) return;
-
+  const handleDeleteCategory = async (id) => {
+    if (!window.confirm("Delete this category?")) return;
     try {
-      setIsSaving(true);
-      setAdminNotice("");
-      await deleteCatalogCategory(categoryId);
-      setCategories((current) => current.filter((item) => item._id !== categoryId));
-      setAdminNotice("Category deleted.");
-    } catch (error) {
-      setAdminNotice(error.message || "Failed to delete category.");
-    } finally {
-      setIsSaving(false);
+      await deleteCatalogCategory(id);
+      setCategories((prev) => prev.filter((c) => c._id !== id));
+    } catch (err) {
+      console.error("Failed to delete category", err);
     }
   };
 
-  const saveSingleOverride = async (key, value, kind) => {
-    const saved = await savePageOverride({
-      page: "categories",
-      key,
-      kind,
-      value,
-    });
-
-    setPageOverrides((current) => {
-      const next = current.filter((item) => item.key !== saved.key);
-      return [saved, ...next];
-    });
+  /* ── CONTENT OVERRIDES ── */
+  const saveSingleOverride = async (key, value, kind = "text") => {
+    try {
+      const result = await savePageOverride("categories", key, value, kind);
+      if (result?.content) setPageOverrides(result.content);
+    } catch (err) {
+      console.error("Failed to save override", err);
+    }
   };
 
   const handleSaveContent = async () => {
     try {
-      setIsSaving(true);
-      setAdminNotice("");
-
-      const keys = Object.keys(contentDraft);
-      for (const key of keys) {
-        const nextValue = String(contentDraft[key] ?? "");
-        const currentValue = String(pageContent[key] ?? "");
-        if (nextValue === currentValue) continue;
-
+      for (const [key, value] of Object.entries(contentForm)) {
         const kind = key.endsWith(".image") ? "image" : "text";
-        await saveSingleOverride(key, nextValue, kind);
+        await saveSingleOverride(key, value, kind);
       }
-
-      setAdminNotice("Page content updated.");
-    } catch (error) {
-      setAdminNotice(error.message || "Failed to update page content.");
-    } finally {
-      setIsSaving(false);
+      const refreshed = await fetchPageOverrides("categories");
+      setPageOverrides(refreshed?.content || {});
+      setContentForm({});
+    } catch (err) {
+      console.error("Failed to save content", err);
     }
   };
 
   const handleUploadContentImage = async (key, file) => {
-    if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      setAdminNotice("Image must be 10MB or smaller.");
-      return;
-    }
-
     try {
-      setIsSaving(true);
-      setAdminNotice("");
-      const imageUrl = await uploadPageOverrideImage(file);
-      setContentDraft((current) => ({ ...current, [key]: imageUrl }));
-      await saveSingleOverride(key, imageUrl, "image");
-      setAdminNotice("Page image updated.");
-    } catch (error) {
-      setAdminNotice(error.message || "Failed to upload image.");
-    } finally {
-      setIsSaving(false);
+      const result = await uploadPageOverrideImage(file);
+      const url = result?.url || result?.imageUrl || heroImg;
+      await saveSingleOverride(key, url, "image");
+      const refreshed = await fetchPageOverrides("categories");
+      setPageOverrides(refreshed?.content || {});
+    } catch (err) {
+      console.error("Failed to upload content image", err);
     }
   };
 
+  /* ── STYLING HELPERS ── */
+  const inputCls =
+    "w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-900 placeholder-stone-400 outline-none transition-all focus:border-[#C8A97E] focus:ring-2 focus:ring-[#C8A97E]/20";
+  const btnCls =
+    "px-6 py-2.5 text-sm font-semibold text-white bg-[#C8A97E] rounded-xl hover:bg-[#B89A6E] transition-all shadow-lg shadow-[#C8A97E]/20 disabled:opacity-50";
+
+  /* ── HERO CONTENT ── */
+  const heroContent = getContent("hero");
+
   return (
-    <div className="min-h-screen bg-[#fff7ee] text-[#2b2018] overflow-x-hidden">
+    <div className="min-h-screen bg-[#FAFAF8]">
       <Navbar />
 
-      <motion.section
-        className="flex flex-col lg:flex-row w-full max-w-[1440px] mx-auto min-h-[650px] px-6 lg:px-12 items-center pt-24"
-        initial="hidden"
-        animate="show"
-        variants={sectionStagger}
-      >
-        <motion.div variants={riseIn} className="w-full lg:w-1/2 relative h-[420px] flex items-center justify-center">
-          <div className="absolute inset-0 bg-gradient-to-tr from-[#ffbda7]/20 to-transparent blur-3xl rounded-full"></div>
-          <div className="relative z-10 rounded-2xl border border-[#edd8bc] bg-white p-4 shadow-xl">
-            <img
-              src={pageContent["hero.image"]}
-              className="w-72 h-80 object-cover rounded-xl"
-              alt="Category showcase"
-            />
-          </div>
-        </motion.div>
+      {/* ── HERO SECTION ── */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-[#FAFAF8] via-white to-[#FAFAF8]">
+        {/* Decorative Background Elements */}
+        <div className="absolute top-[-120px] right-[-120px] w-[400px] h-[400px] rounded-full bg-[#C8A97E]/5 blur-3xl" />
+        <div className="absolute bottom-[-80px] left-[-80px] w-[300px] h-[300px] rounded-full bg-[#D4B896]/5 blur-3xl" />
+        <div className="absolute top-1/3 left-1/4 w-1 h-1 rounded-full bg-[#C8A97E]/30" />
+        <div className="absolute top-1/4 right-1/3 w-1.5 h-1.5 rounded-full bg-[#D4B896]/40" />
+        <div className="absolute bottom-1/3 right-1/4 w-1 h-1 rounded-full bg-[#C8A97E]/20" />
 
-        <motion.div variants={riseIn} className="w-full lg:w-1/2 flex flex-col items-start lg:pl-20 py-10">
-          <motion.span variants={riseIn} className="px-4 py-1 text-xs tracking-widest uppercase border border-[#d3b48f] rounded-full text-[#6e5947] mb-6 bg-white/70">
-            {pageContent["hero.badge"]}
-          </motion.span>
-
-          <motion.h1 variants={riseIn} className="text-5xl lg:text-7xl font-light leading-tight mb-6">
-            {pageContent["hero.titlePrefix"]} <br />
-            <span className="font-bold italic">{pageContent["hero.titleAccent"]}</span>
-          </motion.h1>
-
-          <motion.p variants={riseIn} className="text-[#6e5947] max-w-md mb-10">
-            {pageContent["hero.description"]}
-          </motion.p>
-        </motion.div>
-      </motion.section>
-
-      {isAdmin ? (
-        <section className="mx-auto max-w-7xl px-8 pb-4 space-y-4">
-          <div className="rounded-2xl border border-[#dcbf9e] bg-white p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <h3 className="text-lg font-semibold text-[#6f4a2b]">Admin Category Page Content</h3>
-              {adminNotice ? <p className="text-sm text-[#8a6038]">{adminNotice}</p> : null}
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <input
-                value={contentDraft["hero.badge"]}
-                onChange={(event) =>
-                  setContentDraft((current) => ({ ...current, "hero.badge": event.target.value }))
-                }
-                placeholder="Hero badge"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-              <input
-                value={contentDraft["hero.titlePrefix"]}
-                onChange={(event) =>
-                  setContentDraft((current) => ({ ...current, "hero.titlePrefix": event.target.value }))
-                }
-                placeholder="Hero title prefix"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-              <input
-                value={contentDraft["hero.titleAccent"]}
-                onChange={(event) =>
-                  setContentDraft((current) => ({ ...current, "hero.titleAccent": event.target.value }))
-                }
-                placeholder="Hero title accent"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-              <input
-                value={contentDraft["hero.image"]}
-                onChange={(event) =>
-                  setContentDraft((current) => ({ ...current, "hero.image": event.target.value }))
-                }
-                placeholder="Hero image URL"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-            </div>
-
-            <textarea
-              value={contentDraft["hero.description"]}
-              onChange={(event) =>
-                setContentDraft((current) => ({ ...current, "hero.description": event.target.value }))
-              }
-              placeholder="Hero description"
-              rows={3}
-              className="mt-3 w-full rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-            />
-
-            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(event) =>
-                  handleUploadContentImage("hero.image", event.target.files?.[0])
-                }
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(event) =>
-                  handleUploadContentImage("section.cleansers.image", event.target.files?.[0])
-                }
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(event) =>
-                  handleUploadContentImage("section.serums.image", event.target.files?.[0])
-                }
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-              <input
-                value={contentDraft["section.cleansers.title"]}
-                onChange={(event) =>
-                  setContentDraft((current) => ({ ...current, "section.cleansers.title": event.target.value }))
-                }
-                placeholder="Cleansers title"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-              <input
-                value={contentDraft["section.serums.title"]}
-                onChange={(event) =>
-                  setContentDraft((current) => ({ ...current, "section.serums.title": event.target.value }))
-                }
-                placeholder="Serums title"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-              <input
-                value={contentDraft["section.moisturizers.title"]}
-                onChange={(event) =>
-                  setContentDraft((current) => ({ ...current, "section.moisturizers.title": event.target.value }))
-                }
-                placeholder="Moisturizers title"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-              <input
-                value={contentDraft["section.cleansers.subtitle"]}
-                onChange={(event) =>
-                  setContentDraft((current) => ({ ...current, "section.cleansers.subtitle": event.target.value }))
-                }
-                placeholder="Cleansers subtitle"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-              <input
-                value={contentDraft["section.serums.subtitle"]}
-                onChange={(event) =>
-                  setContentDraft((current) => ({ ...current, "section.serums.subtitle": event.target.value }))
-                }
-                placeholder="Serums subtitle"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-              <input
-                value={contentDraft["section.moisturizers.subtitle"]}
-                onChange={(event) =>
-                  setContentDraft((current) => ({ ...current, "section.moisturizers.subtitle": event.target.value }))
-                }
-                placeholder="Moisturizers subtitle"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div className="mt-4 flex justify-end">
-              <button
-                type="button"
-                onClick={handleSaveContent}
-                disabled={isSaving}
-                className="rounded-lg bg-[#8a6038] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+        <div className="relative max-w-[1400px] mx-auto px-6 pt-32 pb-20 md:pt-40 md:pb-28">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Text Side */}
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={stagger}
+              className="text-center md:text-left"
+            >
+              <motion.span
+                variants={fadeUp}
+                custom={0}
+                className="inline-block text-xs font-bold uppercase tracking-[0.25em] text-[#C8A97E] mb-6"
               >
-                {isSaving ? "Saving..." : "Save Page Content"}
-              </button>
-            </div>
-          </div>
+                <span className="inline-flex items-center gap-2">
+                  <span className="w-6 h-px bg-[#C8A97E]" />
+                  {heroContent.badge}
+                </span>
+              </motion.span>
 
-          <div className="rounded-2xl border border-[#dcbf9e] bg-white p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <h3 className="text-lg font-semibold text-[#6f4a2b]">Admin Category Manager</h3>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <div key={category._id} className="inline-flex items-center gap-2 rounded-full border border-[#d3b48f] px-3 py-1">
-                  <span className="text-xs font-semibold text-[#8a6038]">{category.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteCategory(category._id)}
-                    className="text-[11px] font-semibold text-red-700"
+              <motion.h1
+                variants={fadeUp}
+                custom={1}
+                className="text-4xl md:text-6xl lg:text-7xl font-serif font-light text-[#2A2520] leading-[1.1] mb-6"
+              >
+                {heroContent.titlePrefix}{" "}
+                <span className="text-[#C8A97E] relative">
+                  {heroContent.titleAccent}
+                  {/* SVG underline */}
+                  <svg
+                    className="absolute -bottom-2 left-0 w-full"
+                    viewBox="0 0 200 12"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
                   >
-                    X
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <path
+                      d="M2 10C50 3 100 3 150 10"
+                      stroke="#C8A97E"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      opacity="0.6"
+                    />
+                    <path
+                      d="M2 10C50 3 100 3 150 10"
+                      stroke="#D4B896"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      opacity="0.3"
+                      transform="translate(0, 3)"
+                    />
+                  </svg>
+                </span>
+              </motion.h1>
 
-            <div className="mt-4 flex gap-3">
-              <input
-                value={newCategoryName}
-                onChange={(event) => setNewCategoryName(event.target.value)}
-                placeholder="New category name"
-                className="flex-1 rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-              <button
-                type="button"
-                onClick={handleCreateCategory}
-                disabled={isSaving}
-                className="rounded-lg bg-[#8a6038] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              <motion.p
+                variants={fadeUp}
+                custom={2}
+                className="text-base md:text-lg text-stone-500 font-light max-w-lg mx-auto md:mx-0 leading-relaxed mb-8"
               >
-                Add Category
-              </button>
-            </div>
-          </div>
+                {heroContent.description}
+              </motion.p>
 
-          <div className="rounded-2xl border border-[#dcbf9e] bg-white p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <h3 className="text-lg font-semibold text-[#6f4a2b]">Admin Product Manager</h3>
-            </div>
+              <motion.div variants={fadeUp} custom={3} className="flex flex-wrap justify-center md:justify-start gap-4">
+                <span className="flex items-center gap-2 text-xs text-stone-400">
+                  <svg className="w-4 h-4 text-[#C8A97E]" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Clinically Tested
+                </span>
+                <span className="flex items-center gap-2 text-xs text-stone-400">
+                  <svg className="w-4 h-4 text-[#C8A97E]" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Dermatologist Approved
+                </span>
+                <span className="flex items-center gap-2 text-xs text-stone-400">
+                  <svg className="w-4 h-4 text-[#C8A97E]" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Clean Ingredients
+                </span>
+              </motion.div>
+            </motion.div>
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-              <input
-                value={newProductForm.title}
-                onChange={(event) =>
-                  setNewProductForm((current) => ({ ...current, title: event.target.value }))
-                }
-                placeholder="Product title"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-              <input
-                value={newProductForm.price}
-                onChange={(event) =>
-                  setNewProductForm((current) => ({ ...current, price: event.target.value }))
-                }
-                placeholder="Price"
-                type="number"
-                min="0"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-              <select
-                value={newProductForm.section}
-                onChange={(event) =>
-                  setNewProductForm((current) => ({ ...current, section: event.target.value }))
-                }
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              >
-                {SECTION_OPTIONS.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-              <input
-                value={newProductForm.category}
-                onChange={(event) =>
-                  setNewProductForm((current) => ({ ...current, category: event.target.value }))
-                }
-                list="category-options"
-                placeholder="Category tag"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-              <datalist id="category-options">
-                {pillNames.map((name) => (
-                  <option key={name} value={name} />
-                ))}
-              </datalist>
-            </div>
-
-            <textarea
-              value={newProductForm.description}
-              onChange={(event) =>
-                setNewProductForm((current) => ({ ...current, description: event.target.value }))
-              }
-              placeholder="Product description"
-              rows={3}
-              className="mt-3 w-full rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-            />
-
-            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <input
-                value={newProductForm.imageUrl}
-                onChange={(event) =>
-                  setNewProductForm((current) => ({ ...current, imageUrl: event.target.value }))
-                }
-                placeholder="Image URL (optional if uploading file)"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (!file) return;
-                  if (file.size > 10 * 1024 * 1024) {
-                    setAdminNotice("Image must be 10MB or smaller.");
-                    return;
-                  }
-                  setNewProductFile(file);
-                }}
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-              <label className="inline-flex items-center gap-2 text-sm text-[#6e5947]">
-                <input
-                  type="checkbox"
-                  checked={newProductForm.inStock}
-                  onChange={(event) =>
-                    setNewProductForm((current) => ({ ...current, inStock: event.target.checked }))
-                  }
+            {/* Image Side */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, delay: 0.3, ease: [0.25, 0.1, 0, 1] }}
+              className="relative"
+            >
+              <div className="relative aspect-[4/5] max-w-md mx-auto rounded-2xl overflow-hidden shadow-2xl">
+                <img
+                  src={heroContent.image}
+                  alt="Skincare Categories"
+                  className="w-full h-full object-cover"
                 />
-                In stock
-              </label>
-              <button
-                type="button"
-                onClick={handleCreateProduct}
-                disabled={isSaving}
-                className="rounded-lg bg-[#8a6038] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-              >
-                {isSaving ? "Saving..." : "Add Product"}
-              </button>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      <div className="max-w-7xl mx-auto px-8 py-12 space-y-10">
-        <CategoryPills
-          categories={pillNames}
-          selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
-        />
-
-        {isLoading ? (
-          <div className="rounded-xl border border-[#edd8bc] bg-white px-6 py-10 text-center text-[#6e5947]">
-            Loading products...
-          </div>
-        ) : null}
-
-        {!isLoading && selectedCategory ? (
-          <Section
-            title={selectedCategory}
-            products={selectedCategoryProducts}
-            content={sectionContentByTitle(selectedCategory)}
-            onViewAll={handleViewAll}
-            isAdmin={isAdmin}
-            onEdit={openEditModal}
-            onDelete={handleDeleteProduct}
-          />
-        ) : null}
-
-        {!isLoading && !selectedCategory ? (
-          <>
-            <Section
-              title="Cleansers"
-              products={sectionProducts.Cleansers}
-              content={sectionContentByTitle("Cleansers")}
-              onViewAll={handleViewAll}
-              isAdmin={isAdmin}
-              onEdit={openEditModal}
-              onDelete={handleDeleteProduct}
-            />
-            <Section
-              title="Serums"
-              products={sectionProducts.Serums}
-              content={sectionContentByTitle("Serums")}
-              onViewAll={handleViewAll}
-              isAdmin={isAdmin}
-              onEdit={openEditModal}
-              onDelete={handleDeleteProduct}
-            />
-            <Section
-              title="Moisturizers"
-              products={sectionProducts.Moisturizers}
-              content={sectionContentByTitle("Moisturizers")}
-              onViewAll={handleViewAll}
-              isAdmin={isAdmin}
-              onEdit={openEditModal}
-              onDelete={handleDeleteProduct}
-            />
-          </>
-        ) : null}
-      </div>
-
-      {editingProductId ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-[#5f3f25]">Edit Product</h3>
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingProductId(null);
-                  setEditingProductFile(null);
-                }}
-                className="text-sm text-[#6e5947]"
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <input
-                value={editingProductForm.title}
-                onChange={(event) =>
-                  setEditingProductForm((current) => ({ ...current, title: event.target.value }))
-                }
-                placeholder="Product title"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-              <input
-                value={editingProductForm.price}
-                onChange={(event) =>
-                  setEditingProductForm((current) => ({ ...current, price: event.target.value }))
-                }
-                type="number"
-                min="0"
-                placeholder="Price"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-
-              <select
-                value={editingProductForm.section}
-                onChange={(event) =>
-                  setEditingProductForm((current) => ({ ...current, section: event.target.value }))
-                }
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              >
-                {SECTION_OPTIONS.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-
-              <input
-                value={editingProductForm.category}
-                onChange={(event) =>
-                  setEditingProductForm((current) => ({ ...current, category: event.target.value }))
-                }
-                list="category-options"
-                placeholder="Category"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-            </div>
-
-            <textarea
-              value={editingProductForm.description}
-              onChange={(event) =>
-                setEditingProductForm((current) => ({ ...current, description: event.target.value }))
-              }
-              rows={3}
-              placeholder="Description"
-              className="mt-3 w-full rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-            />
-
-            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <input
-                value={editingProductForm.imageUrl}
-                onChange={(event) =>
-                  setEditingProductForm((current) => ({ ...current, imageUrl: event.target.value }))
-                }
-                placeholder="Image URL"
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (!file) return;
-                  if (file.size > 10 * 1024 * 1024) {
-                    setAdminNotice("Image must be 10MB or smaller.");
-                    return;
-                  }
-                  setEditingProductFile(file);
-                }}
-                className="rounded-lg border border-[#e8d4bc] px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div className="mt-4 flex items-center justify-between">
-              <label className="inline-flex items-center gap-2 text-sm text-[#6e5947]">
-                <input
-                  type="checkbox"
-                  checked={editingProductForm.inStock}
-                  onChange={(event) =>
-                    setEditingProductForm((current) => ({ ...current, inStock: event.target.checked }))
-                  }
-                />
-                In stock
-              </label>
-
-              <button
-                type="button"
-                onClick={handleUpdateProduct}
-                disabled={isSaving}
-                className="rounded-lg bg-[#8a6038] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-              >
-                {isSaving ? "Saving..." : "Save Changes"}
-              </button>
-            </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#2A2520]/40 via-transparent to-transparent" />
+              </div>
+              {/* Floating accent */}
+              <div className="absolute -bottom-4 -right-4 w-24 h-24 rounded-2xl bg-[#C8A97E]/10 backdrop-blur border border-[#C8A97E]/20 flex items-center justify-center hidden md:flex">
+                <span className="text-[#C8A97E] text-xs font-bold text-center leading-tight">
+                  PREMIUM<br />SKINCARE
+                </span>
+              </div>
+            </motion.div>
           </div>
         </div>
-      ) : null}
+      </section>
+
+      {/* ── ADMIN PANEL ── */}
+      <AnimatePresence>
+        {isAdmin && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden border-b border-stone-200 bg-white"
+          >
+            <div className="max-w-[1400px] mx-auto px-6 py-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 rounded-lg bg-[#C8A97E]/10 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-[#C8A97E]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                  </svg>
+                </div>
+                <h2 className="text-lg font-semibold text-[#2A2520]">Catalog Admin</h2>
+              </div>
+
+              {/* Tab Navigation */}
+              <div className="flex gap-1 mb-6 p-1 bg-stone-100 rounded-xl w-fit">
+                {[
+                  { id: "products", label: "Products" },
+                  { id: "categories", label: "Categories" },
+                  { id: "content", label: "Content" },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveContentTab(tab.id)}
+                    className={`px-5 py-2 text-sm font-medium rounded-lg transition-all ${
+                      activeContentTab === tab.id
+                        ? "bg-white text-[#C8A97E] shadow-sm"
+                        : "text-stone-500 hover:text-stone-700"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Products Tab */}
+              {activeContentTab === "products" && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <input
+                      className={inputCls}
+                      value={form.title}
+                      onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                      placeholder="Product Title *"
+                    />
+                    <input
+                      className={inputCls}
+                      value={form.price}
+                      onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))}
+                      type="number"
+                      min="0"
+                      placeholder="Price *"
+                    />
+                    <select
+                      className={inputCls}
+                      value={form.section}
+                      onChange={(e) => setForm((p) => ({ ...p, section: e.target.value }))}
+                    >
+                      {SECTIONS.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                    <input
+                      className={inputCls}
+                      value={form.category}
+                      onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
+                      list="cat-options"
+                      placeholder="Category"
+                    />
+                  </div>
+                  <textarea
+                    className={inputCls}
+                    value={form.description}
+                    onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                    rows={2}
+                    placeholder="Description"
+                  />
+                  <datalist id="cat-options">
+                    {categoryNames.map((n) => (
+                      <option key={n} value={n} />
+                    ))}
+                  </datalist>
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div
+                        className={`w-5 h-5 flex items-center justify-center rounded border ${
+                          form.inStock
+                            ? "bg-[#C8A97E] border-[#C8A97E]"
+                            : "border-stone-300 group-hover:border-stone-400"
+                        }`}
+                      >
+                        {form.inStock && (
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="hidden"
+                        checked={form.inStock}
+                        onChange={(e) => setForm((p) => ({ ...p, inStock: e.target.checked }))}
+                      />
+                      <span className="text-sm font-medium text-stone-600">In Stock</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleCreateProduct}
+                      disabled={isSaving || !form.title.trim() || !form.price}
+                      className={btnCls}
+                    >
+                      {isSaving ? "Adding…" : "Add Product"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Categories Tab */}
+              {activeContentTab === "categories" && (
+                <div className="space-y-4">
+                  <div className="flex gap-3">
+                    <input
+                      className={inputCls}
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="New category name"
+                      onKeyDown={(e) => e.key === "Enter" && handleCreateCategory()}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCreateCategory}
+                      disabled={!newCategoryName.trim()}
+                      className={btnCls}
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map((cat) => (
+                      <div
+                        key={cat._id}
+                        className="flex items-center gap-2 bg-stone-100 px-3 py-1.5 rounded-full text-sm text-stone-700"
+                      >
+                        <span>{cat.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCategory(cat._id)}
+                          className="text-stone-400 hover:text-red-500 transition"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Content Tab */}
+              {activeContentTab === "content" && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {["hero.badge", "hero.titlePrefix", "hero.titleAccent", "hero.description"].map(
+                      (key) => (
+                        <div key={key} className="space-y-1.5">
+                          <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">{key}</label>
+                          <input
+                            className={inputCls}
+                            defaultValue={getContent("hero")[key.split(".").pop()] || ""}
+                            onBlur={(e) => saveSingleOverride(key, e.target.value)}
+                            placeholder={key}
+                          />
+                        </div>
+                      )
+                    )}
+                  </div>
+                  {["cleansers", "serums", "moisturizers"].map((sec) => (
+                    <div key={sec} className="border border-stone-100 rounded-xl p-4 space-y-3">
+                      <h4 className="text-sm font-semibold text-stone-700 uppercase tracking-wider">
+                        {sec}
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <input
+                          className={inputCls}
+                          defaultValue={getContent(sec).title || ""}
+                          onBlur={(e) => saveSingleOverride(`section.${sec}.title`, e.target.value)}
+                          placeholder="Section Title"
+                        />
+                        <input
+                          className={inputCls}
+                          defaultValue={getContent(sec).subtitle || ""}
+                          onBlur={(e) => saveSingleOverride(`section.${sec}.subtitle`, e.target.value)}
+                          placeholder="Section Subtitle"
+                        />
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleUploadContentImage(`section.${sec}.image`, file);
+                          }}
+                          className="text-sm text-stone-500 file:mr-3 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-[#C8A97E]/10 file:text-[#C8A97E] hover:file:bg-[#C8A97E]/20"
+                        />
+                        <span className="text-xs text-stone-400">Upload section image</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── CATEGORY NAV ── */}
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-stone-200 shadow-sm">
+        <div className="max-w-[1400px] mx-auto px-6 py-4">
+          {/* Desktop: wrapped pills */}
+          <div className="hidden sm:flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setSelectedCategory(null)}
+              className={`rounded-full px-5 py-2 text-sm font-medium transition-all ${
+                !selectedCategory
+                  ? "bg-[#2A2520] text-white shadow-lg"
+                  : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+              }`}
+            >
+              All Categories
+            </button>
+            {categoryNames.map((name) => (
+              <button
+                key={name}
+                onClick={() => setSelectedCategory(name)}
+                className={`rounded-full px-5 py-2 text-sm font-medium transition-all ${
+                  selectedCategory === name
+                    ? "bg-[#C8A97E] text-white shadow-lg shadow-[#C8A97E]/20"
+                    : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                }`}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+
+          {/* Mobile: dropdown select */}
+          <div className="sm:hidden">
+            <select
+              value={selectedCategory || ""}
+              onChange={(e) => setSelectedCategory(e.target.value || null)}
+              className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-900 outline-none transition-all focus:border-[#C8A97E] focus:ring-2 focus:ring-[#C8A97E]/20 appearance-none"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23C8A97E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 1rem center",
+                backgroundSize: "1rem",
+              }}
+            >
+              <option value="">All Categories</option>
+              {categoryNames.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* ── MAIN CONTENT ── */}
+      <main className="max-w-[1400px] mx-auto px-6 py-16 min-h-[50vh]">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-32 space-y-6">
+            <div className="relative w-12 h-12">
+              <div className="absolute inset-0 rounded-full border-2 border-stone-200" />
+              <div className="absolute inset-0 rounded-full border-2 border-t-[#C8A97E] animate-spin" />
+            </div>
+            <p className="text-sm font-medium text-stone-400 uppercase tracking-[0.2em]">Curating Catalog...</p>
+          </div>
+        ) : (
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            variants={stagger}
+            className="space-y-24"
+          >
+            {selectedCategory ? (
+              <SectionGrid
+                title={selectedCategory}
+                products={filteredProducts}
+                content={getContent(selectedCategory)}
+                isAdmin={isAdmin}
+                onEdit={openEditModal}
+                onDelete={handleDeleteProduct}
+                addToCart={addToCart}
+              />
+            ) : (
+              SECTIONS.map((sec) => (
+                <SectionGrid
+                  key={sec}
+                  title={sec}
+                  products={sectionProducts[sec]}
+                  content={getContent(sec)}
+                  isAdmin={isAdmin}
+                  onEdit={openEditModal}
+                  onDelete={handleDeleteProduct}
+                  addToCart={addToCart}
+                />
+              ))
+            )}
+          </motion.div>
+        )}
+
+        {/* ── EMPTY STATE ── */}
+        {!isLoading && selectedCategory && filteredProducts.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center justify-center py-32 text-center"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-stone-100 flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-stone-600 mb-2">No products found</h3>
+            <p className="text-sm text-stone-400 font-light">This category is empty. Check back soon.</p>
+          </motion.div>
+        )}
+      </main>
+
+      {/* ── TRUST BAR ── */}
+      <section className="border-t border-stone-200 bg-gradient-to-r from-[#FAFAF8] via-white to-[#FAFAF8]">
+        <div className="max-w-[1400px] mx-auto px-6 py-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              { icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z", label: "Dermatologist Approved", desc: "All products meet clinical standards" },
+              { icon: "M13 10V3L4 14h7v7l9-11h-7z", label: "Fast & Free Shipping", desc: "On orders above ₹499" },
+              { icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15", label: "Easy Returns", desc: "30-day satisfaction guarantee" },
+            ].map((item, i) => (
+              <motion.div
+                key={item.label}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.15, duration: 0.5 }}
+                className="flex items-start gap-4 p-6 rounded-2xl bg-white border border-stone-100 hover:border-[#C8A97E]/20 hover:shadow-lg transition-all group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-[#C8A97E]/10 flex items-center justify-center shrink-0 group-hover:bg-[#C8A97E]/20 transition-colors">
+                  <svg className="w-5 h-5 text-[#C8A97E]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.icon} />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-[#2A2520] mb-0.5">{item.label}</h4>
+                  <p className="text-xs text-stone-400 font-light">{item.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── EDIT MODAL ── */}
+      <AnimatePresence>
+        {editingProductId && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-[#2A2520]/40 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.2, ease: [0.25, 0.1, 0, 1] }}
+              className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[#C8A97E]/10 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-[#C8A97E]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-[#2A2520]">Edit Product</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingProductId(null)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    className={inputCls}
+                    value={editingProductForm.title}
+                    onChange={(e) => setEditingProductForm((p) => ({ ...p, title: e.target.value }))}
+                    placeholder="Title"
+                  />
+                  <input
+                    className={inputCls}
+                    value={editingProductForm.price}
+                    onChange={(e) => setEditingProductForm((p) => ({ ...p, price: e.target.value }))}
+                    type="number"
+                    min="0"
+                    placeholder="Price"
+                  />
+                  <select
+                    className={inputCls}
+                    value={editingProductForm.section}
+                    onChange={(e) => setEditingProductForm((p) => ({ ...p, section: e.target.value }))}
+                  >
+                    {SECTIONS.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                  <input
+                    className={inputCls}
+                    value={editingProductForm.category}
+                    onChange={(e) => setEditingProductForm((p) => ({ ...p, category: e.target.value }))}
+                    list="cat-options"
+                    placeholder="Category"
+                  />
+                </div>
+                <textarea
+                  className={inputCls}
+                  value={editingProductForm.description}
+                  onChange={(e) => setEditingProductForm((p) => ({ ...p, description: e.target.value }))}
+                  rows={3}
+                  placeholder="Description"
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    className={inputCls}
+                    value={editingProductForm.imageUrl}
+                    onChange={(e) => setEditingProductForm((p) => ({ ...p, imageUrl: e.target.value }))}
+                    placeholder="Image URL"
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setEditingProductFile(e.target.files?.[0])}
+                    className="text-sm text-stone-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-[#C8A97E]/10 file:text-[#C8A97E] hover:file:bg-[#C8A97E]/20"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between px-6 py-4 border-t border-stone-100 bg-stone-50/50">
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div
+                    className={`w-5 h-5 flex items-center justify-center rounded border ${
+                      editingProductForm.inStock
+                        ? "bg-[#C8A97E] border-[#C8A97E]"
+                        : "border-stone-300 group-hover:border-stone-400"
+                    }`}
+                  >
+                    {editingProductForm.inStock && (
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={editingProductForm.inStock}
+                    onChange={(e) => setEditingProductForm((p) => ({ ...p, inStock: e.target.checked }))}
+                  />
+                  <span className="text-sm font-medium text-stone-600">Item is in stock</span>
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setEditingProductId(null)}
+                    className="px-6 py-2.5 text-sm font-medium text-stone-600 hover:text-stone-900 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleUpdateProduct}
+                    disabled={isSaving}
+                    className={btnCls}
+                  >
+                    {isSaving ? "Saving…" : "Save Changes"}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <Footer />
     </div>
   );
 }
 
-function CategoryPills({ categories, selectedCategory, onSelectCategory }) {
-  return (
-    <section className="rounded-2xl border border-[#edd8bc] bg-white p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-[#6e5947]">Shop by Category</h3>
-        <button
-          type="button"
-          onClick={() => onSelectCategory(null)}
-          className="text-xs font-semibold text-[#8a6038] hover:underline"
-        >
-          Show All
-        </button>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {categories.map((pill) => {
-          const isActive = selectedCategory === pill;
-          return (
-            <button
-              key={pill}
-              type="button"
-              onClick={() => onSelectCategory(pill)}
-              className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
-                isActive
-                  ? "border-[#8a6038] bg-[#8a6038] text-white"
-                  : "border-[#d3b48f] bg-white text-[#8a6038] hover:bg-[#fff1df]"
-              }`}
-            >
-              {pill}
-            </button>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function Section({ title, products, content, onViewAll, isAdmin, onEdit, onDelete }) {
-  const scrollRef = useRef();
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const updateArrowState = () => {
-    const row = scrollRef.current;
-    if (!row) return;
-
-    setCanScrollLeft(row.scrollLeft > 4);
-    setCanScrollRight(row.scrollLeft + row.clientWidth < row.scrollWidth - 4);
-  };
-
-  useEffect(() => {
-    const row = scrollRef.current;
-    if (!row) return;
-
-    row.scrollLeft = 0;
-    updateArrowState();
-
-    const handleResize = () => updateArrowState();
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, [products]);
-
-  const scroll = (dir) => {
-    const row = scrollRef.current;
-    if (!row) return;
-
-    const distance = Math.max(220, Math.floor(row.clientWidth * 0.65));
-    row.scrollBy({ left: dir === "left" ? -distance : distance, behavior: "smooth" });
-    window.setTimeout(updateArrowState, 240);
-  };
+/* ── SECTION GRID ── */
+function SectionGrid({ title, products, content, isAdmin, onEdit, onDelete, addToCart }) {
+  if (products.length === 0) return null;
 
   return (
-    <section className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-4xl font-bold text-[#2b2018]">{content.title}</h2>
-          <p className="mt-2 text-[#6e5947]">{content.subtitle}</p>
+    <motion.section
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-50px" }}
+      variants={fadeIn}
+      className="scroll-mt-32"
+    >
+      {/* Premium Section Banner */}
+      <div className="relative h-64 md:h-80 w-full rounded-2xl overflow-hidden mb-10 group shadow-xl">
+        <img
+          src={content.image || heroImg}
+          alt={content.title}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#2A2520]/70 via-[#2A2520]/40 to-transparent" />
+        <div className="absolute inset-0 flex flex-col items-start justify-center text-left px-8 md:px-16">
+          <motion.span
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="text-[#C8A97E] text-xs font-bold uppercase tracking-[0.25em] mb-3"
+          >
+            EXPLORE
+          </motion.span>
+          <h2 className="text-3xl md:text-5xl font-serif font-light text-white mb-3 tracking-tight">
+            {content.title}
+          </h2>
+          <p className="text-stone-300 text-sm md:text-base font-light max-w-lg">
+            {content.subtitle}
+          </p>
         </div>
-        <button
-          onClick={() => onViewAll?.(title)}
-          className="rounded-full border border-[#d3b48f] bg-white px-4 py-2 text-xs font-semibold text-[#8a6038] transition hover:bg-[#8a6038] hover:text-white"
-        >
-          View All
-        </button>
+        {/* Gold accent line */}
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#C8A97E] via-[#D4B896] to-transparent" />
       </div>
 
-      {products.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#d8cec4] bg-[#f6f1eb] px-5 py-8 text-center text-sm text-[#6f6258]">
-          No products in this section yet.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      {/* Product Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-10 md:gap-x-6 md:gap-y-12">
+        {products.map((product, i) => (
           <motion.div
-            className="lg:col-span-4 rounded-2xl overflow-hidden bg-white border border-[#edd8bc]"
-            initial={{ opacity: 0, y: 26, scale: 0.98 }}
-            whileInView={{ opacity: 1, y: 0, scale: 1 }}
-            whileHover={{ y: -6 }}
-            viewport={{ once: true, amount: 0.35 }}
-            transition={{ duration: 0.55, ease: "easeOut" }}
+            key={product._id}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: i * 0.05, duration: 0.4, ease: [0.25, 0.1, 0, 1] }}
           >
-            <img src={content.image} alt={content.title} className="h-[260px] w-full object-cover" />
-            <div className="p-4">
-              <h3 className="text-2xl font-bold text-[#2b2018]">{content.title}</h3>
-              <p className="mt-2 text-sm text-[#6e5947]">{content.subtitle}</p>
-            </div>
+            <ProductCard
+              product={product}
+              isAdmin={isAdmin}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              addToCart={addToCart}
+            />
           </motion.div>
-
-          <div className="lg:col-span-8 rounded-2xl border border-[#edd8bc] bg-white p-3">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => scroll("left")}
-                  disabled={!canScrollLeft}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    canScrollLeft
-                      ? "bg-[#8a6038] text-white"
-                      : "bg-[#e9d8c5] text-[#8a6038]"
-                  }`}
-                >
-                  Prev
-                </button>
-                <button
-                  onClick={() => scroll("right")}
-                  disabled={!canScrollRight}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    canScrollRight
-                      ? "bg-[#8a6038] text-white"
-                      : "bg-[#e9d8c5] text-[#8a6038]"
-                  }`}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-
-            <div ref={scrollRef} onScroll={updateArrowState} className="flex gap-3 overflow-x-auto pb-2">
-              {products.map((product) => (
-                <ProductCard
-                  key={product._id}
-                  product={product}
-                  isAdmin={isAdmin}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </section>
+        ))}
+      </div>
+    </motion.section>
   );
 }
 
-function ProductCard({ product, isAdmin, onEdit, onDelete }) {
-  const { addToCart } = useCart();
+/* ── PRODUCT CARD ── */
+function ProductCard({ product, isAdmin, onEdit, onDelete, addToCart }) {
   const navigate = useNavigate();
-  const numericPrice = Number(product.price) || 0;
-  const discountPct = Math.max(4, numericPrice % 37);
+  const price = Number(product.price) || 0;
 
   return (
-    <article className="w-[260px] shrink-0 rounded-xl border border-[#edd8bc] bg-white p-2">
-      <button
-        type="button"
-        onClick={() =>
-          navigate(`/product/${toProductSlug(product.title)}`, {
-            state: {
-              product: {
-                name: product.title,
-                price: numericPrice,
-                originalPrice: Math.round(numericPrice * 1.3),
-                image: product.imageUrl,
-                category: product.category,
-                inStock: product.inStock,
-                description: product.description,
-              },
-            },
-          })
-        }
-        className="w-full text-left"
-      >
-        <div className="relative overflow-hidden rounded-lg bg-white">
-          <span className="absolute right-2 top-2 rounded-full bg-[#b67d4a] px-2 py-1 text-[10px] font-semibold text-white">
-            {discountPct}% OFF
-          </span>
-          <img
-            src={product.imageUrl}
-            alt={product.title}
-            className="h-40 w-full rounded-lg object-cover"
-          />
+    <div className="group flex flex-col h-full">
+      <div className="relative aspect-[3/4] w-full overflow-hidden bg-stone-100 rounded-xl mb-4 shadow-sm hover:shadow-xl transition-all duration-500">
+        {/* Premium Badges */}
+        <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
+          {product.category && (
+            <span className="bg-white/90 backdrop-blur text-stone-900 text-[10px] font-bold uppercase tracking-wider py-1 px-2.5 rounded-full shadow-sm">
+              {product.category}
+            </span>
+          )}
+          {!product.inStock && (
+            <span className="bg-red-500/90 backdrop-blur text-white text-[10px] font-bold uppercase tracking-wider py-1 px-2.5 rounded-full shadow-sm">
+              Sold Out
+            </span>
+          )}
         </div>
-        <p className={`mt-2 text-[11px] font-semibold ${product.inStock ? "text-green-700" : "text-red-600"}`}>
-          {product.inStock ? "In Stock" : "Out of Stock"}
-        </p>
-        <h4 className="mt-1 text-sm font-bold text-[#2b2018]">{product.title}</h4>
-        <p className="mt-1 text-xs text-[#6e5947] line-clamp-2">{product.description}</p>
-        <p className="mt-2 text-sm font-bold text-[#8a6038]">
-          Rs {numericPrice} <span className="text-[#8f8f8f] line-through">Rs {Math.round(numericPrice * 1.3)}</span>
-        </p>
-      </button>
 
-      {isAdmin ? (
-        <div className="mt-3 flex gap-2">
-          <button
-            type="button"
-            onClick={() => onEdit?.(product)}
-            className="flex-1 rounded-md bg-[#8a6038] px-2 py-1.5 text-[11px] font-semibold text-white"
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            onClick={() => onDelete?.(product._id)}
-            className="flex-1 rounded-md border border-red-300 px-2 py-1.5 text-[11px] font-semibold text-red-700"
-          >
-            Delete
-          </button>
+        {/* Gold Rating Badge */}
+        <div className="absolute top-3 right-3 z-10 bg-white/90 backdrop-blur text-[#C8A97E] text-[10px] font-bold px-2 py-1 rounded-full shadow-sm flex items-center gap-1">
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+          </svg>
+          4.8
         </div>
-      ) : (
+
+        <img
+          src={heroImg}
+          alt={product.title}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+        />
+
+        {/* Hover Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#2A2520]/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+          {isAdmin ? (
+            <div className="flex gap-2 translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit?.(product);
+                }}
+                className="flex-1 bg-white text-stone-900 py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-stone-100 shadow-lg"
+              >
+                Edit
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete?.(product._id);
+                }}
+                className="flex-1 bg-red-600 text-white py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-red-700 shadow-lg"
+              >
+                Delete
+              </button>
+            </div>
+          ) : (
+            <button
+              disabled={!product.inStock}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (product.inStock) addToCart?.({ id: product._id, name: product.title, price, image: heroImg });
+              }}
+              className="w-full bg-[#C8A97E] text-white py-3 text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-[#B89A6E] shadow-lg translate-y-4 group-hover:translate-y-0 transition-transform duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {product.inStock ? "Add to Cart" : "Out of Stock"}
+            </button>
+          )}
+        </div>
+
+        {/* Click layer */}
         <button
-          type="button"
-          onClick={() =>
-            addToCart({
-              id: `cat-${product._id || product.title}`,
-              name: product.title,
-              price: numericPrice,
-              originalPrice: Math.round(numericPrice * 1.3),
-              image: product.imageUrl,
-            })
-          }
-          className="mt-3 w-full rounded-md bg-[#8a6038] px-2 py-1.5 text-[11px] font-semibold text-white"
+          className="absolute inset-0 z-0"
+          onClick={() => navigate(`/product/${toProductSlug(product.title)}`, { state: { product } })}
         >
-          Add to Cart
+          <span className="sr-only">View {product.title}</span>
         </button>
-      )}
-    </article>
+      </div>
+
+      <div className="flex flex-col flex-grow text-center">
+        <h4 className="text-sm md:text-base font-medium text-[#2A2520] line-clamp-1 mb-1">
+          {product.title}
+        </h4>
+        <p className="text-xs text-stone-400 line-clamp-1 mb-2 font-light">
+          {product.description}
+        </p>
+        <div className="mt-auto">
+          <span className="text-sm font-semibold text-[#C8A97E]">
+            ₹{price.toLocaleString()}
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }

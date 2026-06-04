@@ -1,24 +1,16 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Eye, Shield, Share2, Truck } from "lucide-react";
+import { Eye, Shield, Share2, Truck, Star, Minus, Plus, ChevronRight } from "lucide-react";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { useCart } from "../context/CartContext";
 import { searchIndex } from "../lib/searchIndex";
 import { isLiquidProduct, toProductPayload, toProductSlug } from "../lib/productUtils";
+import { fetchCatalogProducts } from "../lib/catalogApi";
+import heroImage from "../assets/hero.jpg";
 
 function formatINR(value) {
-  return `Rs. ${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-function resolveProductFromSlug(slug) {
-  const match = searchIndex.find((item) => item.type === "Product" && toProductSlug(item.title) === slug);
-  if (!match) return null;
-  return toProductPayload({
-    id: match.id,
-    name: match.title,
-    price: match.price,
-    category: match.category,
-  });
+  return `₹${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 const reviewTemplatesByCategory = {
@@ -88,228 +80,424 @@ export default function ProductDetails() {
   const { slug } = useParams();
   const { addToCart } = useCart();
 
+  const [dbProduct, setDbProduct] = useState(null);
+  const [loadingDb, setLoadingDb] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+
+  // Try to resolve from navigation state first, then searchIndex, then fetch from API
   const resolved = useMemo(() => {
     const fromState = location.state?.product ? toProductPayload(location.state.product) : null;
     if (fromState) return fromState;
-    const fromSlug = resolveProductFromSlug(slug);
-    if (fromSlug) return fromSlug;
-    return toProductPayload({
-      name: "Cetaphil Gentle Cleanser",
-      price: 408,
-      originalPrice: 429,
-      category: "Cleanser",
-      image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=1200&q=80",
-      size: "125 ml",
-    });
+
+    // Try searchIndex
+    if (slug) {
+      const match = searchIndex.find(
+        (item) => item.type === "Product" && toProductSlug(item.title) === slug
+      );
+      if (match) {
+        return toProductPayload({
+          id: match.id,
+          name: match.title,
+          price: match.price,
+          category: match.category,
+          image: heroImage,
+        });
+      }
+    }
+
+    return null;
   }, [location.state, slug]);
 
-  const [quantity, setQuantity] = useState(1);
-  const [selectedThumb, setSelectedThumb] = useState(0);
+  // Fallback: fetch from API if not resolved from state/index
+  useEffect(() => {
+    if (resolved) return;
 
-  const reviews = useMemo(() => buildDynamicReviews(resolved), [resolved]);
+    const fetchProduct = async () => {
+      try {
+        setLoadingDb(true);
+        const allProducts = await fetchCatalogProducts();
+        const found = allProducts.find(
+          (p) => toProductSlug(p.title) === slug || toProductSlug(p.name) === slug
+        );
+        if (found) {
+          setDbProduct(found);
+        } else {
+          // Show a generic "not found" state via dbProduct = null
+          setDbProduct(null);
+        }
+      } catch {
+        setDbProduct(null);
+      } finally {
+        setLoadingDb(false);
+      }
+    };
+
+    fetchProduct();
+  }, [slug, resolved]);
+
+  const product = useMemo(() => {
+    if (resolved) return resolved;
+    if (dbProduct) return toProductPayload(dbProduct);
+    return null;
+  }, [resolved, dbProduct]);
+
+  const reviews = useMemo(() => (product ? buildDynamicReviews(product) : []), [product]);
 
   const relatedProducts = useMemo(() => {
+    if (!product) return [];
     const sameCategory = searchIndex.filter(
-      (item) =>
-        item.type === "Product" &&
-        item.category === resolved.category &&
-        item.title !== resolved.name
+      (item) => item.type === "Product" && item.category === product.category && toProductSlug(item.title) !== toProductSlug(product.name)
     );
-
-    return sameCategory.slice(0, 8).map((item) =>
+    return sameCategory.slice(0, 4).map((item) =>
       toProductPayload({
         id: item.id,
         name: item.title,
         price: item.price,
         category: item.category,
+        image: heroImage,
       })
     );
-  }, [resolved.category, resolved.name]);
+  }, [product]);
 
-  const images = [
-    resolved.image,
-    resolved.image,
-    resolved.image,
-    resolved.image,
-    resolved.image,
-  ];
+  const discountPct = product
+    ? Math.max(1, Math.round(((product.originalPrice - product.price) / Math.max(product.originalPrice, 1)) * 100))
+    : 0;
 
-  const discountPct = Math.max(
-    1,
-    Math.round(((resolved.originalPrice - resolved.price) / Math.max(resolved.originalPrice, 1)) * 100)
-  );
-
-  const liquidProduct = isLiquidProduct(resolved);
+  const liquidProduct = product ? isLiquidProduct(product) : false;
 
   const addCurrentToCart = () => {
+    if (!product) return;
     addToCart({
-      id: resolved.id,
-      name: resolved.name,
-      price: resolved.price,
-      originalPrice: resolved.originalPrice,
-      image: resolved.image,
-      size: liquidProduct ? resolved.size : "",
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      originalPrice: product.originalPrice,
+      image: product.image,
+      size: liquidProduct ? product.size : "",
       quantity,
     });
   };
 
-  return (
-    <div className="min-h-screen bg-[#fff7ee] text-[#2b2018]">
-      <Navbar />
-
-      <main className="mx-auto grid max-w-6xl gap-6 px-5 pb-8 pt-26 lg:grid-cols-[1fr_1fr]">
-        <section>
-          <div className="rounded-2xl border border-[#edd8bc] bg-white p-3 shadow-sm">
-            <img src={images[selectedThumb]} alt={resolved.name} className="h-[420px] w-full rounded-xl object-cover" />
+  // Loading state
+  if (loadingDb) {
+    return (
+      <div className="min-h-screen bg-[#FAFAF8] text-[#2A2520]">
+        <Navbar />
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="inline-block h-10 w-10 animate-spin rounded-full border-2 border-[#C8A97E] border-t-transparent" />
+            <p className="text-sm font-light text-[#8B7359]">Loading product details...</p>
           </div>
-          <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
-            {images.map((src, index) => (
-              <button
-                key={`${src}-${index}`}
-                onClick={() => setSelectedThumb(index)}
-                className={`h-14 w-14 shrink-0 overflow-hidden rounded-lg border ${
-                  selectedThumb === index ? "border-[#8a6038]" : "border-[#ddc4a4]"
-                }`}
-              >
-                <img src={src} alt={`${resolved.name} ${index + 1}`} className="h-full w-full object-cover" />
-              </button>
-            ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Not found state
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-[#FAFAF8] text-[#2A2520]">
+        <Navbar />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
+          <div className="mb-6 rounded-full bg-[#C8A97E]/10 p-6">
+            <svg className="h-12 w-12 text-[#C8A97E]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
           </div>
-        </section>
-
-        <section>
-          <h1 className="text-2xl uppercase tracking-wide text-[#2b2018] md:text-3xl">{resolved.name}</h1>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            <span className="rounded-lg bg-[#b67d4a] px-3 py-2 text-sm text-white">24x7 Support</span>
-            <span className="rounded-lg bg-[#b67d4a] px-3 py-2 text-sm text-white">Original Product Guaranteed</span>
-          </div>
-
-          <div className="mt-8">
-            <p className="text-2xl text-[#2b2018] md:text-3xl">
-              {formatINR(resolved.price)} <span className="text-xl text-[#9f9386] line-through">{formatINR(resolved.originalPrice)}</span>
-            </p>
-            <span className="mt-3 inline-flex rounded-lg bg-[#0f8b4c] px-3 py-1 text-sm font-semibold text-white">SAVE {discountPct}%</span>
-          </div>
-
-          <p className="mt-6 inline-flex items-center gap-2 text-lg font-semibold text-[#b67d4a]"><Truck size={20} /> Get delivery in 3-5 business days.</p>
-          <p className="mt-3 text-base text-[#2b2018]">Want it shipped today? Order within: <span className="font-semibold text-[#b67d4a]">04:43:05</span></p>
-
-          {liquidProduct ? (
-            <div className="mt-6">
-              <label className="mb-2 block text-base">Size</label>
-              <select className="w-full rounded-lg border border-[#ddc4a4] bg-white px-4 py-2.5 text-base outline-none">
-                <option>{resolved.size || "125 ml"}</option>
-                <option>250 ml</option>
-                <option>500 ml</option>
-              </select>
-            </div>
-          ) : null}
-
-          <button className="mt-4 inline-flex items-center gap-2 text-base font-semibold text-[#b67d4a]"><Share2 size={16} /> Share</button>
-
-          <div className="mt-7 flex gap-4">
-            <div className="inline-flex items-center rounded-xl border border-[#ddc4a4]">
-              <button onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="px-3 py-2 text-lg">-</button>
-              <span className="px-3 py-2 text-lg">{quantity}</span>
-              <button onClick={() => setQuantity((q) => q + 1)} className="px-3 py-2 text-lg">+</button>
-            </div>
+          <h2 className="text-2xl font-light text-[#2A2520] mb-3">Product not found</h2>
+          <p className="text-sm text-[#7A6E62] max-w-md mb-8">
+            We couldn't find a product matching that URL. Browse our curated collections below.
+          </p>
+          <div className="flex gap-4">
             <button
-              onClick={addCurrentToCart}
-              className="flex-1 rounded-xl border border-[#b67d4a] px-5 py-2 text-base text-[#b67d4a] transition hover:bg-[#fbf2e5]"
+              onClick={() => navigate("/categories")}
+              className="rounded-full bg-[#2A2520] px-6 py-3 text-xs font-medium uppercase tracking-widest text-white hover:bg-[#3D3530] transition"
             >
-              Add to cart
+              Shop Categories
+            </button>
+            <button
+              onClick={() => navigate("/best-sellers")}
+              className="rounded-full border border-[#C8A97E]/40 px-6 py-3 text-xs font-medium uppercase tracking-widest text-[#C8A97E] hover:bg-[#C8A97E]/5 transition"
+            >
+              Best Sellers
             </button>
           </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
-          <button
-            onClick={() => {
-              addCurrentToCart();
-              navigate("/checkout");
-            }}
-            className="mt-4 w-full rounded-xl bg-[#b67d4a] px-6 py-2.5 text-base font-semibold text-white transition hover:bg-[#8a6038]"
-          >
-            Buy it now
-          </button>
+  return (
+    <div className="min-h-screen bg-[#FAFAF8] text-[#2A2520]">
+      <Navbar />
 
-          <div className="mt-8 border-t border-[#eadbc6] pt-6">
-            <h2 className="text-xl font-semibold text-[#8a6038]">Why Shopping with Us</h2>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border border-[#eadbc6] bg-white p-4 text-center">
-                <Shield className="mx-auto mb-2" size={20} />
-                <p className="text-sm">100% Authentic Products</p>
+      {/* Breadcrumb */}
+      <div className="mx-auto max-w-7xl px-5 pt-24 pb-2">
+        <nav className="flex items-center gap-2 text-xs uppercase tracking-widest text-[#8B7359]">
+          <button onClick={() => navigate("/")} className="hover:text-[#C8A97E] transition">Home</button>
+          <ChevronRight size={12} />
+          <button onClick={() => navigate("/categories")} className="hover:text-[#C8A97E] transition">Shop</button>
+          <ChevronRight size={12} />
+          <span className="text-[#C8A97E]">{product.category}</span>
+        </nav>
+      </div>
+
+      <main className="mx-auto max-w-7xl px-5 pb-8">
+        <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
+
+          {/* ─── IMAGE SECTION ─── */}
+          <section>
+            <div className="relative overflow-hidden rounded-3xl bg-[#F7F4F0] border border-[#D4B896]/20 shadow-lg">
+              <img
+                src={product.image}
+                alt={product.name}
+                className="h-[500px] w-full object-cover transition-transform duration-700 hover:scale-105"
+              />
+              {discountPct > 5 && (
+                <div className="absolute top-4 left-4 bg-[#C8A97E] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
+                  SAVE {discountPct}%
+                </div>
+              )}
+            </div>
+
+            {/* Thumbnails */}
+            <div className="mt-4 flex gap-3">
+              {[0, 1, 2, 3].map((index) => (
+                <button
+                  key={index}
+                  className={`h-16 w-16 overflow-hidden rounded-xl border transition ${
+                    index === 0 ? "border-[#C8A97E] ring-1 ring-[#C8A97E]/30" : "border-[#D4B896]/30 hover:border-[#C8A97E]/50"
+                  }`}
+                >
+                  <img
+                    src={product.image}
+                    alt={`${product.name} ${index + 1}`}
+                    className="h-full w-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* ─── DETAILS SECTION ─── */}
+          <section>
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#8B7359] font-semibold">{product.category}</span>
+            <h1 className="mt-2 text-3xl font-light text-[#2A2520] md:text-4xl leading-tight">{product.name}</h1>
+
+            {/* Rating */}
+            <div className="mt-4 flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star key={star} size={14} className={star <= 4 ? "text-[#C8A97E] fill-[#C8A97E]" : "text-[#D4B896]"} />
+                ))}
               </div>
-              <div className="rounded-xl border border-[#eadbc6] bg-white p-4 text-center">
-                <Truck className="mx-auto mb-2" size={20} />
-                <p className="text-sm">Easy Return & Replacement</p>
+              <span className="text-sm text-[#7A6E62]">(128 reviews)</span>
+            </div>
+
+            {/* Price */}
+            <div className="mt-6 flex items-baseline gap-3">
+              <span className="text-3xl font-semibold text-[#2A2520]">{formatINR(product.price)}</span>
+              {product.originalPrice > product.price && (
+                <>
+                  <span className="text-lg text-[#B0A398] line-through">{formatINR(product.originalPrice)}</span>
+                  <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
+                    {discountPct}% OFF
+                  </span>
+                </>
+              )}
+            </div>
+
+            {/* Trust badges */}
+            <div className="mt-6 flex flex-wrap gap-2">
+              <span className="rounded-lg bg-[#C8A97E]/10 px-3 py-2 text-xs font-medium text-[#7f674d] flex items-center gap-1.5">
+                <Shield size={14} /> 100% Authentic
+              </span>
+              <span className="rounded-lg bg-[#C8A97E]/10 px-3 py-2 text-xs font-medium text-[#7f674d] flex items-center gap-1.5">
+                <Truck size={14} /> Free Delivery
+              </span>
+              <span className="rounded-lg bg-[#C8A97E]/10 px-3 py-2 text-xs font-medium text-[#7f674d] flex items-center gap-1.5">
+                <Eye size={14} /> Cash on Delivery
+              </span>
+            </div>
+
+            {/* Delivery info */}
+            <div className="mt-6 rounded-2xl border border-[#D4B896]/20 bg-white/50 p-4">
+              <p className="inline-flex items-center gap-2 text-sm font-medium text-[#2A2520]">
+                <Truck size={16} className="text-[#C8A97E]" /> Get delivery in 3-5 business days
+              </p>
+              <p className="mt-1 text-xs text-[#7A6E62]">Order within the next 4 hours for same-day dispatch</p>
+            </div>
+
+            {/* Size selector (for liquid products) */}
+            {liquidProduct ? (
+              <div className="mt-6">
+                <label className="mb-2 block text-sm font-medium text-[#2A2520]">Size</label>
+                <div className="flex gap-3">
+                  {["125 ml", "250 ml", "500 ml"].map((size) => (
+                    <button
+                      key={size}
+                      className={`rounded-xl border px-5 py-2.5 text-sm transition ${
+                        size === (product.size || "125 ml")
+                          ? "border-[#C8A97E] bg-[#C8A97E]/10 text-[#7f674d] font-medium"
+                          : "border-[#D4B896]/30 text-[#7A6E62] hover:border-[#C8A97E]/50"
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="rounded-xl border border-[#eadbc6] bg-white p-4 text-center">
-                <Eye className="mx-auto mb-2" size={20} />
-                <p className="text-sm">Cash on Delivery Available</p>
+            ) : null}
+
+            {/* Quantity & Add to Cart */}
+            <div className="mt-8 flex gap-4">
+              <div className="inline-flex items-center rounded-xl border border-[#D4B896]/30 bg-white">
+                <button
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  className="px-4 py-2.5 text-[#2A2520] hover:text-[#C8A97E] transition"
+                >
+                  <Minus size={16} />
+                </button>
+                <span className="px-4 py-2.5 text-sm font-medium text-[#2A2520] min-w-[2rem] text-center">{quantity}</span>
+                <button
+                  onClick={() => setQuantity((q) => q + 1)}
+                  className="px-4 py-2.5 text-[#2A2520] hover:text-[#C8A97E] transition"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+              <button
+                onClick={addCurrentToCart}
+                className="flex-1 rounded-xl bg-[#C8A97E] px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-[#B8976E] hover:shadow-lg"
+              >
+                Add to Cart — {formatINR(product.price * quantity)}
+              </button>
+            </div>
+
+            {/* Buy Now */}
+            <button
+              onClick={() => {
+                addCurrentToCart();
+                navigate("/checkout");
+              }}
+              className="mt-3 w-full rounded-xl border-2 border-[#2A2520] px-6 py-2.5 text-sm font-semibold text-[#2A2520] transition hover:bg-[#2A2520] hover:text-white"
+            >
+              Buy it now
+            </button>
+
+            {/* Share */}
+            <button className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[#8B7359] hover:text-[#C8A97E] transition">
+              <Share2 size={14} /> Share this product
+            </button>
+
+            {/* Why Shop With Us */}
+            <div className="mt-8 border-t border-[#D4B896]/20 pt-6">
+              <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-[#8B7359] mb-4">Why Shop With Us</h2>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-xl border border-[#D4B896]/20 bg-white p-4 text-center">
+                  <Shield className="mx-auto mb-2 text-[#C8A97E]" size={20} />
+                  <p className="text-xs text-[#7A6E62]">100% Authentic Products</p>
+                </div>
+                <div className="rounded-xl border border-[#D4B896]/20 bg-white p-4 text-center">
+                  <Truck className="mx-auto mb-2 text-[#C8A97E]" size={20} />
+                  <p className="text-xs text-[#7A6E62]">Easy Return & Replacement</p>
+                </div>
+                <div className="rounded-xl border border-[#D4B896]/20 bg-white p-4 text-center">
+                  <Eye className="mx-auto mb-2 text-[#C8A97E]" size={20} />
+                  <p className="text-xs text-[#7A6E62]">Cash on Delivery Available</p>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </main>
 
-      <section className="mx-auto max-w-6xl px-5 pb-6">
-        <div className="rounded-2xl border border-[#eadbc6] bg-white p-6">
+      {/* ─── CUSTOMER REVIEWS ─── */}
+      <section className="mx-auto max-w-7xl px-5 pb-10">
+        <div className="rounded-3xl border border-[#D4B896]/20 bg-white p-8 shadow-sm">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-[#8a6038]">Customer Reviews</h2>
-            <p className="text-sm text-[#6e5947]">Average rating: 4.8/5</p>
+            <h2 className="text-lg font-semibold text-[#2A2520]">Customer Reviews</h2>
+            <p className="text-sm text-[#8B7359]">
+              <span className="text-[#C8A97E] font-semibold">4.8</span> / 5 average rating
+            </p>
           </div>
 
-          <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
             {reviews.map((review) => (
-              <article key={review.id} className="rounded-xl border border-[#edd8bc] bg-[#fffaf4] p-4">
-                <p className="text-sm font-semibold text-[#2b2018]">{review.name}</p>
-                <p className="mt-1 text-xs text-[#8a6038]">Rating: {review.rating}/5</p>
-                <p className="mt-3 text-sm leading-6 text-[#6e5947]">{review.text}</p>
+              <article
+                key={review.id}
+                className="rounded-xl border border-[#D4B896]/20 bg-[#FAFAF8] p-5"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-[#2A2520]">{review.name}</p>
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        size={12}
+                        className={s <= review.rating ? "text-[#C8A97E] fill-[#C8A97E]" : "text-[#D4B896]"}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <p className="mt-3 text-sm leading-relaxed text-[#7A6E62]">{review.text}</p>
               </article>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 pb-14">
-        <div className="rounded-2xl border border-[#eadbc6] bg-white p-6">
-          <h2 className="text-xl font-semibold text-[#8a6038]">Related Products</h2>
-          <p className="mt-2 text-sm text-[#6e5947]">Similar products you may like from {resolved.category}</p>
+      {/* ─── RELATED PRODUCTS ─── */}
+      <section className="mx-auto max-w-7xl px-5 pb-16">
+        <div className="rounded-3xl border border-[#D4B896]/20 bg-white p-8 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-[#2A2520]">Complete Your Routine</h2>
+              <p className="mt-1 text-sm text-[#7A6E62]">More from {product.category}</p>
+            </div>
+          </div>
 
           {relatedProducts.length === 0 ? (
-            <div className="mt-4 rounded-xl border border-dashed border-[#ddc4a4] bg-[#fffaf4] p-5 text-sm text-[#6e5947]">
-              No related items found for this product yet.
+            <div className="mt-6 rounded-xl border border-dashed border-[#D4B896]/30 bg-[#FAFAF8] p-6 text-center text-sm text-[#7A6E62]">
+              No related products found for this category yet.
             </div>
           ) : (
-            <div className="mt-5 flex gap-4 overflow-x-auto pb-2">
-              {relatedProducts.map((product) => (
+            <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {relatedProducts.map((related) => (
                 <article
-                  key={product.id}
+                  key={related.id}
                   onClick={() =>
-                    navigate(`/product/${toProductSlug(product.name)}`, {
-                      state: { product },
+                    navigate(`/product/${toProductSlug(related.name)}`, {
+                      state: { product: related },
                     })
                   }
-                  className="w-56 shrink-0 cursor-pointer rounded-xl border border-[#edd8bc] bg-[#fffaf4] p-3 transition hover:-translate-y-1 hover:shadow-lg"
+                  className="group cursor-pointer rounded-xl border border-[#D4B896]/20 bg-[#FAFAF8] p-4 transition hover:-translate-y-1 hover:shadow-lg"
                 >
-                  <img src={product.image} alt={product.name} className="h-32 w-full rounded-lg object-cover" />
-                  <p className="mt-3 line-clamp-2 text-sm font-semibold text-[#2b2018]">{product.name}</p>
-                  <p className="mt-1 text-xs text-[#8a6038]">{product.category}</p>
-                  <p className="mt-2 text-sm font-semibold text-[#2b2018]">{formatINR(product.price)}</p>
+                  <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-[#F7F4F0] mb-3">
+                    <img
+                      src={related.image}
+                      alt={related.name}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  </div>
+                  <p className="text-sm font-medium text-[#2A2520] line-clamp-1">{related.name}</p>
+                  <p className="mt-1 text-xs text-[#8B7359]">{related.category}</p>
+                  <p className="mt-2 text-sm font-semibold text-[#C8A97E]">{formatINR(related.price)}</p>
                   <button
-                    onClick={(event) => {
-                      event.stopPropagation();
+                    onClick={(e) => {
+                      e.stopPropagation();
                       addToCart({
-                        id: product.id,
-                        name: product.name,
-                        price: product.price,
-                        originalPrice: product.originalPrice,
-                        image: product.image,
+                        id: related.id,
+                        name: related.name,
+                        price: related.price,
+                        originalPrice: related.originalPrice,
+                        image: related.image,
                       });
                     }}
-                    className="mt-3 w-full rounded-lg border border-[#b67d4a] py-2 text-sm font-semibold text-[#8a6038] transition hover:bg-[#fbf2e5]"
+                    className="mt-3 w-full rounded-lg border border-[#C8A97E]/30 py-2 text-xs font-semibold text-[#7f674d] transition hover:bg-[#C8A97E] hover:text-white"
                   >
-                    Add to cart
+                    Add to Cart
                   </button>
                 </article>
               ))}
@@ -318,73 +506,7 @@ export default function ProductDetails() {
         </div>
       </section>
 
-      <div className="mt-10 bg-[#fff7ee] px-6 py-12 sm:mt-14 lg:py-20">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 sm:grid-cols-2 md:gap-12 lg:grid-cols-4">
-          <div>
-            <h3 className="text-2xl font-bold text-[#7a522f] sm:text-3xl">
-              Clinical Sanctuary
-            </h3>
-            <p className="mt-4 max-w-sm text-base leading-relaxed text-gray-500 sm:mt-6 sm:text-lg">
-              Dermatologist-formulated skincare that respects your biology and
-              enhances your natural beauty.
-            </p>
-
-            <div className="mt-6 flex items-center gap-5 text-2xl text-[#8a6038] sm:mt-8 sm:text-3xl">
-              <span>🌐</span>
-              <span>@</span>
-            </div>
-          </div>
-
-          <div>
-            <h4 className="text-xl font-semibold text-[#7a522f] sm:text-2xl">
-              Products
-            </h4>
-            <ul className="mt-4 space-y-3 text-base text-gray-500 sm:mt-6 sm:space-y-4 sm:text-lg">
-              <li>Face Wash</li>
-              <li>Serums</li>
-              <li>Moisturizers</li>
-              <li>Sunscreens</li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-xl font-semibold text-[#7a522f] sm:text-2xl">
-              Support
-            </h4>
-            <ul className="mt-4 space-y-3 text-base text-gray-500 sm:mt-6 sm:space-y-4 sm:text-lg">
-              <li>Contact Support</li>
-              <li>Shipping & Returns</li>
-              <li>FAQs</li>
-              <li>Privacy Policy</li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-xl font-semibold text-[#7a522f] sm:text-2xl">
-              Newsletter
-            </h4>
-            <p className="mt-4 text-base leading-relaxed text-gray-500 sm:mt-6 sm:text-lg">
-              The latest in skin science, delivered to your inbox.
-            </p>
-
-            <input
-              type="email"
-              placeholder="Email"
-              className="mt-6 w-full rounded-2xl border border-gray-100 bg-white px-5 py-3.5 text-base text-gray-700 shadow-sm outline-none sm:mt-8 sm:py-4 sm:text-lg"
-            />
-          </div>
-        </div>
-
-        <div className="mt-12 flex flex-col items-center justify-between gap-6 border-t border-gray-200 pt-8 text-center text-xs text-gray-400 sm:mt-16 sm:text-sm md:flex-row md:text-left">
-          <p>© 2024 Clinical Sanctuary. Dermatologist Recommended.</p>
-
-          <div className="flex flex-wrap justify-center gap-4 sm:gap-8 md:justify-end">
-            <span>Privacy Policy</span>
-            <span>Terms of Service</span>
-            <span>Accessibility</span>
-          </div>
-        </div>
-      </div>
+      <Footer />
     </div>
   );
 }
