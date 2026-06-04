@@ -60,7 +60,7 @@ export default function Checkout() {
         <section className="overflow-hidden rounded border border-[#e4d5be] bg-white shadow-sm">
           <StepHeader index={1} title="Login or Signup" active={!isAuthenticated} />
 
-          <div className="grid gap-6 px-5 py-5 md:grid-cols-2 sm:px-6 sm:py-6">
+          <div className="grid gap-4 px-4 py-4 sm:grid-cols-2 sm:gap-6 sm:px-6 sm:py-6">
             {isAuthenticated ? (
               <div>
                 <p className="text-xs text-[#8a775f]">Logged in as</p>
@@ -106,7 +106,7 @@ export default function Checkout() {
         <section className="mt-3 overflow-hidden rounded border border-[#e4d5be] bg-white shadow-sm">
           <StepHeader index={2} title="Delivery Address" active={showAddressStep} />
           {showAddressStep ? (
-            <div className="grid gap-3 px-5 py-5 md:grid-cols-2 sm:px-6">
+            <div className="grid gap-3 px-4 py-4 sm:grid-cols-2 sm:px-6 sm:py-5">
               <input
                 placeholder="Full Name"
                 value={address.fullName}
@@ -123,7 +123,7 @@ export default function Checkout() {
                 placeholder="Address Line"
                 value={address.line1}
                 onChange={(e) => setAddress((prev) => ({ ...prev, line1: e.target.value }))}
-                className="rounded border border-[#dcc8aa] px-3 py-2.5 text-sm outline-none focus:border-[#8a6038] md:col-span-2"
+                className="rounded border border-[#dcc8aa] px-3 py-2.5 text-sm outline-none focus:border-[#8a6038] sm:col-span-2"
               />
               <input
                 placeholder="City"

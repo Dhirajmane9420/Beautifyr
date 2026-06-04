@@ -96,7 +96,7 @@ function About() {
   }, []);
 
   useEffect(() => {
-    const keyToSelector = (key) => `[data-edit-key="${String(key).replace(/"/g, '\\\"')}"]`;
+    const keyToSelector = (key) => `[data-edit-key='${String(key).replace(/'/g, "\\'")}']`;
 
     const apply = () => {
       overrides.forEach((override) => {

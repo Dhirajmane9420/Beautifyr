@@ -183,10 +183,9 @@ export default function NewArrivals() {
       } catch {
         if (!isMounted) return;
         setArrivals([]);
-      } finally {
-        if (!isMounted) return;
-        setIsLoading(false);
       }
+      if (!isMounted) return;
+      setIsLoading(false);
     };
 
     void loadProducts();

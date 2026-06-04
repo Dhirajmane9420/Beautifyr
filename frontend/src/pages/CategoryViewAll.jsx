@@ -11,7 +11,7 @@ import heroImage from "../assets/hero.jpg";
 function CategoryViewAll() {
   const location = useLocation();
   const title = location.state?.title || "Category";
-  const products = location.state?.products || [];
+  const products = useMemo(() => location.state?.products || [], [location.state?.products]);
 
   const maxPrice = Math.max(...products.map((product) => product.price || 0), 0);
   const priceRanges = [
@@ -158,7 +158,6 @@ function CategoryViewAll() {
                 image={heroImage}
                 inStock={product.inStock}
                 category={title}
-                sizeVariants={product.sizeVariants}
               />
             ))}
           </div>
@@ -168,7 +167,7 @@ function CategoryViewAll() {
   );
 }
 
-function ProductCard({ title, price, originalPrice, image, inStock, category, sizeVariants }) {
+function ProductCard({ title, price, originalPrice, image, inStock, category }) {
   const { addToCart } = useCart();
   const navigate = useNavigate();
   const { isInWishlist, toggleWishlist } = useWishlist();

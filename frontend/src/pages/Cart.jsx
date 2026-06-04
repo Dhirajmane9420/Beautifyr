@@ -4,6 +4,7 @@ import { BadgePercent, ShieldCheck, ShoppingCart, Trash2, Zap } from "lucide-rea
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 import { toProductSlug } from "../lib/productUtils";
 
 const relatedSkincare = {
@@ -57,6 +58,7 @@ const formatINR = (value) => `₹${Number(value || 0).toLocaleString("en-IN")}`;
 export default function Cart() {
   const navigate = useNavigate();
   const { items, isEmpty, totals, removeFromCart, updateQuantity, addToCart } = useCart();
+  const { isAuthenticated } = useAuth();
 
   const firstItem = items[0];
   const relatedProducts = getSimilarSkincareProducts(firstItem?.name);
@@ -77,15 +79,30 @@ export default function Cart() {
     });
   };
 
+  const buyNow = (item) => {
+    navigate("/buy-now", {
+      state: {
+        product: {
+          id: item?.id,
+          name: item?.name,
+          price: item?.price,
+          originalPrice: item?.originalPrice,
+          image: item?.image,
+          size: item?.size,
+        },
+      },
+    });
+  };
+
   return (
     <div className="min-h-screen bg-[#fff7ee] text-[#2b2018]" style={{ fontFamily: '"Segoe UI", "Tahoma", sans-serif' }}>
       <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
         <Navbar />
 
         {isEmpty ? (
-          <main className="flex flex-1 flex-col items-center justify-center px-6 py-20 pt-28 md:px-12">
+          <main className="flex flex-1 flex-col items-center justify-center px-4 py-16 pt-24 sm:px-6 sm:py-20 sm:pt-28 md:px-12">
             <div className="relative flex w-full max-w-md flex-col items-center text-center">
-              <div className="relative mb-12 flex h-48 w-48 items-center justify-center">
+              <div className="relative mb-8 flex h-36 w-36 items-center justify-center sm:mb-12 sm:h-48 sm:w-48">
                 <div className="falling-item delay-1 absolute -top-12 left-1/4">
                   <div className="h-6 w-4 rotate-12 rounded-sm bg-[#8a6038]/20"></div>
                 </div>
@@ -99,7 +116,7 @@ export default function Cart() {
                 </div>
 
                 <div className="relative">
-                  <ShoppingCart className="leading-none text-[#d3b48f]" size={120} strokeWidth={1.5} />
+                  <ShoppingCart className="leading-none text-[#d3b48f]" size={80} strokeWidth={1.5} />
 
                   <div className="absolute bottom-9 left-1/2 -translate-x-1/2">
                     <div className="flex h-10 w-5 flex-col items-center rounded-md border border-[#8a6038]/15 bg-[#f3e1cc] pt-1 shadow-sm">
@@ -109,29 +126,50 @@ export default function Cart() {
                 </div>
               </div>
 
-              <div className="mb-10 space-y-3">
-                <h1 className="text-3xl font-extrabold tracking-tight text-[#2b2018] md:text-4xl">Missing Cart items?</h1>
+              {!isAuthenticated ? (
+                <>
+                  <div className="mb-10 space-y-3">
+                    <h1 className="text-3xl font-extrabold tracking-tight text-[#2b2018] md:text-4xl">Missing Cart items?</h1>
 
-                <p className="mx-auto max-w-[280px] text-sm font-medium leading-relaxed text-[#6e5947]">
-                  Log in to see items you've previously added and continue your curation.
-                </p>
-              </div>
+                    <p className="mx-auto max-w-[280px] text-sm font-medium leading-relaxed text-[#6e5947]">
+                      Log in to see items you've previously added and continue your curation.
+                    </p>
+                  </div>
 
-              <div className="flex w-full flex-col items-center gap-4">
-                <button
-                  onClick={() => navigate("/login")}
-                  className="cta-gradient h-14 w-full max-w-[320px] rounded-xl font-bold text-white shadow-[0_12px_32px_rgba(138,96,56,0.22)] transition-all hover:opacity-95 active:scale-[0.98]"
-                >
-                  Login
-                </button>
+                  <div className="flex w-full flex-col items-center gap-4">
+                    <button
+                      onClick={() => navigate("/login")}
+                      className="cta-gradient h-14 w-full max-w-[320px] rounded-xl font-bold text-white shadow-[0_12px_32px_rgba(138,96,56,0.22)] transition-all hover:opacity-95 active:scale-[0.98]"
+                    >
+                      Login
+                    </button>
 
-                <button
-                  onClick={() => navigate("/categories")}
-                  className="h-10 px-6 font-semibold text-[#8a6038] transition-colors hover:text-[#7a522f]"
-                >
-                  Continue Shopping
-                </button>
-              </div>
+                    <button
+                      onClick={() => navigate("/categories")}
+                      className="h-10 px-6 font-semibold text-[#8a6038] transition-colors hover:text-[#7a522f]"
+                    >
+                      Continue Shopping
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="mb-10 space-y-3">
+                    <h1 className="text-3xl font-extrabold tracking-tight text-[#2b2018] md:text-4xl">Your Cart is Empty</h1>
+
+                    <p className="mx-auto max-w-[280px] text-sm font-medium leading-relaxed text-[#6e5947]">
+                      Looks like you haven't added anything yet. Browse our collection and find your perfect skincare products.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => navigate("/categories")}
+                    className="cta-gradient h-14 w-full max-w-[320px] rounded-xl font-bold text-white shadow-[0_12px_32px_rgba(138,96,56,0.22)] transition-all hover:opacity-95 active:scale-[0.98]"
+                  >
+                    Start Shopping
+                  </button>
+                </>
+              )}
             </div>
           </main>
         ) : (
@@ -147,60 +185,63 @@ export default function Cart() {
 
                 {items.map((item) => (
                   <article key={item.id} className="rounded-xl border border-[#e2d3bd] bg-white shadow-sm">
-                    <div className="p-4 sm:p-5">
-                      <p className="mb-3 inline-block rounded-sm bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">Hot Deal</p>
-                      <div className="flex gap-4">
+                    <div className="p-3 sm:p-5">
+                      <p className="mb-2 inline-block rounded-sm bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 sm:mb-3 sm:px-2 sm:text-xs">Hot Deal</p>
+                      <div className="flex gap-3 sm:gap-4">
                         <button
                           type="button"
                           onClick={() => openProductDetails(item)}
                           className="shrink-0"
                         >
-                          <img src={item.image} alt={item.name} className="h-28 w-24 rounded-md border border-[#eee3d5] object-cover" />
+                          <img src={item.image} alt={item.name} className="h-24 w-20 rounded-md border border-[#eee3d5] object-cover sm:h-28 sm:w-24" />
                         </button>
-                        <div className="flex-1">
+                        <div className="min-w-0 flex-1">
                           <button
                             type="button"
                             onClick={() => openProductDetails(item)}
-                            className="text-left text-xl text-[#2b2018] hover:text-[#8a6038]"
+                            className="text-left text-base text-[#2b2018] hover:text-[#8a6038] sm:text-xl"
                           >
                             {item.name}
                           </button>
-                          {item.size ? <p className="mt-1 text-sm text-[#8b7a68]">Size: {item.size}</p> : null}
-                          <p className="mt-3 text-3xl font-semibold text-[#2d251f]">
-                            <span className="mr-2 text-xl text-green-700">83% </span>
-                            <span className="mr-2 text-lg text-[#9c8f82] line-through">{formatINR(item.originalPrice)}</span>
-                            {formatINR(item.price)}
+                          {item.size ? <p className="mt-0.5 text-[11px] text-[#8b7a68] sm:mt-1 sm:text-sm">Size: {item.size}</p> : null}
+                          <p className="mt-2 flex flex-wrap items-baseline gap-1.5 text-[#2d251f] sm:mt-3">
+                            <span className="text-sm text-green-700 sm:text-xl">83% </span>
+                            <span className="text-xs text-[#9c8f82] line-through sm:text-lg">{formatINR(item.originalPrice)}</span>
+                            <span className="text-xl font-semibold sm:text-3xl">{formatINR(item.price)}</span>
                           </p>
 
-                          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
-                            <label className="rounded-md border border-[#d8c9b0] px-2 py-1">
+                          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs sm:mt-4 sm:gap-3 sm:text-sm">
+                            <label className="rounded-md border border-[#d8c9b0] px-1.5 py-0.5 sm:px-2 sm:py-1">
                               Qty:
                               <select
                                 value={item.quantity}
                                 onChange={(e) => updateQuantity(item.id, Number(e.target.value))}
-                                className="ml-2 bg-transparent outline-none"
+                                className="ml-1 bg-transparent outline-none sm:ml-2"
                               >
                                 {[1, 2, 3, 4, 5].map((qty) => (
                                   <option key={qty} value={qty}>{qty}</option>
                                 ))}
                               </select>
                             </label>
-                            <span className="text-[#6e5947]">Delivery by Wed Apr 15</span>
+                            <span className="text-[10px] text-[#6e5947] sm:text-sm">Delivery by Wed Apr 15</span>
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 border-t border-[#eee3d5] text-center text-sm font-semibold text-[#6e5947]">
-                      <button className="px-3 py-3 transition hover:bg-[#f9efe2]">Save for later</button>
+                    <div className="grid grid-cols-3 border-t border-[#eee3d5] text-center text-[11px] font-semibold text-[#6e5947] sm:text-sm">
+                      <button className="px-1 py-2.5 transition hover:bg-[#f9efe2] sm:px-3 sm:py-3">Save for later</button>
                       <button
                         onClick={() => removeFromCart(item.id)}
-                        className="flex items-center justify-center gap-1 border-x border-[#eee3d5] px-3 py-3 transition hover:bg-[#f9efe2]"
+                        className="flex items-center justify-center gap-0.5 border-x border-[#eee3d5] px-1 py-2.5 transition hover:bg-[#f9efe2] sm:gap-1 sm:px-3 sm:py-3"
                       >
-                        <Trash2 size={14} /> Remove
+                        <Trash2 size={11} className="sm:size-[14px]" /> Remove
                       </button>
-                      <button className="flex items-center justify-center gap-1 px-3 py-3 transition hover:bg-[#f9efe2]">
-                        <Zap size={14} /> Buy this now
+                      <button
+                        onClick={() => buyNow(item)}
+                        className="flex items-center justify-center gap-0.5 px-1 py-2.5 transition hover:bg-[#f9efe2] sm:gap-1 sm:px-3 sm:py-3"
+                      >
+                        <Zap size={11} className="sm:size-[14px]" /> Buy now
                       </button>
                     </div>
                   </article>
@@ -241,36 +282,36 @@ export default function Cart() {
               </section>
 
               <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-                <div className="rounded-xl border border-[#e2d3bd] bg-white p-4 shadow-sm">
-                  <h3 className="text-2xl text-[#2b2018]">Price Details</h3>
-                  <div className="mt-4 space-y-3 text-sm text-[#6e5947]">
+                <div className="rounded-xl border border-[#e2d3bd] bg-white p-3 shadow-sm sm:p-4">
+                  <h3 className="text-lg text-[#2b2018] sm:text-2xl">Price Details</h3>
+                  <div className="mt-3 space-y-2 text-xs sm:mt-4 sm:space-y-3 sm:text-sm text-[#6e5947]">
                     <div className="flex justify-between"><span>Price ({totals.itemCount} item)</span><span className="font-medium text-[#2b2018]">{formatINR(totals.originalTotal)}</span></div>
                     <div className="flex justify-between"><span>Discount</span><span className="font-medium text-green-700">-{formatINR(totals.discount)}</span></div>
                     <div className="flex justify-between"><span>Platform Fee</span><span className="font-medium text-[#2b2018]">{formatINR(totals.platformFee)}</span></div>
                   </div>
-                  <div className="my-4 border-t border-dashed border-[#e6d8c5]" />
-                  <div className="flex justify-between text-lg font-semibold text-[#2b2018]">
+                  <div className="my-3 border-t border-dashed border-[#e6d8c5] sm:my-4" />
+                  <div className="flex justify-between text-base font-semibold text-[#2b2018] sm:text-lg">
                     <span>Total Amount</span>
                     <span>{formatINR(payableAmount)}</span>
                   </div>
-                  <p className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-green-100 px-3 py-2 text-sm font-semibold text-green-700">
-                    <BadgePercent size={16} /> You'll save {formatINR(totals.savings)} on this order!
+                  <p className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-green-100 px-2 py-1.5 text-xs font-semibold text-green-700 sm:mt-4 sm:gap-2 sm:px-3 sm:py-2 sm:text-sm">
+                    <BadgePercent size={14} className="shrink-0 sm:size-[16px]" /> You'll save {formatINR(totals.savings)} on this order!
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-[#e2d3bd] bg-white p-4 shadow-sm">
-                  <p className="flex items-center gap-2 text-[#6e5947]"><ShieldCheck size={18} className="text-[#8a6038]" /> Safe and secure payments. Easy returns. 100% Authentic products.</p>
+                <div className="rounded-xl border border-[#e2d3bd] bg-white p-3 shadow-sm sm:p-4">
+                  <p className="flex items-start gap-1.5 text-xs text-[#6e5947] sm:items-center sm:gap-2 sm:text-sm"><ShieldCheck size={14} className="mt-0.5 shrink-0 text-[#8a6038] sm:mt-0 sm:size-[18px]" /> Safe and secure payments. Easy returns. 100% Authentic products.</p>
                 </div>
 
                 <div className="rounded-xl border border-[#e2d3bd] bg-white p-3 shadow-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm text-[#9c8f82] line-through">{formatINR(totals.originalTotal)}</p>
-                      <p className="text-3xl font-semibold text-[#2b2018]">{formatINR(payableAmount)}</p>
+                  <div className="flex items-center justify-between gap-2 sm:gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[11px] text-[#9c8f82] line-through sm:text-sm">{formatINR(totals.originalTotal)}</p>
+                      <p className="text-xl font-semibold text-[#2b2018] sm:text-3xl">{formatINR(payableAmount)}</p>
                     </div>
                     <button
                       onClick={() => navigate("/checkout")}
-                      className="rounded-md bg-[#f2c500] px-10 py-3 text-lg font-semibold text-[#2b2018] transition hover:bg-[#e5b900]"
+                      className="shrink-0 rounded-md bg-[#f2c500] px-5 py-2 text-sm font-semibold text-[#2b2018] transition hover:bg-[#e5b900] sm:px-10 sm:py-3 sm:text-lg"
                     >
                       Place Order
                     </button>

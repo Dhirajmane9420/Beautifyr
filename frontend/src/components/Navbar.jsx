@@ -34,9 +34,15 @@ function Navbar() {
     ? trendingSearches.map((term, index) => ({ id: `trend-${index}`, title: term, type: "Trending" }))
     : liveSuggestions;
 
-  useEffect(() => {
+  const handleSearchQueryChange = (event) => {
+    setSearchQuery(event.target.value);
     setHighlightedIndex(-1);
-  }, [searchQuery, isSearchOpen]);
+  };
+
+  const toggleSearchOpen = () => {
+    setIsSearchOpen((current) => !current);
+    setHighlightedIndex(-1);
+  };
 
   const runSearch = (queryValue) => {
     const query = queryValue.trim();
@@ -171,7 +177,7 @@ function Navbar() {
 
           <button
             className="group relative rounded-full p-2 text-[#1b2330] transition duration-300 hover:bg-[#f3e5cc] hover:shadow-md premium-float"
-            onClick={() => setIsSearchOpen((current) => !current)}
+            onClick={toggleSearchOpen}
             aria-label="Open search"
           >
             <Search className="h-5 w-5 transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-px" />
@@ -230,7 +236,7 @@ function Navbar() {
                 <Search className="h-4 w-4 text-[#8a6038]" />
                 <input
                   value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onChange={handleSearchQueryChange}
                   onKeyDown={handleSearchKeyDown}
                   placeholder="Search categories, items, and more"
                   className="ml-2 w-full bg-transparent text-sm text-[#2b2018] outline-none placeholder:text-[#927d67]"
@@ -313,7 +319,7 @@ function Navbar() {
               <Search className="h-4 w-4 text-[#8a6038]" />
               <input
                 value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
+                onChange={handleSearchQueryChange}
                 onKeyDown={handleSearchKeyDown}
                 placeholder="Search..."
                 className="ml-2 w-full bg-transparent text-sm text-[#2b2018] outline-none placeholder:text-[#927d67]"

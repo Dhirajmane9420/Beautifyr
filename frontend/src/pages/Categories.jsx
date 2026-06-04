@@ -84,7 +84,6 @@ const fadeIn = {
 const GOLD = "#C8A97E";
 
 export default function CategoriesPage() {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { addToCart } = useCart();
   const isAdmin = user?.role === "admin";
@@ -108,7 +107,6 @@ export default function CategoriesPage() {
 
   /* Content editor state */
   const [activeContentTab, setActiveContentTab] = useState("hero");
-  const [contentForm, setContentForm] = useState({});
 
   /* ── LOADING ── */
   useEffect(() => {
@@ -186,18 +184,6 @@ export default function CategoriesPage() {
     };
   };
 
-  const handleViewAll = (title) => {
-    navigate("/categories/view-all", {
-      state: {
-        title,
-        products: products.filter(
-          (p) => (p.category || "").toLowerCase().trim() === title.toLowerCase().trim()
-        ),
-        image: heroImg,
-      },
-    });
-  };
-
   /* ── CRUD PRODUCTS ── */
   const toPayload = (form, imageUrl) => ({
     title: form.title.trim(),
@@ -226,15 +212,6 @@ export default function CategoriesPage() {
   };
 
   const openEditModal = (product) => {
-    const existingImageUrls = Array.from(
-      new Set(
-        [
-          ...(Array.isArray(product.imageUrls) ? product.imageUrls : []),
-          product.imageUrl,
-        ].filter(Boolean)
-      )
-    ).slice(0, MAX_PRODUCT_IMAGES);
-
     setEditingProductId(product._id);
     setEditingProductForm({
       title: product.title || "",
@@ -308,20 +285,6 @@ export default function CategoriesPage() {
       if (result?.content) setPageOverrides(result.content);
     } catch (err) {
       console.error("Failed to save override", err);
-    }
-  };
-
-  const handleSaveContent = async () => {
-    try {
-      for (const [key, value] of Object.entries(contentForm)) {
-        const kind = key.endsWith(".image") ? "image" : "text";
-        await saveSingleOverride(key, value, kind);
-      }
-      const refreshed = await fetchPageOverrides("categories");
-      setPageOverrides(refreshed?.content || {});
-      setContentForm({});
-    } catch (err) {
-      console.error("Failed to save content", err);
     }
   };
 
@@ -986,7 +949,7 @@ export default function CategoriesPage() {
 }
 
 /* ── SECTION GRID ── */
-function SectionGrid({ title, products, content, isAdmin, onEdit, onDelete, addToCart }) {
+function SectionGrid({ products, content, isAdmin, onEdit, onDelete, addToCart }) {
   if (products.length === 0) return null;
 
   return (
