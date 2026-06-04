@@ -47,11 +47,13 @@ const CONTENT_DEFAULTS = {
 const buildInitialForm = () => ({
   title: "",
   description: "",
-  price: "",
+  originalPrice: "",
+  discountedPrice: "",
   inStock: true,
-  section: "Cleansers",
-  category: "Cleansers",
-  imageUrl: "",
+  existingSection: "Cleansers",
+  category: defaultCategory,
+  imageInputs: [buildImageInput()],
+  sizeVariants: [buildSizeVariantInput()],
 });
 
 /* ── ANIMATION VARIANTS ── */
@@ -215,6 +217,15 @@ export default function CategoriesPage() {
   };
 
   const openEditModal = (product) => {
+    const existingImageUrls = Array.from(
+      new Set(
+        [
+          ...(Array.isArray(product.imageUrls) ? product.imageUrls : []),
+          product.imageUrl,
+        ].filter(Boolean)
+      )
+    ).slice(0, MAX_PRODUCT_IMAGES);
+
     setEditingProductId(product._id);
     setEditingProductForm({
       title: product.title || "",
@@ -225,7 +236,6 @@ export default function CategoriesPage() {
       category: product.category || "Cleansers",
       imageUrl: product.imageUrl || "",
     });
-    setEditingProductFile(null);
   };
 
   const handleUpdateProduct = async () => {

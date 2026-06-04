@@ -57,13 +57,25 @@ export function CartProvider({ children }) {
   };
 
   const addToCart = (product) => {
+    const normalizedPrice = parsePrice(product.price);
+    const normalizedOriginalPrice = parsePrice(product.originalPrice);
+    const normalizedSizeVariant = product.sizeVariant
+      ? {
+          label: String(product.sizeVariant.label || product.size || "").trim(),
+          stock: Number(product.sizeVariant.stock) || 0,
+          price: normalizedPrice,
+          originalPrice: normalizedOriginalPrice > 0 ? normalizedOriginalPrice : normalizedPrice,
+        }
+      : null;
+
     const normalized = {
       id: product.id,
       name: product.name || product.title || "Product",
-      price: parsePrice(product.price),
-      originalPrice: parsePrice(product.originalPrice || Math.round(parsePrice(product.price) * 1.3)),
+      price: normalizedPrice,
+      originalPrice: normalizedOriginalPrice > 0 ? normalizedOriginalPrice : normalizedPrice,
       image: product.image || "https://via.placeholder.com/400x400",
       size: product.size ? String(product.size) : "",
+      sizeVariant: normalizedSizeVariant,
       quantity: Math.max(1, Number(product.quantity) || 1),
     };
 

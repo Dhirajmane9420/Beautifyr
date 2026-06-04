@@ -130,7 +130,13 @@ const seedProducts = [
     category: "Oil",
     imageUrl: DEFAULT_IMAGE,
   },
-];
+].map((item) => ({
+  ...item,
+  originalPrice: Math.max(item.price + Math.round(item.price * 0.15), item.price),
+  imageUrls: [item.imageUrl],
+  sizeStock: [{ label: "125 ml", stock: item.inStock ? 24 : 0 }],
+  features: ["24x7 Support", "Original Product Guaranteed"],
+}));
 
 const SECTION_VALUES = [
   "Cleansers",
@@ -140,25 +146,147 @@ const SECTION_VALUES = [
   "New Arrivals",
 ];
 
+const toFiniteNumber = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const toStringArray = (value) => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item || "").trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(/\r?\n|,/) 
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
+const normalizeSizeStock = (value) => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      const label = String(item?.label || "").trim();
+      const stockNumber = toFiniteNumber(item?.stock);
+
+      if (!label) {
+        return null;
+      }
+
+      return {
+        label,
+        stock: Math.max(0, Math.floor(stockNumber ?? 0)),
+      };
+    })
+    .filter(Boolean);
+};
+
+const normalizeSizeVariants = (value) => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      const label = String(item?.label || "").trim();
+      const stock = Math.max(0, Math.floor(toFiniteNumber(item?.stock) ?? 0));
+      const price = toFiniteNumber(item?.price);
+      const originalPrice = toFiniteNumber(item?.originalPrice);
+
+      if (!label) {
+        return null;
+      }
+
+      if (!Number.isFinite(price) || price < 0) {
+        return null;
+      }
+
+      if (!Number.isFinite(originalPrice) || originalPrice < price) {
+        return null;
+      }
+
+      return {
+        label,
+        stock,
+        price,
+        originalPrice,
+      };
+    })
+    .filter(Boolean);
+};
+
 const normalizeInput = (payload) => {
+  const discountedPrice = toFiniteNumber(payload.discountedPrice);
+  const parsedPrice = toFiniteNumber(payload.price);
+  const price = discountedPrice ?? parsedPrice;
+
+  const parsedOriginalPrice = toFiniteNumber(payload.originalPrice);
+  const originalPrice =
+    parsedOriginalPrice ??
+    (price === null ? null : price);
+
+  const imageUrlInput = String(payload.imageUrl || "").trim();
+  const imageUrlsInput = toStringArray(payload.imageUrls);
+  const fallbackImage = imageUrlsInput[0] || imageUrlInput;
+  const imageUrl = imageUrlInput || fallbackImage;
+  const imageUrls = Array.from(new Set([imageUrl, ...imageUrlsInput].filter(Boolean)));
+
+  const sizeStock = normalizeSizeStock(payload.sizeStock);
+  const sizeVariants = normalizeSizeVariants(payload.sizeVariants);
+  const hasPositiveStockBySize = sizeStock.some((item) => item.stock > 0);
+  const hasPositiveStockByVariant = sizeVariants.some((item) => item.stock > 0);
+  const hasInStockValue = typeof payload.inStock === "boolean";
+
   return {
     title: String(payload.title || "").trim(),
     description: String(payload.description || "").trim(),
-    price: Number(payload.price),
-    inStock: Boolean(payload.inStock),
+    price,
+    originalPrice,
+    inStock: hasInStockValue ? payload.inStock : (sizeStock.length ? hasPositiveStockBySize : true),
     section: String(payload.section || "").trim(),
     category: String(payload.category || "").trim(),
-    imageUrl: String(payload.imageUrl || "").trim(),
+    imageUrl,
+    imageUrls,
+    sizeStock,
+    sizeVariants,
+    features: toStringArray(payload.features),
   };
 };
 
 const validatePayload = (payload) => {
   if (!payload.title || !payload.description || !payload.section || !payload.category || !payload.imageUrl) {
-    return "title, description, section, category and imageUrl are required.";
+    return "title, description, section, category and at least one image are required.";
   }
 
   if (!Number.isFinite(payload.price) || payload.price < 0) {
-    return "price must be a valid non-negative number.";
+    return "discounted price must be a valid non-negative number.";
+  }
+
+  if (!Number.isFinite(payload.originalPrice) || payload.originalPrice < 0) {
+    return "original price must be a valid non-negative number.";
+  }
+
+  if (payload.originalPrice < payload.price) {
+    return "original price must be greater than or equal to discounted price.";
+  }
+
+  if (payload.sizeVariants.length > 0) {
+    const invalidVariant = payload.sizeVariants.find(
+      (variant) => !Number.isFinite(variant.price) || variant.originalPrice < variant.price
+    );
+
+    if (invalidVariant) {
+      return "each size variant must have valid actual and discount prices.";
+    }
   }
 
   if (!SECTION_VALUES.includes(payload.section)) {
