@@ -57,6 +57,8 @@ const buildInitialForm = () => ({
   description: "",
   price: "",
   inStock: true,
+  isNewArrival: false,
+  isBestSeller: false,
   section: defaultCategory,
   category: defaultCategory,
   imageUrl: "",
@@ -190,6 +192,8 @@ export default function CategoriesPage() {
     description: form.description.trim(),
     price: Number(form.price),
     inStock: form.inStock,
+    isNewArrival: Boolean(form.isNewArrival),
+    isBestSeller: Boolean(form.isBestSeller),
     section: form.section || "Cleansers",
     category: form.category || "Cleansers",
     imageUrl: imageUrl || heroImg,
@@ -218,6 +222,8 @@ export default function CategoriesPage() {
       description: product.description || "",
       price: String(product.price ?? ""),
       inStock: product.inStock ?? true,
+      isNewArrival: product.isNewArrival ?? product.section === "New Arrivals",
+      isBestSeller: product.isBestSeller ?? product.section === "Best Sellers",
       section: product.section || "Cleansers",
       category: product.category || "Cleansers",
       imageUrl: product.imageUrl || "",
@@ -522,6 +528,7 @@ export default function CategoriesPage() {
                     ))}
                   </datalist>
                   <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center gap-4">
                     <label className="flex items-center gap-3 cursor-pointer group">
                       <div
                         className={`w-5 h-5 flex items-center justify-center rounded border ${
@@ -544,6 +551,51 @@ export default function CategoriesPage() {
                       />
                       <span className="text-sm font-medium text-stone-600">In Stock</span>
                     </label>
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div
+                        className={`w-5 h-5 flex items-center justify-center rounded border ${
+                          form.isNewArrival
+                            ? "bg-[#C8A97E] border-[#C8A97E]"
+                            : "border-stone-300 group-hover:border-stone-400"
+                        }`}
+                      >
+                        {form.isNewArrival && (
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="hidden"
+                        checked={form.isNewArrival}
+                        onChange={(e) => setForm((p) => ({ ...p, isNewArrival: e.target.checked }))}
+                      />
+                      <span className="text-sm font-medium text-stone-600">New Arrival</span>
+                    </label>
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div
+                        className={`w-5 h-5 flex items-center justify-center rounded border ${
+                          form.isBestSeller
+                            ? "bg-[#C8A97E] border-[#C8A97E]"
+                            : "border-stone-300 group-hover:border-stone-400"
+                        }`}
+                      >
+                        {form.isBestSeller && (
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="hidden"
+                        checked={form.isBestSeller}
+                        onChange={(e) => setForm((p) => ({ ...p, isBestSeller: e.target.checked }))}
+                      />
+                      <span className="text-sm font-medium text-stone-600">Best Seller</span>
+                    </label>
+                    </div>
                     <button
                       type="button"
                       onClick={handleCreateProduct}
@@ -898,6 +950,7 @@ export default function CategoriesPage() {
               </div>
 
               <div className="flex items-center justify-between px-6 py-4 border-t border-stone-100 bg-stone-50/50">
+                <div className="flex flex-wrap items-center gap-5">
                 <label className="flex items-center gap-3 cursor-pointer group">
                   <div
                     className={`w-5 h-5 flex items-center justify-center rounded border ${
@@ -918,8 +971,53 @@ export default function CategoriesPage() {
                     checked={editingProductForm.inStock}
                     onChange={(e) => setEditingProductForm((p) => ({ ...p, inStock: e.target.checked }))}
                   />
-                  <span className="text-sm font-medium text-stone-600">Item is in stock</span>
+                  <span className="text-sm font-medium text-stone-600">In Stock</span>
                 </label>
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div
+                    className={`w-5 h-5 flex items-center justify-center rounded border ${
+                      editingProductForm.isNewArrival
+                        ? "bg-[#C8A97E] border-[#C8A97E]"
+                        : "border-stone-300 group-hover:border-stone-400"
+                    }`}
+                  >
+                    {editingProductForm.isNewArrival && (
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={editingProductForm.isNewArrival}
+                    onChange={(e) => setEditingProductForm((p) => ({ ...p, isNewArrival: e.target.checked }))}
+                  />
+                  <span className="text-sm font-medium text-stone-600">New Arrival</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div
+                    className={`w-5 h-5 flex items-center justify-center rounded border ${
+                      editingProductForm.isBestSeller
+                        ? "bg-[#C8A97E] border-[#C8A97E]"
+                        : "border-stone-300 group-hover:border-stone-400"
+                    }`}
+                  >
+                    {editingProductForm.isBestSeller && (
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={editingProductForm.isBestSeller}
+                    onChange={(e) => setEditingProductForm((p) => ({ ...p, isBestSeller: e.target.checked }))}
+                  />
+                  <span className="text-sm font-medium text-stone-600">Best Seller</span>
+                </label>
+                </div>
                 <div className="flex gap-3">
                   <button
                     type="button"

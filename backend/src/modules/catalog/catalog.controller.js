@@ -66,6 +66,7 @@ const seedProducts = [
     section: "Best Sellers",
     category: "Serum",
     imageUrl: DEFAULT_IMAGE,
+    isBestSeller: true,
   },
   {
     title: "LumiBright Vitamin C Cream",
@@ -75,6 +76,7 @@ const seedProducts = [
     section: "Best Sellers",
     category: "Cream",
     imageUrl: DEFAULT_IMAGE,
+    isBestSeller: true,
   },
   {
     title: "SolarGuard SPF 50 PA+++",
@@ -84,6 +86,7 @@ const seedProducts = [
     section: "Best Sellers",
     category: "Sunscreen",
     imageUrl: DEFAULT_IMAGE,
+    isBestSeller: true,
   },
   {
     title: "RevitaEye Peptide Eye Gel",
@@ -93,6 +96,7 @@ const seedProducts = [
     section: "Best Sellers",
     category: "Gel",
     imageUrl: DEFAULT_IMAGE,
+    isBestSeller: true,
   },
   {
     title: "DewSkin Rice Barrier Essence",
@@ -102,6 +106,7 @@ const seedProducts = [
     section: "New Arrivals",
     category: "Essence",
     imageUrl: DEFAULT_IMAGE,
+    isNewArrival: true,
   },
   {
     title: "PureFoam Low-Ph Gel Cleanser",
@@ -111,6 +116,7 @@ const seedProducts = [
     section: "New Arrivals",
     category: "Cleanser",
     imageUrl: DEFAULT_IMAGE,
+    isNewArrival: true,
   },
   {
     title: "AirLift Peptide Hydration Mist",
@@ -120,6 +126,7 @@ const seedProducts = [
     section: "New Arrivals",
     category: "Mist",
     imageUrl: DEFAULT_IMAGE,
+    isNewArrival: true,
   },
   {
     title: "MidnightGlow Squalane Night Oil",
@@ -129,6 +136,7 @@ const seedProducts = [
     section: "New Arrivals",
     category: "Oil",
     imageUrl: DEFAULT_IMAGE,
+    isNewArrival: true,
   },
 ].map((item) => ({
   ...item,
@@ -252,6 +260,8 @@ const normalizeInput = (payload) => {
     price,
     originalPrice,
     inStock: hasInStockValue ? payload.inStock : (sizeStock.length ? hasPositiveStockBySize : true),
+    isNewArrival: Boolean(payload.isNewArrival),
+    isBestSeller: Boolean(payload.isBestSeller),
     section: String(payload.section || "").trim(),
     category: String(payload.category || "").trim(),
     imageUrl,
@@ -362,13 +372,17 @@ export const deleteCatalogProduct = async (req, res, next) => {
 export const ensureDefaultCatalogProducts = async () => {
   const count = await CatalogProduct.countDocuments({});
   if (count > 0) {
-    const bestSellersCount = await CatalogProduct.countDocuments({ section: "Best Sellers" });
+    const bestSellersCount = await CatalogProduct.countDocuments({
+      $or: [{ isBestSeller: true }, { section: "Best Sellers" }],
+    });
     if (bestSellersCount === 0) {
       const bestSellersSeed = seedProducts.filter((item) => item.section === "Best Sellers");
       await CatalogProduct.insertMany(bestSellersSeed);
     }
 
-    const newArrivalsCount = await CatalogProduct.countDocuments({ section: "New Arrivals" });
+    const newArrivalsCount = await CatalogProduct.countDocuments({
+      $or: [{ isNewArrival: true }, { section: "New Arrivals" }],
+    });
     if (newArrivalsCount === 0) {
       const newArrivalsSeed = seedProducts.filter((item) => item.section === "New Arrivals");
       await CatalogProduct.insertMany(newArrivalsSeed);

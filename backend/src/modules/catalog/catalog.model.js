@@ -28,6 +28,14 @@ const catalogProductSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    isNewArrival: {
+      type: Boolean,
+      default: false,
+    },
+    isBestSeller: {
+      type: Boolean,
+      default: false,
+    },
     section: {
       type: String,
       required: true,

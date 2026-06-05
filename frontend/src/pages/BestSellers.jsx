@@ -7,7 +7,6 @@ import { useAuth } from "../context/AuthContext";
 import heroImage from "../assets/hero.jpg";
 import { toProductSlug } from "../lib/productUtils";
 import {
-  createCatalogProduct,
   deleteCatalogProduct,
   fetchCatalogProducts,
   updateCatalogProduct,
@@ -43,6 +42,7 @@ const buildInitialForm = () => ({
   description: "",
   price: "",
   inStock: true,
+  isBestSeller: true,
   section: "Best Sellers",
   category: "Serum",
   imageUrl: "",
@@ -65,9 +65,6 @@ function BestSellers() {
   const [isSaving, setIsSaving] = useState(false);
   const [adminNotice, setAdminNotice] = useState("");
 
-  const [newProductForm, setNewProductForm] = useState(buildInitialForm());
-  const [newProductFile, setNewProductFile] = useState(null);
-
   const [editingProductId, setEditingProductId] = useState(null);
   const [editingProductForm, setEditingProductForm] = useState(buildInitialForm());
   const [editingProductFile, setEditingProductFile] = useState(null);
@@ -80,7 +77,9 @@ function BestSellers() {
         setIsLoading(true);
         const allProducts = await fetchCatalogProducts();
         if (!isMounted) return;
-        const bestSellerProducts = allProducts.filter((item) => item.section === "Best Sellers");
+        const bestSellerProducts = allProducts.filter(
+          (item) => item.isBestSeller ?? item.section === "Best Sellers"
+        );
         setProducts(bestSellerProducts);
       } catch {
         if (!isMounted) return;
@@ -156,34 +155,10 @@ function BestSellers() {
     description: form.description.trim(),
     price: Number(form.price),
     inStock: Boolean(form.inStock),
-    section: "Best Sellers",
+    isBestSeller: Boolean(form.isBestSeller),
     category: form.category.trim() || "Serum",
     imageUrl,
   });
-
-  const handleCreateProduct = async () => {
-    try {
-      setIsSaving(true);
-      setAdminNotice("");
-
-      let imageUrl = newProductForm.imageUrl.trim();
-      if (newProductFile) {
-        imageUrl = await uploadCatalogProductImage(newProductFile);
-      }
-
-      const payload = toPayload(newProductForm, imageUrl);
-      const created = await createCatalogProduct(payload);
-      setProducts((current) => [created, ...current]);
-
-      setNewProductForm(buildInitialForm());
-      setNewProductFile(null);
-      setAdminNotice("Best seller added.");
-    } catch (error) {
-      setAdminNotice(error.message || "Failed to add product.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const openEditModal = (product) => {
     setEditingProductId(product._id);
@@ -192,7 +167,7 @@ function BestSellers() {
       description: product.description || "",
       price: String(product.price || ""),
       inStock: Boolean(product.inStock),
-      section: "Best Sellers",
+      isBestSeller: product.isBestSeller ?? product.section === "Best Sellers",
       category: product.category || "Serum",
       imageUrl: product.imageUrl || "",
     });
@@ -214,7 +189,11 @@ function BestSellers() {
       const payload = toPayload(editingProductForm, imageUrl);
       const updated = await updateCatalogProduct(editingProductId, payload);
 
-      setProducts((current) => current.map((item) => (item._id === editingProductId ? updated : item)));
+      const updatedIsBestSeller = updated?.isBestSeller ?? updated?.section === "Best Sellers";
+      setProducts((current) => {
+        const remaining = current.filter((item) => item._id !== editingProductId);
+        return updatedIsBestSeller ? [updated, ...remaining] : remaining;
+      });
       setEditingProductId(null);
       setEditingProductFile(null);
       setAdminNotice("Best seller updated.");
@@ -326,90 +305,9 @@ function BestSellers() {
           <div className="rounded-2xl border border-[#D4B896]/40 bg-white/70 p-5 shadow-lg backdrop-blur-xl sm:p-6">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-[#7f674d]">Admin Best Sellers Manager</h3>
-              {adminNotice ? <p className="rounded-full bg-[#C8A97E]/10 px-4 py-1 text-xs font-medium text-[#8a6038]">{adminNotice}</p> : null}
+              <p className="text-xs font-medium text-[#8a6038]">Mark products as best sellers from the edit dialog.</p>
             </div>
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-              <input
-                value={newProductForm.title}
-                onChange={(event) => setNewProductForm((current) => ({ ...current, title: event.target.value }))}
-                placeholder="Product title"
-                className="rounded-xl border border-[#D4B896]/40 bg-white/80 px-3 py-2 text-sm outline-none transition focus:border-[#C8A97E] focus:ring-1 focus:ring-[#C8A97E]/20"
-              />
-              <input
-                value={newProductForm.price}
-                onChange={(event) => setNewProductForm((current) => ({ ...current, price: event.target.value }))}
-                type="number"
-                min="0"
-                placeholder="Price"
-                className="rounded-xl border border-[#D4B896]/40 bg-white/80 px-3 py-2 text-sm outline-none transition focus:border-[#C8A97E] focus:ring-1 focus:ring-[#C8A97E]/20"
-              />
-              <select
-                value={newProductForm.category}
-                onChange={(event) => setNewProductForm((current) => ({ ...current, category: event.target.value }))}
-                className="rounded-xl border border-[#D4B896]/40 bg-white/80 px-3 py-2 text-sm outline-none transition focus:border-[#C8A97E] focus:ring-1 focus:ring-[#C8A97E]/20"
-              >
-                <option value="Serum">Serum</option>
-                <option value="Cream">Cream</option>
-                <option value="Sunscreen">Sunscreen</option>
-                <option value="Gel">Gel</option>
-              </select>
-            </div>
-
-            <textarea
-              value={newProductForm.description}
-              onChange={(event) =>
-                setNewProductForm((current) => ({ ...current, description: event.target.value }))
-              }
-              rows={3}
-              placeholder="Product description"
-              className="mt-3 w-full rounded-xl border border-[#D4B896]/40 bg-white/80 px-3 py-2 text-sm outline-none transition focus:border-[#C8A97E] focus:ring-1 focus:ring-[#C8A97E]/20"
-            />
-
-            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <input
-                value={newProductForm.imageUrl}
-                onChange={(event) => setNewProductForm((current) => ({ ...current, imageUrl: event.target.value }))}
-                placeholder="Image URL (optional if uploading file)"
-                className="rounded-xl border border-[#D4B896]/40 bg-white/80 px-3 py-2 text-sm outline-none transition focus:border-[#C8A97E] focus:ring-1 focus:ring-[#C8A97E]/20"
-              />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (!file) return;
-                  if (file.size > 10 * 1024 * 1024) {
-                    setAdminNotice("Image must be 10MB or smaller.");
-                    return;
-                  }
-                  setNewProductFile(file);
-                }}
-                className="rounded-xl border border-[#D4B896]/40 bg-white/80 px-3 py-2 text-sm outline-none file:mr-3 file:rounded-lg file:border-0 file:bg-[#C8A97E] file:px-3 file:py-1 file:text-xs file:font-medium file:text-white"
-              />
-            </div>
-
-            <div className="mt-3 flex items-center justify-between">
-              <label className="inline-flex items-center gap-2 text-sm text-[#6e5947]">
-                <input
-                  type="checkbox"
-                  checked={newProductForm.inStock}
-                  onChange={(event) =>
-                    setNewProductForm((current) => ({ ...current, inStock: event.target.checked }))
-                  }
-                  className="accent-[#C8A97E]"
-                />
-                In stock
-              </label>
-              <button
-                type="button"
-                onClick={handleCreateProduct}
-                disabled={isSaving}
-                className="rounded-xl bg-[#C8A97E] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-white shadow-lg shadow-[#C8A97E]/20 transition hover:bg-[#B8976E] disabled:opacity-60"
-              >
-                {isSaving ? "Saving..." : "Add Best Seller"}
-              </button>
-            </div>
+            {adminNotice ? <p className="mt-3 rounded-full bg-[#C8A97E]/10 px-4 py-1 text-xs font-medium text-[#8a6038]">{adminNotice}</p> : null}
           </div>
         </section>
       ) : null}
@@ -562,7 +460,7 @@ function BestSellers() {
                           index % 2 === 0 ? "aspect-[4/5]" : "aspect-[4/5.5]"
                         }`}
                       >
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 z-10" />
+                        <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                         <img
                           src={heroImage}
                           alt={product.title}
@@ -630,17 +528,23 @@ function BestSellers() {
                         <p className="mt-2 text-sm text-[#6f5a47] line-clamp-2">{product.description}</p>
 
                         {isAdmin ? (
-                          <div className="mt-4 flex gap-2">
+                          <div className="relative z-20 mt-4 flex gap-2">
                             <button
                               type="button"
-                              onClick={() => openEditModal(product)}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openEditModal(product);
+                              }}
                               className="flex-1 rounded-xl bg-[#C8A97E] px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.08em] text-white shadow-sm transition hover:bg-[#B8976E]"
                             >
                               Edit
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDeleteProduct(product._id)}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleDeleteProduct(product._id);
+                              }}
                               className="flex-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.08em] text-rose-600 transition hover:bg-rose-100"
                             >
                               Delete
@@ -777,17 +681,30 @@ function BestSellers() {
                 }}
                 className="rounded-xl border border-[#D4B896]/40 bg-[#fff8ef] px-3 py-2.5 text-sm outline-none file:mr-3 file:rounded-lg file:border-0 file:bg-[#C8A97E] file:px-3 file:py-1 file:text-xs file:font-medium file:text-white"
               />
-              <label className="inline-flex items-center gap-2 text-sm text-[#6e5947]">
-                <input
-                  type="checkbox"
-                  checked={editingProductForm.inStock}
-                  onChange={(event) =>
-                    setEditingProductForm((current) => ({ ...current, inStock: event.target.checked }))
-                  }
-                  className="accent-[#C8A97E]"
-                />
-                In stock
-              </label>
+              <div className="flex flex-wrap items-center gap-4">
+                <label className="inline-flex items-center gap-2 text-sm text-[#6e5947]">
+                  <input
+                    type="checkbox"
+                    checked={editingProductForm.inStock}
+                    onChange={(event) =>
+                      setEditingProductForm((current) => ({ ...current, inStock: event.target.checked }))
+                    }
+                    className="accent-[#C8A97E]"
+                  />
+                  In stock
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-[#6e5947]">
+                  <input
+                    type="checkbox"
+                    checked={editingProductForm.isBestSeller}
+                    onChange={(event) =>
+                      setEditingProductForm((current) => ({ ...current, isBestSeller: event.target.checked }))
+                    }
+                    className="accent-[#C8A97E]"
+                  />
+                  Best seller
+                </label>
+              </div>
             </div>
 
             <div className="mt-5 flex justify-end gap-3">

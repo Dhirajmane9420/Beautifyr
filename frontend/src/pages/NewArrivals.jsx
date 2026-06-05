@@ -41,6 +41,7 @@ const buildInitialForm = () => ({
   description: "",
   price: "",
   inStock: true,
+  isNewArrival: true,
   section: "New Arrivals",
   category: "Essence",
   imageUrl: "",
@@ -132,17 +133,23 @@ const ProductCard = ({ item, isAdmin, onEdit, onDelete }) => {
         <p className="mt-3 text-sm leading-relaxed text-[#7A6E62] line-clamp-2">{item.description}</p>
 
         {isAdmin ? (
-          <div className="mt-4 flex gap-2">
+          <div className="relative z-20 mt-4 flex gap-2">
             <button
               type="button"
-              onClick={() => onEdit?.(item)}
+              onClick={(event) => {
+                event.stopPropagation();
+                onEdit?.(item);
+              }}
               className="flex-1 rounded-xl bg-[#C8A97E] px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.08em] text-white shadow-sm transition hover:bg-[#B8976E]"
             >
               Edit
             </button>
             <button
               type="button"
-              onClick={() => onDelete?.(item._id)}
+              onClick={(event) => {
+                event.stopPropagation();
+                onDelete?.(item._id);
+              }}
               className="flex-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.08em] text-rose-600 transition hover:bg-rose-100"
             >
               Delete
@@ -179,7 +186,7 @@ export default function NewArrivals() {
         const allProducts = await fetchCatalogProducts();
         if (!isMounted) return;
 
-        setArrivals(allProducts.filter((item) => item.section === "New Arrivals"));
+        setArrivals(allProducts.filter((item) => item.isNewArrival ?? item.section === "New Arrivals"));
       } catch {
         if (!isMounted) return;
         setArrivals([]);
@@ -200,6 +207,7 @@ export default function NewArrivals() {
     description: form.description.trim(),
     price: Number(form.price),
     inStock: Boolean(form.inStock),
+    isNewArrival: Boolean(form.isNewArrival),
     section: "New Arrivals",
     category: form.category.trim() || "Essence",
     imageUrl,
@@ -216,7 +224,10 @@ export default function NewArrivals() {
       }
 
       const created = await createCatalogProduct(toPayload(newForm, imageUrl));
-      setArrivals((current) => [created, ...current]);
+      const createdIsNewArrival = created?.isNewArrival ?? created?.section === "New Arrivals";
+      if (createdIsNewArrival) {
+        setArrivals((current) => [created, ...current]);
+      }
       setNewForm(buildInitialForm());
       setNewFile(null);
       setNotice("New arrival added.");
@@ -237,6 +248,7 @@ export default function NewArrivals() {
       section: "New Arrivals",
       category: product.category || "Essence",
       imageUrl: product.imageUrl || "",
+        isNewArrival: product.isNewArrival ?? product.section === "New Arrivals",
     });
     setEditFile(null);
   };
@@ -254,7 +266,11 @@ export default function NewArrivals() {
       }
 
       const updated = await updateCatalogProduct(editingProductId, toPayload(editForm, imageUrl));
-      setArrivals((current) => current.map((item) => (item._id === editingProductId ? updated : item)));
+      const updatedIsNewArrival = updated?.isNewArrival ?? updated?.section === "New Arrivals";
+      setArrivals((current) => {
+        const remaining = current.filter((item) => item._id !== editingProductId);
+        return updatedIsNewArrival ? [updated, ...remaining] : remaining;
+      });
       setEditingProductId(null);
       setEditFile(null);
       setNotice("New arrival updated.");
@@ -412,14 +428,24 @@ export default function NewArrivals() {
             </div>
 
             <div className="mt-3 flex items-center justify-between">
-              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={newForm.inStock}
-                  onChange={(event) => setNewForm((current) => ({ ...current, inStock: event.target.checked }))}
-                />
-                In stock
-              </label>
+              <div className="flex items-center gap-4">
+                <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={newForm.inStock}
+                    onChange={(event) => setNewForm((current) => ({ ...current, inStock: event.target.checked }))}
+                  />
+                  In stock
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={newForm.isNewArrival}
+                    onChange={(event) => setNewForm((current) => ({ ...current, isNewArrival: event.target.checked }))}
+                  />
+                  New arrival
+                </label>
+              </div>
               <button
                 type="button"
                 onClick={handleAdd}
@@ -540,14 +566,24 @@ export default function NewArrivals() {
                 }}
                 className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
               />
-              <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={editForm.inStock}
-                  onChange={(event) => setEditForm((current) => ({ ...current, inStock: event.target.checked }))}
-                />
-                In stock
-              </label>
+              <div className="flex items-center gap-4">
+                <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={editForm.inStock}
+                    onChange={(event) => setEditForm((current) => ({ ...current, inStock: event.target.checked }))}
+                  />
+                  In stock
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={editForm.isNewArrival}
+                    onChange={(event) => setEditForm((current) => ({ ...current, isNewArrival: event.target.checked }))}
+                  />
+                  New arrival
+                </label>
+              </div>
             </div>
 
             <div className="mt-4 flex justify-end gap-2">
