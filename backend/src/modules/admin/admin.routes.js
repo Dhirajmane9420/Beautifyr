@@ -4,6 +4,7 @@ import {
 	siteOverrideUpload,
 	upsertSiteOverride,
 	uploadSiteOverrideImage,
+	getDeliveryDetails,
 } from "./admin.controller.js";
 import { requireAdmin, requireAuth } from "../../middleware/auth.middleware.js";
 import {
@@ -23,6 +24,7 @@ export const adminRouter = Router();
 adminRouter.get("/public/site-overrides", getPublicSiteOverrides);
 adminRouter.get("/public/catalog-products", getPublicCatalogProducts);
 adminRouter.get("/public/catalog-categories", getPublicCatalogCategories);
+adminRouter.get("/admin/delivery-details", requireAuth, requireAdmin, getDeliveryDetails);
 adminRouter.put("/admin/site-overrides", requireAuth, requireAdmin, upsertSiteOverride);
 adminRouter.post(
 	"/admin/site-overrides/upload-image",

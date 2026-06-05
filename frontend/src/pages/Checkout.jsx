@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from "react";
-import { Bell, MapPinHouse, PackageCheck, Star, Truck } from "lucide-react";
+import { Bell, MapPinHouse, PackageCheck, Truck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import { placeOrder } from "../lib/ordersApi";
 
 function formatINR(value) {
   return `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
@@ -34,7 +35,7 @@ function StepHeader({ index, title, active }) {
 export default function Checkout() {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
-  const { items, totals } = useCart();
+  const { items, totals, clearCart } = useCart();
 
   const [address, setAddress] = useState({
     fullName: user?.name || "",
@@ -46,11 +47,49 @@ export default function Checkout() {
   const [showAddressStep, setShowAddressStep] = useState(isAuthenticated);
   const [showSummaryStep, setShowSummaryStep] = useState(false);
   const [showPaymentStep, setShowPaymentStep] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("upi");
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [orderMessage, setOrderMessage] = useState("");
 
   const canContinueAddress = useMemo(
     () => Boolean(address.fullName && address.phone && address.line1 && address.city && address.pincode),
     [address]
   );
+
+  const handlePlaceOrder = async () => {
+    if (!canContinueAddress || items.length === 0) {
+      return;
+    }
+
+    try {
+      setIsPlacingOrder(true);
+      setOrderMessage("");
+
+      const orderItems = items.map((item) => ({
+        productId: item.id,
+        title: item.name,
+        category: item.category || "Skincare",
+        imageUrl: item.image,
+        price: item.price,
+        quantity: item.quantity,
+        size: item.size || "",
+        sizeVariant: item.sizeVariant?.label || "",
+      }));
+
+      const order = await placeOrder({
+        items: orderItems,
+        address,
+        paymentMethod,
+      });
+
+      clearCart();
+      setOrderMessage(`Order placed successfully. Ref: ${String(order?._id || "").slice(-6).toUpperCase()}`);
+    } catch (error) {
+      setOrderMessage(error.message || "Failed to place order.");
+    } finally {
+      setIsPlacingOrder(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#fff7ee] text-[#2b2018]">
@@ -97,7 +136,7 @@ export default function Checkout() {
               <ul className="mt-3 space-y-3 text-base text-[#2b2018]">
                 <li className="inline-flex items-center gap-2"><Truck size={16} className="text-[#8a6038]" /> Easily Track Orders, Hassle free Returns</li>
                 <li className="inline-flex items-center gap-2"><Bell size={16} className="text-[#8a6038]" /> Get Relevant Alerts and Recommendation</li>
-                <li className="inline-flex items-center gap-2"><Star size={16} className="text-[#8a6038]" /> Wishlist, Reviews, Ratings and more.</li>
+                <li className="inline-flex items-center gap-2">Wishlist, Reviews, Ratings and more.</li>
               </ul>
             </div>
           </div>
@@ -195,15 +234,15 @@ export default function Checkout() {
             <div className="px-5 py-5 sm:px-6">
               <div className="space-y-3">
                 <label className="flex items-center gap-3 rounded border border-[#e8dbc7] px-3 py-2.5 text-sm">
-                  <input type="radio" name="payment" defaultChecked />
+                  <input type="radio" name="payment" checked={paymentMethod === "upi"} onChange={() => setPaymentMethod("upi")} />
                   <span>UPI / Wallet</span>
                 </label>
                 <label className="flex items-center gap-3 rounded border border-[#e8dbc7] px-3 py-2.5 text-sm">
-                  <input type="radio" name="payment" />
+                  <input type="radio" name="payment" checked={paymentMethod === "card"} onChange={() => setPaymentMethod("card")} />
                   <span>Credit / Debit Card</span>
                 </label>
                 <label className="flex items-center gap-3 rounded border border-[#e8dbc7] px-3 py-2.5 text-sm">
-                  <input type="radio" name="payment" />
+                  <input type="radio" name="payment" checked={paymentMethod === "cod"} onChange={() => setPaymentMethod("cod")} />
                   <span>Cash on Delivery</span>
                 </label>
               </div>
@@ -212,8 +251,18 @@ export default function Checkout() {
                 <MapPinHouse size={18} /> Delivering to {address.city || "your address"}, {address.pincode || "000000"}
               </div>
 
-              <button className="mt-5 inline-flex items-center gap-2 rounded bg-[#8a6038] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#7a522f]">
-                <PackageCheck size={18} /> PAY {formatINR(totals.totalAmount)}
+              {orderMessage ? (
+                <p className="mt-4 rounded border border-[#e8dbc7] bg-[#fbf3e8] px-3 py-2 text-sm text-[#7a654f]">
+                  {orderMessage}
+                </p>
+              ) : null}
+
+              <button
+                onClick={handlePlaceOrder}
+                disabled={isPlacingOrder || items.length === 0}
+                className="mt-5 inline-flex items-center gap-2 rounded bg-[#8a6038] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#7a522f] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <PackageCheck size={18} /> {isPlacingOrder ? "PLACING ORDER..." : `PAY ${formatINR(totals.totalAmount)}`}
               </button>
             </div>
           ) : null}

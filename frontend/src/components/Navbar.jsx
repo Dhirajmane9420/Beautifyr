@@ -24,6 +24,7 @@ function Navbar() {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const { totals } = useCart();
+  const isAdmin = isAuthenticated && user?.role === "admin";
 
   const trimmedQuery = searchQuery.trim();
   const showTrending = isSearchOpen && trimmedQuery.length === 0;
@@ -33,10 +34,6 @@ function Navbar() {
   const keyboardSuggestions = showTrending
     ? trendingSearches.map((term, index) => ({ id: `trend-${index}`, title: term, type: "Trending" }))
     : liveSuggestions;
-
-  useEffect(() => {
-    setHighlightedIndex(-1);
-  }, [searchQuery, isSearchOpen]);
 
   const runSearch = (queryValue) => {
     const query = queryValue.trim();
@@ -88,6 +85,7 @@ function Navbar() {
     { label: "New Arrivals", path: "/new-arrivals" },
     { label: "About", path: "/about" },
     { label: "Contact", path: "/contact" },
+    ...(isAdmin ? [{ label: "Delivery Details", path: "/admin/delivery-details" }] : []),
   ];
 
   // Detect scroll for glass effect
@@ -171,7 +169,10 @@ function Navbar() {
 
           <button
             className="group relative rounded-full p-2 text-[#1b2330] transition duration-300 hover:bg-[#f3e5cc] hover:shadow-md premium-float"
-            onClick={() => setIsSearchOpen((current) => !current)}
+            onClick={() => {
+              setIsSearchOpen((current) => !current);
+              setHighlightedIndex(-1);
+            }}
             aria-label="Open search"
           >
             <Search className="h-5 w-5 transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-px" />
@@ -230,7 +231,10 @@ function Navbar() {
                 <Search className="h-4 w-4 text-[#8a6038]" />
                 <input
                   value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onChange={(event) => {
+                    setSearchQuery(event.target.value);
+                    setHighlightedIndex(-1);
+                  }}
                   onKeyDown={handleSearchKeyDown}
                   placeholder="Search categories, items, and more"
                   className="ml-2 w-full bg-transparent text-sm text-[#2b2018] outline-none placeholder:text-[#927d67]"
@@ -313,7 +317,10 @@ function Navbar() {
               <Search className="h-4 w-4 text-[#8a6038]" />
               <input
                 value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
+                onChange={(event) => {
+                  setSearchQuery(event.target.value);
+                  setHighlightedIndex(-1);
+                }}
                 onKeyDown={handleSearchKeyDown}
                 placeholder="Search..."
                 className="ml-2 w-full bg-transparent text-sm text-[#2b2018] outline-none placeholder:text-[#927d67]"

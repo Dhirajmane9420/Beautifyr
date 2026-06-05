@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { adminRouter } from "./modules/admin/admin.routes.js";
+import { orderRouter } from "./modules/orders/order.routes.js";
 
 export const createApp = ({ clientUrl }) => {
   const app = express();
@@ -36,6 +37,7 @@ export const createApp = ({ clientUrl }) => {
 
   app.use("/api/auth", authRouter);
   app.use("/api", adminRouter);
+  app.use("/api", orderRouter);
 
   app.use((req, res) => {
     res.status(404).json({ message: `Route not found: ${req.originalUrl}` });

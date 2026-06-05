@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Eye, Shield, Share2, Truck, Star, Minus, Plus, ChevronRight } from "lucide-react";
+import { Eye, Shield, Share2, Truck, Minus, Plus, ChevronRight } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useCart } from "../context/CartContext";
@@ -11,67 +11,6 @@ import heroImage from "../assets/hero.jpg";
 
 function formatINR(value) {
   return `₹${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-const reviewTemplatesByCategory = {
-  cleanser: [
-    "Very gentle on skin and removes buildup without making it dry.",
-    "Great daily face wash texture and does not leave residue.",
-    "Works perfectly for sensitive skin and helps with a clean feel.",
-  ],
-  serum: [
-    "Absorbs quickly and layers well with moisturizer and sunscreen.",
-    "Visible glow and smoother texture after regular use.",
-    "Lightweight formula with noticeable hydration and brightness.",
-  ],
-  moisturizer: [
-    "Keeps skin hydrated for long hours without feeling heavy.",
-    "Barrier feels stronger and skin stays soft through the day.",
-    "Excellent finish under makeup and in humid weather.",
-  ],
-  sunscreen: [
-    "No white cast and easy to blend for daily outdoor use.",
-    "Comfortable SPF wear with matte, non-sticky finish.",
-    "Reliable sun protection and sits well above serum and cream.",
-  ],
-  default: [
-    "Good quality product and performs as described.",
-    "Packaging, texture, and effectiveness are all impressive.",
-    "Value for money and suitable for regular skincare routine.",
-  ],
-};
-
-function hashText(input) {
-  return String(input || "")
-    .split("")
-    .reduce((sum, char) => sum + char.charCodeAt(0), 0);
-}
-
-function getReviewCategoryKey(category) {
-  const value = String(category || "").toLowerCase();
-  if (value.includes("clean")) return "cleanser";
-  if (value.includes("serum")) return "serum";
-  if (value.includes("cream") || value.includes("moist")) return "moisturizer";
-  if (value.includes("sun") || value.includes("spf")) return "sunscreen";
-  return "default";
-}
-
-function buildDynamicReviews(product) {
-  const names = ["Aarav S.", "Neha R.", "Ishita K.", "Kabir M.", "Riya P."];
-  const seed = hashText(product?.name);
-  const key = getReviewCategoryKey(product?.category);
-  const templates = reviewTemplatesByCategory[key] || reviewTemplatesByCategory.default;
-
-  return names.slice(0, 3).map((name, index) => {
-    const template = templates[(seed + index) % templates.length];
-    const rating = 4 + ((seed + index) % 2);
-    return {
-      id: `r-${toProductSlug(product?.name)}-${index}`,
-      name,
-      rating,
-      text: `${template} (${product?.name})`,
-    };
-  });
 }
 
 export default function ProductDetails() {
@@ -140,8 +79,6 @@ export default function ProductDetails() {
     if (dbProduct) return toProductPayload(dbProduct);
     return null;
   }, [resolved, dbProduct]);
-
-  const reviews = useMemo(() => (product ? buildDynamicReviews(product) : []), [product]);
 
   const relatedProducts = useMemo(() => {
     if (!product) return [];
@@ -252,7 +189,7 @@ export default function ProductDetails() {
               <img
                 src={product.image}
                 alt={product.name}
-                className="h-[500px] w-full object-cover transition-transform duration-700 hover:scale-105"
+                className="h-125 w-full object-cover transition-transform duration-700 hover:scale-105"
               />
               {discountPct > 5 && (
                 <div className="absolute top-4 left-4 bg-[#C8A97E] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
@@ -284,16 +221,6 @@ export default function ProductDetails() {
           <section>
             <span className="text-[10px] uppercase tracking-[0.2em] text-[#8B7359] font-semibold">{product.category}</span>
             <h1 className="mt-2 text-3xl font-light text-[#2A2520] md:text-4xl leading-tight">{product.name}</h1>
-
-            {/* Rating */}
-            <div className="mt-4 flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} size={14} className={star <= 4 ? "text-[#C8A97E] fill-[#C8A97E]" : "text-[#D4B896]"} />
-                ))}
-              </div>
-              <span className="text-sm text-[#7A6E62]">(128 reviews)</span>
-            </div>
 
             {/* Price */}
             <div className="mt-6 flex items-baseline gap-3">
@@ -359,7 +286,7 @@ export default function ProductDetails() {
                 >
                   <Minus size={16} />
                 </button>
-                <span className="px-4 py-2.5 text-sm font-medium text-[#2A2520] min-w-[2rem] text-center">{quantity}</span>
+                <span className="px-4 py-2.5 text-sm font-medium text-[#2A2520] min-w-8 text-center">{quantity}</span>
                 <button
                   onClick={() => setQuantity((q) => q + 1)}
                   className="px-4 py-2.5 text-[#2A2520] hover:text-[#C8A97E] transition"
@@ -416,34 +343,13 @@ export default function ProductDetails() {
       {/* ─── CUSTOMER REVIEWS ─── */}
       <section className="mx-auto max-w-7xl px-5 pb-10">
         <div className="rounded-3xl border border-[#D4B896]/20 bg-white p-8 shadow-sm">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-[#2A2520]">Customer Reviews</h2>
-            <p className="text-sm text-[#8B7359]">
-              <span className="text-[#C8A97E] font-semibold">4.8</span> / 5 average rating
-            </p>
+            <p className="text-sm text-[#8B7359]">No verified user reviews yet.</p>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {reviews.map((review) => (
-              <article
-                key={review.id}
-                className="rounded-xl border border-[#D4B896]/20 bg-[#FAFAF8] p-5"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-[#2A2520]">{review.name}</p>
-                  <div className="flex items-center gap-0.5">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star
-                        key={s}
-                        size={12}
-                        className={s <= review.rating ? "text-[#C8A97E] fill-[#C8A97E]" : "text-[#D4B896]"}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <p className="mt-3 text-sm leading-relaxed text-[#7A6E62]">{review.text}</p>
-              </article>
-            ))}
+          <div className="mt-6 rounded-xl border border-dashed border-[#D4B896]/30 bg-[#FAFAF8] p-6 text-sm text-[#7A6E62]">
+            Reviews will appear here only after real customers submit them.
           </div>
         </div>
       </section>
@@ -474,7 +380,7 @@ export default function ProductDetails() {
                   }
                   className="group cursor-pointer rounded-xl border border-[#D4B896]/20 bg-[#FAFAF8] p-4 transition hover:-translate-y-1 hover:shadow-lg"
                 >
-                  <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-[#F7F4F0] mb-3">
+                  <div className="relative aspect-4/5 overflow-hidden rounded-lg bg-[#F7F4F0] mb-3">
                     <img
                       src={related.image}
                       alt={related.name}

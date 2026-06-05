@@ -18,6 +18,7 @@ const SearchResults = lazy(() => import('./pages/SearchResults'))
 const Contact = lazy(() => import('./pages/Contact'))
 const ProductDetails = lazy(() => import('./pages/ProductDetails'))
 const Checkout = lazy(() => import('./pages/Checkout'))
+const AdminDeliveryDetails = lazy(() => import('./pages/AdminDeliveryDetails'))
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -49,6 +50,7 @@ function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/product/:slug" element={<ProductDetails />} />
           <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+          <Route path="/admin/delivery-details" element={<AdminRoute><AdminDeliveryDetails /></AdminRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
@@ -77,6 +79,24 @@ function ProtectedRoute({ children }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
+  }
+
+  return children
+}
+
+function AdminRoute({ children }) {
+  const { isAuthenticated, isLoading, user } = useAuth()
+
+  if (isLoading) {
+    return <RouteLoader />
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (user?.role !== "admin") {
+    return <Navigate to="/" replace />
   }
 
   return children
