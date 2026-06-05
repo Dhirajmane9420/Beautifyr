@@ -18,7 +18,12 @@ const SearchResults = lazy(() => import('./pages/SearchResults'))
 const Contact = lazy(() => import('./pages/Contact'))
 const ProductDetails = lazy(() => import('./pages/ProductDetails'))
 const Checkout = lazy(() => import('./pages/Checkout'))
+
 const AdminDeliveryDetails = lazy(() => import('./pages/AdminDeliveryDetails'))
+
+const BuyNow = lazy(() => import('./pages/BuyNow'))
+const Orders = lazy(() => import('./pages/Orders'))
+
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -49,10 +54,12 @@ function App() {
           <Route path="/search" element={<SearchResults />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/product/:slug" element={<ProductDetails />} />
+          <Route path="/buy-now" element={<ProtectedRoute><BuyNow /></ProtectedRoute>} />
           <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
           <Route path="/admin/delivery-details" element={<AdminRoute><AdminDeliveryDetails /></AdminRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         </Routes>
       </Suspense>

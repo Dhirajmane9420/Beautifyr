@@ -127,20 +127,17 @@ export function CartProvider({ children }) {
     };
   }, [items]);
 
-  const value = useMemo(
-    () => ({
-      items,
-      isEmpty: items.length === 0,
-      addToCart,
-      removeFromCart,
-      updateQuantity,
-      clearCart,
-      totals,
-      toast,
-      dismissToast,
-    }),
-    [items, toast, totals]
-  );
+  const value = {
+    items,
+    isEmpty: items.length === 0,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    totals,
+    toast,
+    dismissToast,
+  };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

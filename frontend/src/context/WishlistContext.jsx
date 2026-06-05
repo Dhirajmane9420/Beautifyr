@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 const WISHLIST_STORAGE_KEY = "beautifyr_wishlist_v1";
 const WishlistContext = createContext(null);
@@ -72,19 +72,16 @@ export function WishlistProvider({ children }) {
     setItems([]);
   };
 
-  const value = useMemo(
-    () => ({
-      items,
-      wishlistItems: items,
-      wishlistCount: items.length,
-      isInWishlist,
-      addToWishlist,
-      removeFromWishlist,
-      toggleWishlist,
-      clearWishlist,
-    }),
-    [items]
-  );
+  const value = {
+    items,
+    wishlistItems: items,
+    wishlistCount: items.length,
+    isInWishlist,
+    addToWishlist,
+    removeFromWishlist,
+    toggleWishlist,
+    clearWishlist,
+  };
 
   return <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>;
 }
