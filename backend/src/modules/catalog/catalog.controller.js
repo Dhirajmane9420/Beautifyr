@@ -1,7 +1,44 @@
 import { CatalogProduct } from "./catalog.model.js";
+import { CatalogCategory } from "./catalogCategory.model.js";
 
 const DEFAULT_IMAGE =
   "/hero.jpg";
+
+export const searchCatalogProducts = async (req, res, next) => {
+  try {
+    const q = String(req.query.q || "").trim();
+
+    if (!q) {
+      return res.json({
+        products: [],
+        categories: [],
+      });
+    }
+
+    const regex = new RegExp(q, "i");
+
+    const products = await CatalogProduct.find({
+      title: regex,
+    })
+      .select(
+        "_id title category price inStock imageUrl"
+      )
+      .limit(8);
+
+    const categories = await CatalogCategory.find({
+      name: regex,
+    })
+      .select("_id name")
+      .limit(5);
+
+    return res.json({
+      products,
+      categories,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};  
 
 const seedProducts = [
   {

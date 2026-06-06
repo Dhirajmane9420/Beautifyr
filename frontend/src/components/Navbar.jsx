@@ -4,7 +4,7 @@ import { Search, Heart, User, ShoppingBag, Menu, X } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
-import { searchCatalog } from "../lib/searchIndex";
+import { searchCatalogProducts } from "../lib/catalogApi";
 
 const trendingSearches = [
   "Vitamin C Serum",
@@ -27,10 +27,52 @@ function Navbar() {
   const isAdmin = isAuthenticated && user?.role === "admin";
 
   const trimmedQuery = searchQuery.trim();
+  const [liveSuggestions, setLiveSuggestions] =
+  useState([]);
   const showTrending = isSearchOpen && trimmedQuery.length === 0;
-  const liveSuggestions = trimmedQuery.length
-    ? searchCatalog(trimmedQuery).slice(0, 6)
-    : [];
+  useEffect(() => {
+  if (!trimmedQuery) {
+    setLiveSuggestions([]);
+    return;
+  }
+
+  const timer = setTimeout(async () => {
+    try {
+      const data =
+        await searchCatalogProducts(
+          trimmedQuery
+        );
+
+const products =
+  data.products.map((item) => ({
+    id: item._id,
+    title: item.title,
+    category: item.category,
+    slug: item.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, ""),
+    type: "Product",
+  }));
+
+      const categories =
+        data.categories.map((item) => ({
+          id: item._id,
+          title: item.name,
+          type: "Category",
+        }));
+
+      setLiveSuggestions([
+        ...products,
+        ...categories,
+      ]);
+    } catch (error) {
+      console.error(error);
+    }
+  }, 300);
+
+  return () => clearTimeout(timer);
+}, [trimmedQuery]);
   const keyboardSuggestions = showTrending
     ? trendingSearches.map((term, index) => ({ id: `trend-${index}`, title: term, type: "Trending" }))
     : liveSuggestions;
@@ -46,6 +88,31 @@ function Navbar() {
     setIsMenuOpen(false);
     setHighlightedIndex(-1);
   };
+
+  const handleSuggestionClick = (item) => {
+  setSearchQuery(item.title);
+
+  setIsSearchOpen(false);
+  setIsMenuOpen(false);
+
+  if (item.type === "Category") {
+    navigate(
+      `/categories/view-all?category=${encodeURIComponent(
+        item.title
+      )}`
+    );
+    return;
+  }
+
+  if (item.type === "Product") {
+  navigate(
+    `/product/${item.slug}`
+  );
+  return;
+}
+
+  runSearch(item.title);
+};
 
   const handleSearchKeyDown = (event) => {
     if (!isSearchOpen) return;
@@ -283,10 +350,7 @@ function Navbar() {
                       const index = keyboardSuggestions.findIndex((entry) => entry.id === item.id);
                       setHighlightedIndex(index);
                     }}
-                    onClick={() => {
-                      setSearchQuery(item.title);
-                      runSearch(item.title);
-                    }}
+                    onClick={() => handleSuggestionClick(item)}
                     className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition ${
                       highlightedIndex >= 0 && keyboardSuggestions[highlightedIndex]?.id === item.id
                         ? "bg-[#f9efe2]"
@@ -365,10 +429,7 @@ function Navbar() {
                       const index = keyboardSuggestions.findIndex((entry) => entry.id === item.id);
                       setHighlightedIndex(index);
                     }}
-                    onClick={() => {
-                      setSearchQuery(item.title);
-                      runSearch(item.title);
-                    }}
+                    onClick={() => handleSuggestionClick(item)}
                     className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition ${
                       highlightedIndex >= 0 && keyboardSuggestions[highlightedIndex]?.id === item.id
                         ? "bg-[#f9efe2]"

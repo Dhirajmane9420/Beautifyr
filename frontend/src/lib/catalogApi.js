@@ -11,7 +11,17 @@ export const fetchCatalogCategories = async () => {
   const payload = await request("/public/catalog-categories", { method: "GET" });
   return payload.categories || [];
 };
+export const searchCatalogProducts = async (
+  query
+) => {
+  const payload = await request(
+    `/public/catalog-search?q=${encodeURIComponent(
+      query
+    )}`
+  );
 
+  return payload;
+};
 export const createCatalogProduct = async (input) => {
   const payload = await request("/admin/catalog-products", {
     method: "POST",
@@ -70,3 +80,14 @@ export const uploadCatalogProductImage = async (file) => {
 
   return payload.imageUrl;
 };
+
+export const fetchProductsByCategory =
+  async (categoryName) => {
+    const products =
+      await fetchCatalogProducts();
+
+    return products.filter(
+      (product) =>
+        product.category === categoryName
+    );
+  };

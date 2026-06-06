@@ -1,17 +1,36 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams
+} from "react-router-dom";
+import {
+  fetchProductsByCategory
+} from "../lib/catalogApi";
 import { Heart } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 import { toProductSlug } from "../lib/productUtils";
-import heroImage from "../assets/hero.jpg";
+//import heroImage from "../assets/hero.jpg";
 
 function CategoryViewAll() {
   const location = useLocation();
-  const title = location.state?.title || "Category";
-  const products = useMemo(() => location.state?.products || [], [location.state?.products]);
+ const [searchParams] =
+  useSearchParams();
+
+const categoryFromQuery =
+  searchParams.get("category");
+
+const title =
+  categoryFromQuery ||
+  location.state?.title ||
+  "Category";
+
+const [products, setProducts] =
+  useState([]);
 
   const maxPrice = Math.max(...products.map((product) => product.price || 0), 0);
   const priceRanges = [
@@ -43,6 +62,25 @@ function CategoryViewAll() {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, []);
+
+  useEffect(() => {
+  if (!categoryFromQuery) return;
+
+  const loadProducts = async () => {
+    try {
+      const data =
+        await fetchProductsByCategory(
+          categoryFromQuery
+        );
+
+      setProducts(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  loadProducts();
+}, [categoryFromQuery]);
 
   const applyFilters = () => {
     setInStockOnly(draftInStockOnly);
@@ -152,22 +190,25 @@ function CategoryViewAll() {
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filteredProducts.map((product, index) => (
               <ProductCard
-                key={product._id || `${product.title}-${index}`}
-                title={product.title}
-                price={`Rs ${product.price}`}
-                image={heroImage}
-                inStock={product.inStock}
-                category={title}
-              />
+  key={product._id || `${product.title}-${index}`}
+  title={product.title}
+  price={`Rs ${product.price}`}
+  image={product.imageUrl}
+  inStock={product.inStock}
+  category={product.category}
+  product={product}
+/>
             ))}
           </div>
         )}
+
       </main>
+      <Footer />
     </div>
   );
 }
 
-function ProductCard({ title, price, originalPrice, image, inStock, category }) {
+function ProductCard({ title, price, originalPrice, image, inStock, category,product }) {
   const { addToCart } = useCart();
   const navigate = useNavigate();
   const { isInWishlist, toggleWishlist } = useWishlist();
@@ -177,7 +218,7 @@ function ProductCard({ title, price, originalPrice, image, inStock, category }) 
   const discountPct = hasDiscount
     ? Math.max(0, Math.round(((normalizedOriginalPrice - numericPrice) / Math.max(normalizedOriginalPrice, 1)) * 100))
     : 0;
-  const productId = `view-all-${title}`;
+  const productId = product?._id || title;
   const wishlisted = isInWishlist(productId);
 
   return (
@@ -186,16 +227,26 @@ function ProductCard({ title, price, originalPrice, image, inStock, category }) 
         role="button"
         tabIndex={0}
         onClick={() =>
-          navigate(`/product/${toProductSlug(title)}`, {
-            state: { product: { name: title, price: numericPrice, originalPrice: Math.round(numericPrice * 1.3), image: heroImage, category } },
-          })
+          navigate(
+  `/product/${toProductSlug(title)}`,
+  {
+    state: {
+      product,
+    },
+  }
+)
         }
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
-            navigate(`/product/${toProductSlug(title)}`, {
-              state: { product: { name: title, price: numericPrice, originalPrice: Math.round(numericPrice * 1.3), image: heroImage, category } },
-            });
+           navigate(
+  `/product/${toProductSlug(title)}`,
+  {
+    state: {
+      product,
+    },
+  }
+);
           }
         }}
         className="w-full cursor-pointer text-left"
@@ -248,19 +299,19 @@ function ProductCard({ title, price, originalPrice, image, inStock, category }) 
       <button
         onClick={() =>
           addToCart({
-            id: `view-all-${title}`,
-            name: title,
-            price: numericPrice,
-            originalPrice: Math.round(numericPrice * 1.3),
-            image: heroImage,
-            category,
-          })
+  id: product._id,
+  name: title,
+  price: numericPrice,
+  originalPrice: normalizedOriginalPrice,
+  image,
+  category,
+})
         }
         className="mt-4 w-full rounded-lg bg-[#8a6038] py-2 text-sm text-white transition hover:bg-[#b67d4a]"
       >
         Add to Cart
       </button>
-      <Footer />
+      
     </div>
   );
 }
