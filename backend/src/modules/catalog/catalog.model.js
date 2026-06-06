@@ -19,10 +19,20 @@ const catalogProductSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    discountedPrice: {
+      type: Number,
+      min: 0,
+      default: undefined,
+    },
     originalPrice: {
       type: Number,
       min: 0,
       default: null,
+    },
+    stock: {
+      type: Number,
+      min: 0,
+      default: 0,
     },
     inStock: {
       type: Boolean,
@@ -55,6 +65,10 @@ const catalogProductSchema = new mongoose.Schema(
     imageUrls: {
       type: [String],
       default: [],
+      validate: {
+        validator: (items) => Array.isArray(items) && items.length <= 7,
+        message: "A product can have at most 7 images.",
+      },
     },
     sizeStock: {
       type: [
@@ -65,6 +79,16 @@ const catalogProductSchema = new mongoose.Schema(
             required: true,
           },
           stock: {
+            type: Number,
+            min: 0,
+            default: 0,
+          },
+          originalPrice: {
+            type: Number,
+            min: 0,
+            default: 0,
+          },
+          price: {
             type: Number,
             min: 0,
             default: 0,

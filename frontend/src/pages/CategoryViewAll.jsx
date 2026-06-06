@@ -253,6 +253,7 @@ function ProductCard({ title, price, originalPrice, image, inStock, category }) 
             price: numericPrice,
             originalPrice: Math.round(numericPrice * 1.3),
             image: heroImage,
+            category,
           })
         }
         className="mt-4 w-full rounded-lg bg-[#8a6038] py-2 text-sm text-white transition hover:bg-[#b67d4a]"

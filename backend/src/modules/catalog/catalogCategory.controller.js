@@ -16,6 +16,17 @@ const defaultCategories = [
   "Kits and Combos",
 ];
 
+const normalizeCategoryName = (name = "") => {
+  const trimmed = String(name || "").trim();
+  const key = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+  if (["clenser", "clensers", "cleanser", "cleansers"].includes(key)) {
+    return "Cleansers";
+  }
+
+  return trimmed;
+};
+
 export const getPublicCatalogCategories = async (_req, res, next) => {
   try {
     const categories = await CatalogCategory.find({}).sort({ name: 1 });
@@ -27,7 +38,7 @@ export const getPublicCatalogCategories = async (_req, res, next) => {
 
 export const createCatalogCategory = async (req, res, next) => {
   try {
-    const name = String(req.body?.name || "").trim();
+    const name = normalizeCategoryName(req.body?.name);
 
     if (!name) {
       return res.status(400).json({ message: "Category name is required." });

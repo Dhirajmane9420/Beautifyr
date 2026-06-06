@@ -22,6 +22,8 @@ export default function ProductDetails() {
   const [dbProduct, setDbProduct] = useState(null);
   const [loadingDb, setLoadingDb] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [selectedSize, setSelectedSize] = useState("");
 
   // Try to resolve from navigation state first, then searchIndex, then fetch from API
   const resolved = useMemo(() => {
@@ -96,21 +98,41 @@ export default function ProductDetails() {
     );
   }, [product]);
 
+  const liquidProduct = product ? isLiquidProduct(product) : false;
+  const productImages = product?.imageUrls?.length ? product.imageUrls : [product?.image].filter(Boolean);
+  const sizeOptions = product?.sizeStock?.length
+    ? product.sizeStock
+    : liquidProduct
+      ? [
+          { label: "250 ml", originalPrice: product.originalPrice, price: product.price, stock: product.stock },
+          { label: "500 ml", originalPrice: product.originalPrice, price: product.price, stock: product.stock },
+        ]
+      : [];
+  const selectedSizeOption = sizeOptions.find((size) => size.label === selectedSize);
+  const currentPrice = Number(selectedSizeOption?.price) || product?.price || 0;
+  const currentOriginalPrice = Number(selectedSizeOption?.originalPrice) || product?.originalPrice || currentPrice;
+  const activeImage = productImages[activeImageIndex] || product?.image || heroImage;
   const discountPct = product
-    ? Math.max(1, Math.round(((product.originalPrice - product.price) / Math.max(product.originalPrice, 1)) * 100))
+    ? Math.max(1, Math.round(((currentOriginalPrice - currentPrice) / Math.max(currentOriginalPrice, 1)) * 100))
     : 0;
 
-  const liquidProduct = product ? isLiquidProduct(product) : false;
+  useEffect(() => {
+    setActiveImageIndex(0);
+    setQuantity(1);
+    setSelectedSize(sizeOptions[0]?.label || "");
+  }, [product?.id]);
 
   const addCurrentToCart = () => {
     if (!product) return;
+    const optionKey = selectedSize;
     addToCart({
-      id: product.id,
+      id: optionKey ? `${product.id}-${toProductSlug(optionKey)}` : product.id,
       name: product.name,
-      price: product.price,
-      originalPrice: product.originalPrice,
-      image: product.image,
-      size: liquidProduct ? product.size : "",
+      price: currentPrice,
+      originalPrice: currentOriginalPrice,
+      image: activeImage,
+      category: product.category || "Skincare",
+      size: selectedSize,
       quantity,
     });
   };
@@ -187,7 +209,7 @@ export default function ProductDetails() {
           <section>
             <div className="relative overflow-hidden rounded-3xl bg-[#F7F4F0] border border-[#D4B896]/20 shadow-lg">
               <img
-                src={product.image}
+                src={activeImage}
                 alt={product.name}
                 className="h-125 w-full object-cover transition-transform duration-700 hover:scale-105"
               />
@@ -200,15 +222,17 @@ export default function ProductDetails() {
 
             {/* Thumbnails */}
             <div className="mt-4 flex gap-3">
-              {[0, 1, 2, 3].map((index) => (
+              {productImages.slice(0, 7).map((image, index) => (
                 <button
                   key={index}
+                  type="button"
+                  onClick={() => setActiveImageIndex(index)}
                   className={`h-16 w-16 overflow-hidden rounded-xl border transition ${
-                    index === 0 ? "border-[#C8A97E] ring-1 ring-[#C8A97E]/30" : "border-[#D4B896]/30 hover:border-[#C8A97E]/50"
+                    index === activeImageIndex ? "border-[#C8A97E] ring-1 ring-[#C8A97E]/30" : "border-[#D4B896]/30 hover:border-[#C8A97E]/50"
                   }`}
                 >
                   <img
-                    src={product.image}
+                    src={image}
                     alt={`${product.name} ${index + 1}`}
                     className="h-full w-full object-cover"
                   />
@@ -224,10 +248,10 @@ export default function ProductDetails() {
 
             {/* Price */}
             <div className="mt-6 flex items-baseline gap-3">
-              <span className="text-3xl font-semibold text-[#2A2520]">{formatINR(product.price)}</span>
-              {product.originalPrice > product.price && (
+              <span className="text-3xl font-semibold text-[#2A2520]">{formatINR(currentPrice)}</span>
+              {currentOriginalPrice > currentPrice && (
                 <>
-                  <span className="text-lg text-[#B0A398] line-through">{formatINR(product.originalPrice)}</span>
+                  <span className="text-lg text-[#B0A398] line-through">{formatINR(currentOriginalPrice)}</span>
                   <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
                     {discountPct}% OFF
                   </span>
@@ -256,21 +280,44 @@ export default function ProductDetails() {
               <p className="mt-1 text-xs text-[#7A6E62]">Order within the next 4 hours for same-day dispatch</p>
             </div>
 
-            {/* Size selector (for liquid products) */}
-            {liquidProduct ? (
+            {product.description ? (
+              <div className="mt-6 rounded-2xl border border-[#D4B896]/20 bg-white/50 p-4">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-[#8B7359]">Description</h2>
+                <p className="mt-2 text-sm leading-6 text-[#7A6E62]">{product.description}</p>
+              </div>
+            ) : null}
+
+            {product.features?.length ? (
+              <div className="mt-4 rounded-2xl border border-[#D4B896]/20 bg-white/50 p-4">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-[#8B7359]">Highlights</h2>
+                <ul className="mt-3 grid gap-2 text-sm text-[#7A6E62] sm:grid-cols-2">
+                  {product.features.map((feature) => (
+                    <li key={feature} className="rounded-xl bg-[#C8A97E]/10 px-3 py-2">{feature}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {/* Size selector */}
+            {sizeOptions.length ? (
               <div className="mt-6">
                 <label className="mb-2 block text-sm font-medium text-[#2A2520]">Size</label>
                 <div className="flex gap-3">
-                  {["125 ml", "250 ml", "500 ml"].map((size) => (
+                  {sizeOptions.map((size) => (
                     <button
-                      key={size}
+                      key={size.label}
+                      type="button"
+                      onClick={() => setSelectedSize(size.label)}
                       className={`rounded-xl border px-5 py-2.5 text-sm transition ${
-                        size === (product.size || "125 ml")
+                        size.label === selectedSize
                           ? "border-[#C8A97E] bg-[#C8A97E]/10 text-[#7f674d] font-medium"
                           : "border-[#D4B896]/30 text-[#7A6E62] hover:border-[#C8A97E]/50"
                       }`}
                     >
-                      {size}
+                      <span className="block">{size.label}</span>
+                      {Number(size.price) > 0 ? (
+                        <span className="block text-xs">{formatINR(size.price)}</span>
+                      ) : null}
                     </button>
                   ))}
                 </div>
@@ -298,7 +345,7 @@ export default function ProductDetails() {
                 onClick={addCurrentToCart}
                 className="flex-1 rounded-xl bg-[#C8A97E] px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-[#B8976E] hover:shadow-lg"
               >
-                Add to Cart — {formatINR(product.price * quantity)}
+                Add to Cart — {formatINR(currentPrice * quantity)}
               </button>
             </div>
 
@@ -399,6 +446,7 @@ export default function ProductDetails() {
                         price: related.price,
                         originalPrice: related.originalPrice,
                         image: related.image,
+                        category: related.category || "Skincare",
                       });
                     }}
                     className="mt-3 w-full rounded-lg border border-[#C8A97E]/30 py-2 text-xs font-semibold text-[#7f674d] transition hover:bg-[#C8A97E] hover:text-white"

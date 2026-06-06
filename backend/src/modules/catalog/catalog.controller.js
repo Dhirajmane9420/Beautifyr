@@ -141,8 +141,15 @@ const seedProducts = [
 ].map((item) => ({
   ...item,
   originalPrice: Math.max(item.price + Math.round(item.price * 0.15), item.price),
+  discountedPrice: item.price,
+  stock: item.inStock ? 24 : 0,
   imageUrls: [item.imageUrl],
-  sizeStock: [{ label: "125 ml", stock: item.inStock ? 24 : 0 }],
+  sizeStock: [{
+    label: "125 ml",
+    originalPrice: Math.max(item.price + Math.round(item.price * 0.15), item.price),
+    price: item.price,
+    stock: item.inStock ? 24 : 0,
+  }],
   features: ["24x7 Support", "Original Product Guaranteed"],
 }));
 
@@ -153,6 +160,17 @@ const SECTION_VALUES = [
   "Best Sellers",
   "New Arrivals",
 ];
+
+const normalizeCategoryName = (name = "") => {
+  const trimmed = String(name || "").trim();
+  const key = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+  if (["clenser", "clensers", "cleanser", "cleansers"].includes(key)) {
+    return "Cleansers";
+  }
+
+  return trimmed;
+};
 
 const toFiniteNumber = (value) => {
   const parsed = Number(value);
@@ -185,13 +203,25 @@ const normalizeSizeStock = (value) => {
     .map((item) => {
       const label = String(item?.label || "").trim();
       const stockNumber = toFiniteNumber(item?.stock);
+      const price = toFiniteNumber(item?.price);
+      const originalPrice = toFiniteNumber(item?.originalPrice) ?? price;
 
       if (!label) {
         return null;
       }
 
+      if (!Number.isFinite(price) || price < 0) {
+        return null;
+      }
+
+      if (!Number.isFinite(originalPrice) || originalPrice < price) {
+        return null;
+      }
+
       return {
         label,
+        originalPrice,
+        price,
         stock: Math.max(0, Math.floor(stockNumber ?? 0)),
       };
     })
@@ -208,7 +238,7 @@ const normalizeSizeVariants = (value) => {
       const label = String(item?.label || "").trim();
       const stock = Math.max(0, Math.floor(toFiniteNumber(item?.stock) ?? 0));
       const price = toFiniteNumber(item?.price);
-      const originalPrice = toFiniteNumber(item?.originalPrice);
+      const originalPrice = toFiniteNumber(item?.originalPrice) ?? price;
 
       if (!label) {
         return null;
@@ -250,6 +280,7 @@ const normalizeInput = (payload) => {
 
   const sizeStock = normalizeSizeStock(payload.sizeStock);
   const sizeVariants = normalizeSizeVariants(payload.sizeVariants);
+  const stock = Math.max(0, Math.floor(toFiniteNumber(payload.stock) ?? 0));
   const hasPositiveStockBySize = sizeStock.some((item) => item.stock > 0);
   const hasPositiveStockByVariant = sizeVariants.some((item) => item.stock > 0);
   const hasInStockValue = typeof payload.inStock === "boolean";
@@ -258,12 +289,14 @@ const normalizeInput = (payload) => {
     title: String(payload.title || "").trim(),
     description: String(payload.description || "").trim(),
     price,
+    discountedPrice: price,
     originalPrice,
-    inStock: hasInStockValue ? payload.inStock : (sizeStock.length ? hasPositiveStockBySize : true),
+    stock,
+    inStock: hasInStockValue ? payload.inStock : (stock > 0 || hasPositiveStockBySize || hasPositiveStockByVariant),
     isNewArrival: Boolean(payload.isNewArrival),
     isBestSeller: Boolean(payload.isBestSeller),
     section: String(payload.section || "").trim(),
-    category: String(payload.category || "").trim(),
+    category: normalizeCategoryName(payload.category),
     imageUrl,
     imageUrls,
     sizeStock,
@@ -287,6 +320,14 @@ const validatePayload = (payload) => {
 
   if (payload.originalPrice < payload.price) {
     return "original price must be greater than or equal to discounted price.";
+  }
+
+  if (!Number.isFinite(payload.stock) || payload.stock < 0) {
+    return "stock must be a valid non-negative number.";
+  }
+
+  if (payload.imageUrls.length > 7) {
+    return "a product can have at most 7 images.";
   }
 
   if (payload.sizeVariants.length > 0) {

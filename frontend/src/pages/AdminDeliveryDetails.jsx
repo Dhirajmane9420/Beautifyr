@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, ChevronDown, ChevronRight, Package, ShoppingBag, Truck, Users } from "lucide-react";
+import { ArrowLeft, BarChart3, ChevronRight, Package, ShoppingBag, Truck, Users } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { fetchDeliveryDetails } from "../lib/ordersApi";
@@ -33,11 +34,18 @@ function MetricCard({ icon: Icon, label, value, hint }) {
 }
 
 export default function AdminDeliveryDetails() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showAllProducts, setShowAllProducts] = useState(false);
-  const [showAllOrders, setShowAllOrders] = useState(false);
+  const viewMode = location.pathname.endsWith("/top-products")
+    ? "top-products"
+    : location.pathname.endsWith("/orders")
+      ? "orders"
+      : "dashboard";
+  const isFullProductsPage = viewMode === "top-products";
+  const isFullOrdersPage = viewMode === "orders";
 
   useEffect(() => {
     let isMounted = true;
@@ -70,13 +78,13 @@ export default function AdminDeliveryDetails() {
 
   const visibleProducts = useMemo(() => {
     const topProducts = data?.topProducts || [];
-    return showAllProducts ? topProducts : topProducts.slice(0, 5);
-  }, [showAllProducts, data]);
+    return isFullProductsPage ? topProducts : topProducts.slice(0, 5);
+  }, [isFullProductsPage, data]);
 
   const visibleOrders = useMemo(() => {
     const orders = data?.orders || [];
-    return showAllOrders ? orders : orders.slice(0, 4);
-  }, [showAllOrders, data]);
+    return isFullOrdersPage ? orders : orders.slice(0, 4);
+  }, [isFullOrdersPage, data]);
 
   return (
     <div className="min-h-screen bg-[#f6f1ec] text-[#2A2520] selection:bg-[#C8A97E] selection:text-white">
@@ -120,20 +128,23 @@ export default function AdminDeliveryDetails() {
             Loading delivery data...
           </div>
         ) : (
-          <div className="mt-8 grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
+          <div className={`mt-8 grid gap-8 ${viewMode === "dashboard" ? "xl:grid-cols-[1.15fr_0.85fr]" : ""}`}>
+            {isFullOrdersPage ? null : (
             <section className="rounded-4xl border border-[#D4B896]/30 bg-white/75 p-5 shadow-xl backdrop-blur-xl sm:p-6">
               <div className="mb-5 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8b7359]">Top selling products</p>
-                  <h2 className="mt-1 text-2xl font-semibold text-[#2A2520]">Products ordered from highest to lowest</h2>
+                  <h2 className="mt-1 text-2xl font-semibold text-[#2A2520]">
+                    {isFullProductsPage ? "All products ordered from highest to lowest" : "Products ordered from highest to lowest"}
+                  </h2>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowAllProducts((current) => !current)}
+                  onClick={() => navigate(isFullProductsPage ? "/admin/delivery-details" : "/admin/delivery-details/top-products")}
                   className="inline-flex items-center gap-2 rounded-full bg-[#f8efe2] px-4 py-2 text-xs font-semibold text-[#8a6038] transition hover:bg-[#f1e0c7]"
                 >
-                  {showAllProducts ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  {showAllProducts ? "Show less" : "Show all"}
+                  {isFullProductsPage ? <ArrowLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  {isFullProductsPage ? "Back" : "Show all"}
                 </button>
               </div>
 
@@ -171,20 +182,24 @@ export default function AdminDeliveryDetails() {
                 </div>
               </div>
             </section>
+            )}
 
+            {isFullProductsPage ? null : (
             <section className="rounded-4xl border border-[#D4B896]/30 bg-white/75 p-5 shadow-xl backdrop-blur-xl sm:p-6">
               <div className="mb-5 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8b7359]">Order feed</p>
-                  <h2 className="mt-1 text-2xl font-semibold text-[#2A2520]">Recent customer orders</h2>
+                  <h2 className="mt-1 text-2xl font-semibold text-[#2A2520]">
+                    {isFullOrdersPage ? "All customer orders" : "Recent customer orders"}
+                  </h2>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowAllOrders((current) => !current)}
+                  onClick={() => navigate(isFullOrdersPage ? "/admin/delivery-details" : "/admin/delivery-details/orders")}
                   className="inline-flex items-center gap-2 rounded-full bg-[#f8efe2] px-4 py-2 text-xs font-semibold text-[#8a6038] transition hover:bg-[#f1e0c7]"
                 >
-                  {showAllOrders ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  {showAllOrders ? "Show less" : "Show all"}
+                  {isFullOrdersPage ? <ArrowLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  {isFullOrdersPage ? "Back" : "Show all"}
                 </button>
               </div>
 
@@ -230,6 +245,7 @@ export default function AdminDeliveryDetails() {
                 )}
               </div>
             </section>
+            )}
           </div>
         )}
       </main>

@@ -57,6 +57,8 @@ function App() {
           <Route path="/buy-now" element={<ProtectedRoute><BuyNow /></ProtectedRoute>} />
           <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
           <Route path="/admin/delivery-details" element={<AdminRoute><AdminDeliveryDetails /></AdminRoute>} />
+          <Route path="/admin/delivery-details/top-products" element={<AdminRoute><AdminDeliveryDetails /></AdminRoute>} />
+          <Route path="/admin/delivery-details/orders" element={<AdminRoute><AdminDeliveryDetails /></AdminRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
