@@ -22,6 +22,7 @@ export function AuthProvider({ children }) {
       await refreshUser();
       setIsLoading(false);
     };
+
     void init();
   }, []);
 
@@ -30,7 +31,10 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    await request("/auth/logout", { method: "POST" });
+    await request("/auth/logout", {
+      method: "POST",
+    });
+
     setUser(null);
   };
 
@@ -46,13 +50,19 @@ export function AuthProvider({ children }) {
     [isLoading, user]
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
+
   if (!context) {
     throw new Error("useAuth must be used within AuthProvider.");
   }
+
   return context;
 }
