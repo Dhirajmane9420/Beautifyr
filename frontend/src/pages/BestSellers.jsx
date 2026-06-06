@@ -462,10 +462,13 @@ function BestSellers() {
                       >
                         <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                         <img
-                          src={heroImage}
-                          alt={product.title}
-                          className="h-full w-full object-cover transition-all duration-700 ease-[0.16,1,0.3,1] group-hover:scale-[1.08]"
-                        />
+  src={product.imageUrl || heroImage}
+  alt={product.title}
+  className="h-full w-full object-cover transition-all duration-700 ease-[0.16,1,0.3,1] group-hover:scale-[1.08]"
+  onError={(e) => {
+    e.currentTarget.src = heroImage;
+  }}
+/>
 
                         {/* Rating badge */}
                         <div className="absolute bottom-4 left-4 z-20 flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-[11px] font-semibold text-[#7f674d] shadow-sm backdrop-blur-md">
@@ -521,10 +524,10 @@ function BestSellers() {
                         <p className="text-sm text-[#8B7E72] font-light">
                           {product.category} • {product.sold} sold • {product.inStock ? "In Stock" : "Out of Stock"}
                         </p>
-                        <p className="mt-2 text-base font-semibold text-[#8a6038]">
+                        {/* <p className="mt-2 text-base font-semibold text-[#8a6038]">
                           Rs {product.numericPrice}{" "}
                           <span className="ml-1 text-sm font-normal text-[#9d9388] line-through">Rs {mrp}</span>
-                        </p>
+                        </p> */}
                         <p className="mt-2 text-sm text-[#6f5a47] line-clamp-2">{product.description}</p>
 
                         {isAdmin ? (

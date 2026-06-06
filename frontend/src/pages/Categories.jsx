@@ -92,7 +92,7 @@ const normalizeProductForm = (product = {}) => {
     isNewArrival: product.isNewArrival ?? product.section === "New Arrivals",
     isBestSeller: product.isBestSeller ?? product.section === "Best Sellers",
     section: product.section || "Cleansers",
-    category: normalizeCategoryName(product.category || "Cleansers"),
+    category: product.section,
     imageUrl: product.imageUrl || imageUrls[0] || "",
     imageInputs: imageUrls.length ? imageUrls.slice(0, MAX_ADMIN_PRODUCT_IMAGES).map(buildImageInput) : [buildImageInput()],
     sizeStock: sizes.length
@@ -453,23 +453,31 @@ export default function CategoriesPage() {
     const category = normalizeCategoryName(currentForm.category) || "Cleansers";
 
     return {
-      title: currentForm.title.trim(),
-      description: currentForm.description.trim(),
-      originalPrice: primarySize.originalPrice,
-      price: primarySize.price,
-      discountedPrice: primarySize.price,
-      stock,
-      inStock: Boolean(currentForm.inStock) && (stock > 0 || sizeStock.some((size) => size.stock > 0)),
-      isNewArrival: Boolean(currentForm.isNewArrival),
-      isBestSeller: Boolean(currentForm.isBestSeller),
-      section: currentForm.section || "Cleansers",
-      category,
-      imageUrl: imageUrls[0] || heroImg,
-      imageUrls,
-      sizeStock,
-      sizeVariants: [],
-      features,
-    };
+  title: currentForm.title.trim(),
+  description: currentForm.description.trim(),
+
+  originalPrice: primarySize.originalPrice,
+  price: primarySize.price,
+  discountedPrice: primarySize.price,
+
+  stock,
+  inStock:
+    Boolean(currentForm.inStock) &&
+    (stock > 0 || sizeStock.some((size) => size.stock > 0)),
+
+  isNewArrival: Boolean(currentForm.isNewArrival),
+  isBestSeller: Boolean(currentForm.isBestSeller),
+
+  section: category,
+  category: category,   // <-- ADD THIS
+
+  imageUrl: imageUrls[0] || heroImg,
+  imageUrls,
+
+  sizeStock,
+  sizeVariants: [],
+  features,
+};
   };
 
   const handleCreateProduct = async () => {
@@ -481,7 +489,16 @@ export default function CategoriesPage() {
     setIsSaving(true);
     try {
       setProductFormError("");
+      //console.log("CURRENT FORM:", currentForm);
       const payload = toPayload(form);
+//       console.log({
+//   title: payload.title,
+//   description: payload.description,
+//   section: payload.section,
+//   category: payload.category,
+//   imageUrl: payload.imageUrl,
+//   imageUrls: payload.imageUrls,
+// });
       await createCatalogProduct(payload);
       const updated = await fetchCatalogProducts();
       setProducts(Array.isArray(updated) ? updated : []);

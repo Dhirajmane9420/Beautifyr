@@ -49,7 +49,20 @@ const catalogProductSchema = new mongoose.Schema(
     section: {
       type: String,
       required: true,
-      enum: ["Cleansers", "Serums", "Moisturizers", "Best Sellers", "New Arrivals"],
+      enum: [
+        "Cleansers",
+        "Serums",
+        "Moisturizers",
+        "Acne Care",
+        "Brightening",
+        "Exfoliators",
+        "Eye Care",
+        "Kits and Combos",
+        "Lip Care",
+        "Sunscreens",
+        "Toners",
+        "Travel Minis",
+      ],
     },
     category: {
       type: String,

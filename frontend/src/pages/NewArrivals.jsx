@@ -67,9 +67,12 @@ const ProductCard = ({ item, isAdmin, onEdit, onDelete }) => {
       <div className="relative mb-6 aspect-[4/5] overflow-hidden rounded-[2.5rem] bg-[#F7F4F0] shadow-lg shadow-black/5 transition-all duration-700 hover:shadow-2xl hover:shadow-black/10 group-hover:-translate-y-2">
         <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
         <img
-          src={heroImage}
+          src={item.imageUrl || heroImage}
           alt={item.title}
           className="h-full w-full object-cover transition-all duration-700 ease-[0.16,1,0.3,1] group-hover:scale-[1.08]"
+          onError={(e) => {
+            e.currentTarget.src = heroImage;
+          }}
         />
 
         <button

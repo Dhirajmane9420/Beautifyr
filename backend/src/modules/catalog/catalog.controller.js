@@ -157,6 +157,16 @@ const SECTION_VALUES = [
   "Cleansers",
   "Serums",
   "Moisturizers",
+  "Sunscreens",
+  "Toners",
+  "Exfoliators",
+  "Face Masks",
+  "Eye Care",
+  "Lip Care",
+  "Acne Care",
+  "Brightening",
+  "Travel Minis",
+  "Kits and Combos",
   "Best Sellers",
   "New Arrivals",
 ];
@@ -359,6 +369,8 @@ export const getPublicCatalogProducts = async (_req, res, next) => {
 export const createCatalogProduct = async (req, res, next) => {
   try {
     const payload = normalizeInput(req.body);
+    //console.log("REQ BODY:", req.body);
+    //console.log("NORMALIZED:", payload);
     const validationError = validatePayload(payload);
 
     if (validationError) {
@@ -374,7 +386,9 @@ export const createCatalogProduct = async (req, res, next) => {
 
 export const updateCatalogProduct = async (req, res, next) => {
   try {
+    console.log("REQ BODY =", JSON.stringify(req.body, null, 2));
     const payload = normalizeInput(req.body);
+    console.log("NORMALIZED =", JSON.stringify(payload, null, 2));
     const validationError = validatePayload(payload);
 
     if (validationError) {
