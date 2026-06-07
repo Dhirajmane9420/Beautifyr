@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowDown,
@@ -15,6 +15,7 @@ import {
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
+import { fetchOrders } from "../lib/ordersApi";
 
 function formatINR(value) {
   return `₹${Number(value || 0).toLocaleString("en-IN")}`;
@@ -66,14 +67,26 @@ function OrderCard({ order }) {
 
   const handleCopyId = (e) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(order.id).then(() => {
+    navigator.clipboard.writeText(order._id).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
   };
 
-  const statusClass = STATUS_COLORS[order.status] || STATUS_COLORS.Confirmed;
+  const statusMap = {
+  processing: "Confirmed",
+  packed: "Shipped",
+  shipped: "Out for Delivery",
+  delivered: "Delivered",
+};
 
+const displayStatus =
+  statusMap[order.status] ||
+  "Confirmed";
+
+const statusClass =
+  STATUS_COLORS[displayStatus];
+  const firstItem = order.items?.[0];
   return (
     <div className="overflow-hidden rounded-2xl border border-[#e2d3bd] bg-white shadow-sm transition hover:shadow-md">
       {/* Header */}
@@ -92,14 +105,16 @@ function OrderCard({ order }) {
               <Calendar size={12} className="-mt-0.5 mr-1 hidden sm:inline" />
               {formatDate(order.date)} at {formatTime(order.date)}
             </p>
-            <p className="mt-0.5 truncate text-xs font-semibold text-[#2b2018] sm:text-sm">{order.product.name}</p>
+            <p className="mt-0.5 truncate text-xs font-semibold text-[#2b2018] sm:text-sm">
+              {firstItem?.title}
+            </p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
           <span
             className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-semibold sm:px-3 sm:text-xs ${statusClass}`}
           >
-            {order.status}
+            {displayStatus}
           </span>
           <ChevronDown
             size={16}
@@ -115,21 +130,27 @@ function OrderCard({ order }) {
             {/* Product Image + Details */}
             <div className="flex gap-3 sm:gap-4">
               <img
-                src={order.product.image}
-                alt={order.product.name}
+                src={firstItem?.imageUrl}
+                alt={firstItem?.title}
                 className="h-20 w-16 shrink-0 rounded-xl border border-[#eee3d5] object-cover sm:h-24 sm:w-20"
               />
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-[#2b2018] sm:text-sm">{order.product.name}</p>
-                {order.product.size && (
-                  <p className="text-[10px] text-[#8a775f] sm:text-xs">Size: {order.product.size}</p>
+                <p className="text-xs font-semibold text-[#2b2018] sm:text-sm">
+                  {firstItem?.title}
+                </p>
+                {firstItem?.size && (
+                  <p className="text-[10px] text-[#8a775f] sm:text-xs">
+                    Size: {firstItem.size}
+                  </p>
                 )}
-                <p className="mt-1 text-[10px] text-[#8a775f] sm:text-xs">Qty: {order.quantity}</p>
+                <p className="mt-1 text-[10px] text-[#8a775f] sm:text-xs">
+                 Qty: {firstItem?.quantity || 1}
+                </p>
                 <p className="mt-1 text-base font-bold text-[#2b2018] sm:mt-2 sm:text-lg">
-                  {formatINR(order.product.price)}
-                  {order.product.originalPrice > order.product.price && (
+                  {formatINR(firstItem?.price || 0)}
+                  {firstItem?.originalPrice > firstItem?.price && (
                     <span className="ml-1 text-[10px] text-[#9c8f82] line-through sm:ml-2 sm:text-sm">
-                      {formatINR(order.product.originalPrice)}
+                      {formatINR(firstItem?.originalPrice || 0)}
                     </span>
                   )}
                 </p>
@@ -146,23 +167,33 @@ function OrderCard({ order }) {
                   className="inline-flex shrink-0 items-center gap-1 rounded-md border border-[#dcc8aa] px-2 py-0.5 text-[10px] text-[#8a6038] transition hover:bg-[#f9efe2] sm:text-xs"
                 >
                   <Copy size={10} className="sm:size-[12px]" />
-                  {copied ? "Copied!" : order.id.slice(0, 12) + "..."}
+                  {copied ? "Copied!" : order._id.slice(0, 12) + "..."}
                 </button>
               </div>
 
               {/* Delivery */}
               <div className="flex items-center gap-1.5 text-[#6e5947] sm:gap-2">
-                <Truck size={12} className="shrink-0 text-[#8a6038] sm:size-[14px]" />
-                <span className="truncate">{order.courier?.name || "Standard"} — {order.courier?.eta || "3-5 days"}</span>
+                <Truck
+                  size={12}
+                  className="shrink-0 text-[#8a6038] sm:size-[14px]"
+                />
+                <span className="truncate">
+                  {order.courier?.name || "Standard"} —{" "}
+                  {order.courier?.eta || "3-5 days"}
+                </span>
               </div>
 
               {/* Address */}
               <div className="flex items-start gap-1.5 text-[#6e5947] sm:gap-2">
-                <MapPin size={12} className="mt-0.5 shrink-0 text-[#8a6038] sm:size-[14px]" />
+                <MapPin
+                  size={12}
+                  className="mt-0.5 shrink-0 text-[#8a6038] sm:size-[14px]"
+                />
                 <span className="leading-snug">
                   {order.address?.fullName}, {order.address?.line1}
                   {order.address?.line2 ? ", " + order.address.line2 : ""},{" "}
-                  {order.address?.city}, {order.address?.state} — {order.address?.pincode}
+                  {order.address?.city}, {order.address?.state} —{" "}
+                  {order.address?.pincode}
                 </span>
               </div>
             </div>
@@ -173,18 +204,20 @@ function OrderCard({ order }) {
             <div className="space-y-1.5 text-sm">
               <div className="flex justify-between text-[#6e5947]">
                 <span>Subtotal ({order.quantity} item)</span>
-                <span>{formatINR(order.totals?.subtotal || 0)}</span>
+                <span>{formatINR(order.subtotal || 0)}</span>
               </div>
-              {order.totals?.discount > 0 && (
+              {false  && (
                 <div className="flex justify-between">
                   <span className="text-[#6e5947]">Discount</span>
-                  <span className="text-green-600">−{formatINR(order.totals.discount)}</span>
+                  <span className="text-green-600">
+                    −{formatINR(order.totals.discount)}
+                  </span>
                 </div>
               )}
               <div className="flex justify-between text-[#6e5947]">
                 <span>Delivery ({order.courier?.name || "Standard"})</span>
                 <span>
-                  {order.totals?.courierCost === 0 ? (
+                  {order.deliveryFee === 0 ? (
                     <span className="text-green-600">FREE</span>
                   ) : (
                     formatINR(order.totals?.courierCost || 0)
@@ -193,13 +226,13 @@ function OrderCard({ order }) {
               </div>
               <div className="flex justify-between text-[#6e5947]">
                 <span>Platform Fee</span>
-                <span>{formatINR(order.totals?.platformFee || 0)}</span>
+                <span>{formatINR(0 || 0)}</span>
               </div>
             </div>
             <div className="mt-2 border-t border-dashed border-[#dcc8aa] pt-2">
               <div className="flex justify-between text-base font-bold text-[#2b2018]">
                 <span>Total</span>
-                <span>{formatINR(order.totals?.totalAmount || 0)}</span>
+                <span>{formatINR(order.totalAmount || 0)}</span>
               </div>
             </div>
           </div>
@@ -209,14 +242,17 @@ function OrderCard({ order }) {
             <div className="flex items-center gap-2 text-xs text-[#8a775f]">
               <Clock size={12} />
               <span>
-                Ordered on {formatDate(order.date)} at {formatTime(order.date)}
+                Ordered on {formatDate(order.createdAt)}
+                {formatTime(order.createdAt)} at {formatTime(order.createdAt)}
               </span>
             </div>
             <div className="mt-2 flex items-center gap-1.5">
               <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-100">
                 <div className="h-2 w-2 rounded-full bg-green-600" />
               </div>
-              <span className="text-xs font-medium text-green-700">Order Confirmed</span>
+              <span className="text-xs font-medium text-green-700">
+                Order Confirmed
+              </span>
               <ArrowDown size={12} className="text-[#dcc8aa]" />
             </div>
             <div className="flex items-center gap-1.5">
@@ -237,16 +273,28 @@ export default function Orders() {
   const { isAuthenticated, isLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
 
-  const orders = useMemo(() => getStoredOrders(), []);
+  const [orders, setOrders] = useState([]);
+  useEffect(() => {
+    const loadOrders = async () => {
+      try {
+        const data = await fetchOrders();
+        setOrders(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    loadOrders();
+  }, []);
 
   const filteredOrders = useMemo(() => {
     if (!searchQuery.trim()) return orders;
     const q = searchQuery.toLowerCase();
     return orders.filter(
       (o) =>
-        o.id.toLowerCase().includes(q) ||
-        o.product?.name?.toLowerCase().includes(q) ||
-        o.status?.toLowerCase().includes(q)
+        o._id?.toLowerCase().includes(q) ||
+        o.items?.some((item) => item.title?.toLowerCase().includes(q)) ||
+        o.status?.toLowerCase().includes(q),
     );
   }, [orders, searchQuery]);
 
@@ -280,7 +328,8 @@ export default function Orders() {
                   My Orders
                 </h1>
                 <p className="text-sm text-[#8a775f]">
-                  {orders.length} {orders.length === 1 ? "order" : "orders"} placed
+                  {orders.length} {orders.length === 1 ? "order" : "orders"}{" "}
+                  placed
                 </p>
               </div>
             </div>
@@ -344,7 +393,7 @@ export default function Orders() {
           ) : (
             <div className="space-y-4">
               {filteredOrders.map((order) => (
-                <OrderCard key={order.id} order={order} />
+                <OrderCard key={order._id} order={order} />
               ))}
             </div>
           )}

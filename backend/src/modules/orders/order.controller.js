@@ -69,6 +69,19 @@ export const placeOrder = async (req, res, next) => {
 
     return res.status(201).json({ message: "Order placed successfully.", order });
   } catch (error) {
+     console.log(error);
     return next(error);
+  }
+};
+
+export const getMyOrders = async (req, res, next) => {
+  try {
+    const orders = await Order.find({
+      user: req.user._id,
+    }).sort({ createdAt: -1 });
+
+    res.json({ orders });
+  } catch (error) {
+    next(error);
   }
 };

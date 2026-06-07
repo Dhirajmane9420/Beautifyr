@@ -16,3 +16,11 @@ export const fetchDeliveryDetails = async () => {
 
   return payload;
 };
+
+export const fetchOrders = async () => {
+  const payload = await request("/orders", {
+    method: "GET",
+  });
+
+  return payload.orders || [];
+};

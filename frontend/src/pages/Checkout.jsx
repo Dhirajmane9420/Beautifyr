@@ -6,6 +6,10 @@ import Footer from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { placeOrder } from "../lib/ordersApi";
+import {
+  createPaymentOrder,
+  verifyPayment,
+} from "../lib/paymentApi";
 
 function formatINR(value) {
   return `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
@@ -57,39 +61,150 @@ export default function Checkout() {
   );
 
   const handlePlaceOrder = async () => {
-    if (!canContinueAddress || items.length === 0) {
-      return;
-    }
+  if (!canContinueAddress || items.length === 0) {
+    return;
+  }
 
-    try {
-      setIsPlacingOrder(true);
-      setOrderMessage("");
+  try {
+    setIsPlacingOrder(true);
+    setOrderMessage("");
 
-      const orderItems = items.map((item) => ({
-        productId: item.id,
-        title: item.name,
-        category: item.category || "Skincare",
-        imageUrl: item.image,
-        price: item.price,
-        quantity: item.quantity,
-        size: item.size || "",
-        sizeVariant: item.sizeVariant?.label || "",
-      }));
+    const razorpayOrder =
+      await createPaymentOrder(
+        totals.totalAmount
+      );
 
-      const order = await placeOrder({
-        items: orderItems,
-        address,
-        paymentMethod,
-      });
+    const options = {
+      key:
+        import.meta.env
+          .VITE_RAZORPAY_KEY_ID,
 
-      clearCart();
-      setOrderMessage(`Order placed successfully. Ref: ${String(order?._id || "").slice(-6).toUpperCase()}`);
-    } catch (error) {
-      setOrderMessage(error.message || "Failed to place order.");
-    } finally {
-      setIsPlacingOrder(false);
-    }
-  };
+      amount:
+        razorpayOrder.amount,
+
+      currency:
+        razorpayOrder.currency,
+
+      order_id:
+        razorpayOrder.id,
+
+      name:
+        "Clinical Sanctuary",
+
+      description:
+        "Order Payment",
+
+      handler:
+        async (response) => {
+          const verification =
+            await verifyPayment(
+              response
+            );
+
+          if (
+            !verification.success
+          ) {
+            setOrderMessage(
+              "Payment verification failed."
+            );
+            return;
+          }
+
+          const orderItems =
+            items.map((item) => ({
+              productId:
+                item.id,
+
+              title:
+                item.name,
+
+              category:
+                item.category ||
+                "Skincare",
+
+              imageUrl:
+                item.image,
+
+              price:
+                item.price,
+
+              quantity:
+                item.quantity,
+
+              size:
+                item.size ||
+                "",
+
+              sizeVariant:
+                item
+                  .sizeVariant
+                  ?.label || "",
+            }));
+
+          const order =
+            await placeOrder({
+              items:
+                orderItems,
+
+              address,
+
+              paymentMethod:
+                paymentMethod,
+
+              razorpayOrderId:
+                response.razorpay_order_id,
+
+              razorpayPaymentId:
+                response.razorpay_payment_id,
+            });
+
+          clearCart();
+
+          setOrderMessage(
+            `Order placed successfully. Ref: ${String(
+              order?._id || ""
+            )
+              .slice(-6)
+              .toUpperCase()}`
+          );
+
+          navigate(
+            "/orders"
+          );
+        },
+
+      prefill: {
+        name:
+          address.fullName,
+
+        contact:
+          address.phone,
+
+        email:
+          user?.email,
+      },
+
+      theme: {
+        color:
+          "#8a6038",
+      },
+    };
+
+    const razorpay =
+      new window.Razorpay(
+        options
+      );
+
+    razorpay.open();
+  } catch (error) {
+    setOrderMessage(
+      error.message ||
+        "Payment failed."
+    );
+  } finally {
+    setIsPlacingOrder(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#fff7ee] text-[#2b2018]">

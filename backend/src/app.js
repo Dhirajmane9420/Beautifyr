@@ -6,6 +6,7 @@ import { adminRouter } from "./modules/admin/admin.routes.js";
 import { orderRouter } from "./modules/orders/order.routes.js";
 import { catalogRouter } from "./modules/catalog/catalog.route.js";
 import homeFeaturedRouter from "./modules/homeFeatured/homeFeatured.route.js";
+import paymentRouter from "./modules/payment/payment.route.js";
 export const createApp = ({ clientUrl }) => {
   const app = express();
 
@@ -42,9 +43,11 @@ export const createApp = ({ clientUrl }) => {
   app.use("/api", orderRouter);
   app.use("/api", catalogRouter);
   app.use("/api", homeFeaturedRouter);
+  app.use("/api", paymentRouter);
   app.use((req, res) => {
     res.status(404).json({ message: `Route not found: ${req.originalUrl}` });
   });
+  
 
   app.use((error, _req, res, _next) => {
     const statusCode = error.statusCode || 500;
