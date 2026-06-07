@@ -1,12 +1,17 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState } from "react";
-
-const WISHLIST_STORAGE_KEY = "beautifyr_wishlist_v1";
+import { useAuth } from "./AuthContext";
+const getWishlistStorageKey = (userId) =>
+  userId
+    ? `beautifyr_wishlist_${userId}`
+    : "beautifyr_guest_wishlist";
 const WishlistContext = createContext(null);
 
-function getStoredWishlist() {
+function getStoredWishlist(userId) {
   try {
-    const raw = localStorage.getItem(WISHLIST_STORAGE_KEY);
+    const raw = localStorage.getItem(
+  getWishlistStorageKey(userId)
+);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -30,11 +35,28 @@ function normalizeProduct(product) {
 }
 
 export function WishlistProvider({ children }) {
-  const [items, setItems] = useState(() => getStoredWishlist());
+  const { user } = useAuth();
+
+const [items, setItems] =
+  useState([]);
+  useEffect(() => {
+  const userId =
+    user?._id || user?.id;
+
+  setItems(
+    getStoredWishlist(userId)
+  );
+}, [user]);
 
   useEffect(() => {
-    localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(items));
-  }, [items]);
+  const userId =
+    user?._id || user?.id;
+
+  localStorage.setItem(
+    getWishlistStorageKey(userId),
+    JSON.stringify(items)
+  );
+}, [items, user]);
 
   const isInWishlist = (id) => items.some((item) => item.id === String(id));
 
