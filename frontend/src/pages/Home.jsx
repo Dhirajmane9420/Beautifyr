@@ -14,6 +14,9 @@ import {
   savePageOverride,
   uploadPageOverrideImage,
 } from "../lib/siteOverridesApi";
+import {
+  fetchHomeFeatured,
+} from "../lib/homeFeaturedApi";
 
 // Refined, ultra-smooth animation curves
 const fadeUp = {
@@ -65,6 +68,27 @@ function Home() {
   });
   const [activeMobileVideoIndex, setActiveMobileVideoIndex] = useState(0);
   const [overrides, setOverrides] = useState([]);
+  const [
+  featuredProducts,
+  setFeaturedProducts
+] = useState([]);
+useEffect(() => {
+  const load =
+    async () => {
+      try {
+        const products =
+          await fetchHomeFeatured();
+
+        setFeaturedProducts(
+          products
+        );
+      } catch {
+        //
+      }
+    };
+
+  load();
+}, []);
 
   const mobileHeroVideos = [heroVideoMobile, heroVideoMobileAlt];
 
@@ -306,29 +330,53 @@ function Home() {
         </div>
 
         <div className="relative z-10 grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-          {[1, 2, 3, 4].map((item) => (
-            <motion.div key={item} variants={fadeUp} className="group cursor-pointer">
-              <div className="relative rounded-3xl overflow-hidden bg-white/40 backdrop-blur-xl border border-white/60 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 hover:shadow-[0_8px_40px_rgb(0,0,0,0.08)] hover:bg-white/60">
-                <div className="relative h-[250px] overflow-hidden rounded-2xl sm:h-[300px]">
-                  <img data-edit-key={`favorites.card${item}.image`} data-edit-kind="image" data-edit-label={`Favorite Product ${item} Image`} src={heroImg} alt="Product" className="w-full h-full object-cover transform group-hover:scale-105 transition duration-700" />
-                  <div data-edit-key={`favorites.card${item}.badge`} data-edit-kind="text" data-edit-label={`Favorite Product ${item} Badge`} className="absolute top-3 left-3 bg-white/80 backdrop-blur-md px-3 py-1 rounded-full text-[10px] uppercase tracking-widest text-[#2A2520]">
-                    Award Winner
-                  </div>
-                  <button className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-[#2A2520] hover:bg-white transition-colors">
-                    +
-                  </button>
-                </div>
-                <div className="mt-6 px-2 pb-2">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 data-edit-key={`favorites.card${item}.title`} data-edit-kind="text" data-edit-label={`Favorite Product ${item} Title`} className="text-lg font-medium text-[#2A2520]">Radiance C-Serum</h3>
-                    <span data-edit-key={`favorites.card${item}.price`} data-edit-kind="text" data-edit-label={`Favorite Product ${item} Price`} className="text-sm text-[#8B7E72]">$85</span>
-                  </div>
-                  <p data-edit-key={`favorites.card${item}.desc`} data-edit-kind="text" data-edit-label={`Favorite Product ${item} Description`} className="text-sm font-light text-[#7A6E62] line-clamp-2">15% L-Ascorbic Acid formula for unparalleled brightening.</p>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+  {featuredProducts.map((product) => (
+    <motion.div
+      key={product._id}
+      variants={fadeUp}
+      className="group cursor-pointer"
+    >
+      <Link
+        to={`/product/${product.title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "")}`}
+        state={{ product }}
+      >
+        <div className="relative rounded-3xl overflow-hidden bg-white/40 backdrop-blur-xl border border-white/60 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 hover:shadow-[0_8px_40px_rgb(0,0,0,0.08)] hover:bg-white/60">
+          <div className="relative h-[250px] overflow-hidden rounded-2xl sm:h-[300px]">
+            <img
+              src={product.imageUrl}
+              alt={product.title}
+              className="w-full h-full object-cover transform group-hover:scale-105 transition duration-700"
+            />
+
+            <div className="absolute top-3 left-3 bg-white/80 backdrop-blur-md px-3 py-1 rounded-full text-[10px] uppercase tracking-widest text-[#2A2520]">
+              {product.category}
+            </div>
+          </div>
+
+          <div className="mt-6 px-2 pb-2">
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="text-lg font-medium text-[#2A2520]">
+                {product.title}
+              </h3>
+
+              <span className="text-sm text-[#8B7E72]">
+                ₹{product.price}
+              </span>
+            </div>
+
+            <p className="text-sm font-light text-[#7A6E62] line-clamp-2">
+              {product.description ||
+                "Premium skincare product"}
+            </p>
+          </div>
         </div>
+      </Link>
+    </motion.div>
+  ))}
+</div>
       </motion.section>
 
       {/* 4. SPLIT-SCREEN ABOUT WITH PARALLAX FEEL */}

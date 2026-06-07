@@ -4,8 +4,8 @@ import cookieParser from "cookie-parser";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { adminRouter } from "./modules/admin/admin.routes.js";
 import { orderRouter } from "./modules/orders/order.routes.js";
-import {catalogRouter} from "./modules/catalog/catalog.route.js";
-
+import { catalogRouter } from "./modules/catalog/catalog.route.js";
+import homeFeaturedRouter from "./modules/homeFeatured/homeFeatured.route.js";
 export const createApp = ({ clientUrl }) => {
   const app = express();
 
@@ -18,7 +18,8 @@ export const createApp = ({ clientUrl }) => {
 
         const isAllowedClient = origin === clientUrl;
         const isLocalhostDev =
-          process.env.NODE_ENV !== "production" && /^http:\/\/localhost:\d+$/.test(origin);
+          process.env.NODE_ENV !== "production" &&
+          /^http:\/\/localhost:\d+$/.test(origin);
 
         if (isAllowedClient || isLocalhostDev) {
           return callback(null, true);
@@ -27,7 +28,7 @@ export const createApp = ({ clientUrl }) => {
         return callback(new Error("Not allowed by CORS"));
       },
       credentials: true,
-    })
+    }),
   );
   app.use(express.json());
   app.use(cookieParser());
@@ -40,7 +41,7 @@ export const createApp = ({ clientUrl }) => {
   app.use("/api", adminRouter);
   app.use("/api", orderRouter);
   app.use("/api", catalogRouter);
-
+  app.use("/api", homeFeaturedRouter);
   app.use((req, res) => {
     res.status(404).json({ message: `Route not found: ${req.originalUrl}` });
   });

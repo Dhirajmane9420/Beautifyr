@@ -1,12 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, BarChart3, ChevronRight, Package, ShoppingBag, Truck, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  BarChart3,
+  ChevronRight,
+  Package,
+  ShoppingBag,
+  Truck,
+  Users,
+} from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { fetchDeliveryDetails } from "../lib/ordersApi";
+import { fetchCatalogProducts } from "../lib/catalogApi";
+import { fetchHomeFeatured, saveHomeFeatured } from "../lib/homeFeaturedApi";
 
-
-const formatCurrency = (value) => `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
+const formatCurrency = (value) =>
+  `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
 
 const formatDate = (value) =>
   new Intl.DateTimeFormat("en-IN", {
@@ -21,7 +31,9 @@ function MetricCard({ icon: Icon, label, value, hint }) {
     <div className="rounded-2xl border border-[#D4B896]/40 bg-white/75 p-5 shadow-lg backdrop-blur-xl">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8b7359]">{label}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8b7359]">
+            {label}
+          </p>
           <p className="mt-2 text-3xl font-semibold text-[#2A2520]">{value}</p>
         </div>
         <div className="rounded-2xl border border-[#D4B896]/30 bg-[#f8efe2] p-3 text-[#8a6038]">
@@ -34,6 +46,11 @@ function MetricCard({ icon: Icon, label, value, hint }) {
 }
 
 export default function AdminDeliveryDetails() {
+  const [catalogProducts, setCatalogProducts] =
+  useState([]);
+
+const [featuredIds, setFeaturedIds] =
+  useState([]);
   const location = useLocation();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
@@ -55,6 +72,20 @@ export default function AdminDeliveryDetails() {
         setIsLoading(true);
         setError("");
         const payload = await fetchDeliveryDetails();
+        const products =
+  await fetchCatalogProducts();
+
+const featured =
+  await fetchHomeFeatured();
+
+setCatalogProducts(products);
+
+setFeaturedIds(
+  featured.map(
+    (item) =>
+      item._id
+  )
+);
         if (!isMounted) return;
         setData(payload);
       } catch (err) {
@@ -86,6 +117,23 @@ export default function AdminDeliveryDetails() {
     return isFullOrdersPage ? orders : orders.slice(0, 4);
   }, [isFullOrdersPage, data]);
 
+  const saveFeaturedProducts =
+  async () => {
+    try {
+      await saveHomeFeatured(
+        featuredIds
+      );
+
+      alert(
+        "Homepage products updated"
+      );
+    } catch (err) {
+      alert(
+        err.message
+      );
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#f6f1ec] text-[#2A2520] selection:bg-[#C8A97E] selection:text-white">
       <Navbar />
@@ -104,19 +152,100 @@ export default function AdminDeliveryDetails() {
                 Admin order and delivery control
               </h1>
               <p className="mt-4 max-w-2xl text-base leading-7 text-[#7A6E62] sm:text-lg">
-                Track how many customers are registered, what products were ordered, and which products are selling best in a single dashboard.
+                Track how many customers are registered, what products were
+                ordered, and which products are selling best in a single
+                dashboard.
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <MetricCard icon={Users} label="Users logged" value={summary.usersCount ?? 0} hint="Registered accounts visible to the platform." />
-              <MetricCard icon={ShoppingBag} label="Orders placed" value={summary.ordersCount ?? 0} hint="Every confirmed checkout stored for admin review." />
-              <MetricCard icon={Package} label="Items ordered" value={summary.requestedProductsCount ?? 0} hint="Total quantity of products requested across orders." />
-              <MetricCard icon={BarChart3} label="Revenue" value={formatCurrency(summary.totalRevenue || 0)} hint="Combined order value including delivery fee." />
+              <MetricCard
+                icon={Users}
+                label="Users logged"
+                value={summary.usersCount ?? 0}
+                hint="Registered accounts visible to the platform."
+              />
+              <MetricCard
+                icon={ShoppingBag}
+                label="Orders placed"
+                value={summary.ordersCount ?? 0}
+                hint="Every confirmed checkout stored for admin review."
+              />
+              <MetricCard
+                icon={Package}
+                label="Items ordered"
+                value={summary.requestedProductsCount ?? 0}
+                hint="Total quantity of products requested across orders."
+              />
+              <MetricCard
+                icon={BarChart3}
+                label="Revenue"
+                value={formatCurrency(summary.totalRevenue || 0)}
+                hint="Combined order value including delivery fee."
+              />
             </div>
           </div>
         </section>
+        <section className="mb-8 rounded-3xl border border-[#D4B896]/30 bg-white p-6">
+  <h2 className="text-xl font-semibold mb-4">
+    Homepage Featured Products
+  </h2>
 
+  <p className="text-sm mb-4 text-gray-500">
+    Select 4 products to display on Home page.
+  </p>
+
+  <div className="grid md:grid-cols-2 gap-4">
+
+    {[0,1,2,3].map((index) => (
+      <select
+        key={index}
+        value={featuredIds[index] || ""}
+        onChange={(e) => {
+          const next =
+            [...featuredIds];
+
+          next[index] =
+            e.target.value;
+
+          setFeaturedIds(
+            next
+          );
+        }}
+        className="border rounded-xl p-3"
+      >
+        <option value="">
+          Select Product
+        </option>
+
+        {catalogProducts.map(
+          (product) => (
+            <option
+              key={
+                product._id
+              }
+              value={
+                product._id
+              }
+            >
+              {product.title}
+            </option>
+          )
+        )}
+      </select>
+    ))}
+
+  </div>
+
+  <button
+    onClick={
+      saveFeaturedProducts
+    }
+    className="mt-4 rounded-xl bg-[#8b5e3c] px-5 py-3 text-white"
+  >
+    Save Homepage Products
+  </button>
+</section>
         {error ? (
           <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700 shadow-sm">
             {error}
@@ -128,123 +257,204 @@ export default function AdminDeliveryDetails() {
             Loading delivery data...
           </div>
         ) : (
-          <div className={`mt-8 grid gap-8 ${viewMode === "dashboard" ? "xl:grid-cols-[1.15fr_0.85fr]" : ""}`}>
+          <div
+            className={`mt-8 grid gap-8 ${viewMode === "dashboard" ? "xl:grid-cols-[1.15fr_0.85fr]" : ""}`}
+          >
             {isFullOrdersPage ? null : (
-            <section className="rounded-4xl border border-[#D4B896]/30 bg-white/75 p-5 shadow-xl backdrop-blur-xl sm:p-6">
-              <div className="mb-5 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8b7359]">Top selling products</p>
-                  <h2 className="mt-1 text-2xl font-semibold text-[#2A2520]">
-                    {isFullProductsPage ? "All products ordered from highest to lowest" : "Products ordered from highest to lowest"}
-                  </h2>
+              <section className="rounded-4xl border border-[#D4B896]/30 bg-white/75 p-5 shadow-xl backdrop-blur-xl sm:p-6">
+                <div className="mb-5 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8b7359]">
+                      Top selling products
+                    </p>
+                    <h2 className="mt-1 text-2xl font-semibold text-[#2A2520]">
+                      {isFullProductsPage
+                        ? "All products ordered from highest to lowest"
+                        : "Products ordered from highest to lowest"}
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        isFullProductsPage
+                          ? "/admin/delivery-details"
+                          : "/admin/delivery-details/top-products",
+                      )
+                    }
+                    className="inline-flex items-center gap-2 rounded-full bg-[#f8efe2] px-4 py-2 text-xs font-semibold text-[#8a6038] transition hover:bg-[#f1e0c7]"
+                  >
+                    {isFullProductsPage ? (
+                      <ArrowLeft className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                    {isFullProductsPage ? "Back" : "Show all"}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => navigate(isFullProductsPage ? "/admin/delivery-details" : "/admin/delivery-details/top-products")}
-                  className="inline-flex items-center gap-2 rounded-full bg-[#f8efe2] px-4 py-2 text-xs font-semibold text-[#8a6038] transition hover:bg-[#f1e0c7]"
-                >
-                  {isFullProductsPage ? <ArrowLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  {isFullProductsPage ? "Back" : "Show all"}
-                </button>
-              </div>
 
-              <div className="overflow-hidden rounded-2xl border border-[#ead8c0] bg-white">
-                <div className="grid grid-cols-[0.6fr_2.2fr_1fr_1fr_1fr] gap-3 border-b border-[#ead8c0] bg-[#fbf4ea] px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#8b7359]">
-                  <span>Rank</span>
-                  <span>Product</span>
-                  <span>Sold</span>
-                  <span>Rating</span>
-                  <span>Price</span>
-                </div>
+                <div className="overflow-hidden rounded-2xl border border-[#ead8c0] bg-white">
+                  <div className="grid grid-cols-[0.6fr_2.2fr_1fr_1fr_1fr] gap-3 border-b border-[#ead8c0] bg-[#fbf4ea] px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#8b7359]">
+                    <span>Rank</span>
+                    <span>Product</span>
+                    <span>Sold</span>
+                    <span>Rating</span>
+                    <span>Price</span>
+                  </div>
 
-                <div className="divide-y divide-[#f1e5d4]">
-                  {visibleProducts.length > 0 ? (
-                    visibleProducts.map((product, index) => (
-                      <div key={`${product.productId}-${product.title}`} className="grid grid-cols-[0.6fr_2.2fr_1fr_1fr_1fr] gap-3 px-4 py-4 text-sm">
-                        <div className="font-semibold text-[#8a6038]">#{index + 1}</div>
-                        <div className="flex items-center gap-3">
-                          <img src={product.imageUrl || "/hero.jpg"} alt={product.title} className="h-12 w-12 rounded-xl border border-[#ead8c0] object-cover" />
-                          <div>
-                            <p className="font-semibold text-[#2A2520]">{product.title}</p>
-                            <p className="text-xs text-[#7A6E62]">{product.category || "Skincare"}</p>
+                  <div className="divide-y divide-[#f1e5d4]">
+                    {visibleProducts.length > 0 ? (
+                      visibleProducts.map((product, index) => (
+                        <div
+                          key={`${product.productId}-${product.title}`}
+                          className="grid grid-cols-[0.6fr_2.2fr_1fr_1fr_1fr] gap-3 px-4 py-4 text-sm"
+                        >
+                          <div className="font-semibold text-[#8a6038]">
+                            #{index + 1}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={product.imageUrl || "/hero.jpg"}
+                              alt={product.title}
+                              className="h-12 w-12 rounded-xl border border-[#ead8c0] object-cover"
+                            />
+                            <div>
+                              <p className="font-semibold text-[#2A2520]">
+                                {product.title}
+                              </p>
+                              <p className="text-xs text-[#7A6E62]">
+                                {product.category || "Skincare"}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="font-semibold text-[#2A2520]">
+                            {product.soldCount}
+                          </div>
+                          <div className="inline-flex items-center gap-1 font-semibold text-[#8a6038]">
+                            {product && product.averageRating > 0
+                              ? product.averageRating
+                              : "N/A"}
+                          </div>
+                          <div className="font-semibold text-[#2A2520]">
+                            {formatCurrency(product.price)}
                           </div>
                         </div>
-                        <div className="font-semibold text-[#2A2520]">{product.soldCount}</div>
-                        <div className="inline-flex items-center gap-1 font-semibold text-[#8a6038]">{product && product.averageRating > 0 ? product.averageRating : "N/A"}</div>
-                        <div className="font-semibold text-[#2A2520]">{formatCurrency(product.price)}</div>
+                      ))
+                    ) : (
+                      <div className="px-4 py-10 text-center text-sm text-[#7A6E62]">
+                        No orders have been placed yet.
                       </div>
-                    ))
-                  ) : (
-                    <div className="px-4 py-10 text-center text-sm text-[#7A6E62]">
-                      No orders have been placed yet.
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
             )}
 
             {isFullProductsPage ? null : (
-            <section className="rounded-4xl border border-[#D4B896]/30 bg-white/75 p-5 shadow-xl backdrop-blur-xl sm:p-6">
-              <div className="mb-5 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8b7359]">Order feed</p>
-                  <h2 className="mt-1 text-2xl font-semibold text-[#2A2520]">
-                    {isFullOrdersPage ? "All customer orders" : "Recent customer orders"}
-                  </h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => navigate(isFullOrdersPage ? "/admin/delivery-details" : "/admin/delivery-details/orders")}
-                  className="inline-flex items-center gap-2 rounded-full bg-[#f8efe2] px-4 py-2 text-xs font-semibold text-[#8a6038] transition hover:bg-[#f1e0c7]"
-                >
-                  {isFullOrdersPage ? <ArrowLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  {isFullOrdersPage ? "Back" : "Show all"}
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {visibleOrders.length > 0 ? (
-                  visibleOrders.map((order) => (
-                    <article key={order.id} className="rounded-2xl border border-[#ead8c0] bg-white p-4 shadow-sm">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-[#2A2520]">{order.customer?.name || "Guest user"}</p>
-                          <p className="text-xs text-[#7A6E62]">{order.customer?.email || "No email provided"}</p>
-                        </div>
-                        <div className="rounded-full bg-[#f8efe2] px-3 py-1 text-xs font-semibold text-[#8a6038]">
-                          {String(order.status || "processing").toUpperCase()}
-                        </div>
-                      </div>
-
-                      <div className="mt-3 space-y-2 text-sm text-[#2A2520]">
-                        <p className="text-xs text-[#7A6E62]">Placed on {formatDate(order.createdAt)}</p>
-                        <p className="font-semibold">Order total: {formatCurrency(order.totalAmount)} | Items: {order.items.reduce((sum, item) => sum + item.quantity, 0)}</p>
-                        <p className="text-[#7A6E62]">
-                          {order.address?.line1}, {order.address?.city} - {order.address?.pincode}
-                        </p>
-                      </div>
-
-                      <div className="mt-4 space-y-2">
-                        {order.items.map((item) => (
-                          <div key={`${item.productId}-${item.title}`} className="flex items-center gap-3 rounded-xl bg-[#fbf4ea] px-3 py-2.5">
-                            <img src={item.imageUrl || "/hero.jpg"} alt={item.title} className="h-11 w-11 rounded-lg border border-[#ead8c0] object-cover" />
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-semibold text-[#2A2520]">{item.title}</p>
-                              <p className="text-xs text-[#7A6E62]">Qty {item.quantity} • {formatCurrency(item.price)}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </article>
-                  ))
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-[#d9c8b0] bg-[#fbf4ea] px-5 py-10 text-center text-sm text-[#7A6E62]">
-                    No delivery records yet. New checkout orders will appear here automatically.
+              <section className="rounded-4xl border border-[#D4B896]/30 bg-white/75 p-5 shadow-xl backdrop-blur-xl sm:p-6">
+                <div className="mb-5 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8b7359]">
+                      Order feed
+                    </p>
+                    <h2 className="mt-1 text-2xl font-semibold text-[#2A2520]">
+                      {isFullOrdersPage
+                        ? "All customer orders"
+                        : "Recent customer orders"}
+                    </h2>
                   </div>
-                )}
-              </div>
-            </section>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        isFullOrdersPage
+                          ? "/admin/delivery-details"
+                          : "/admin/delivery-details/orders",
+                      )
+                    }
+                    className="inline-flex items-center gap-2 rounded-full bg-[#f8efe2] px-4 py-2 text-xs font-semibold text-[#8a6038] transition hover:bg-[#f1e0c7]"
+                  >
+                    {isFullOrdersPage ? (
+                      <ArrowLeft className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                    {isFullOrdersPage ? "Back" : "Show all"}
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {visibleOrders.length > 0 ? (
+                    visibleOrders.map((order) => (
+                      <article
+                        key={order.id}
+                        className="rounded-2xl border border-[#ead8c0] bg-white p-4 shadow-sm"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-[#2A2520]">
+                              {order.customer?.name || "Guest user"}
+                            </p>
+                            <p className="text-xs text-[#7A6E62]">
+                              {order.customer?.email || "No email provided"}
+                            </p>
+                          </div>
+                          <div className="rounded-full bg-[#f8efe2] px-3 py-1 text-xs font-semibold text-[#8a6038]">
+                            {String(order.status || "processing").toUpperCase()}
+                          </div>
+                        </div>
+
+                        <div className="mt-3 space-y-2 text-sm text-[#2A2520]">
+                          <p className="text-xs text-[#7A6E62]">
+                            Placed on {formatDate(order.createdAt)}
+                          </p>
+                          <p className="font-semibold">
+                            Order total: {formatCurrency(order.totalAmount)} |
+                            Items:{" "}
+                            {order.items.reduce(
+                              (sum, item) => sum + item.quantity,
+                              0,
+                            )}
+                          </p>
+                          <p className="text-[#7A6E62]">
+                            {order.address?.line1}, {order.address?.city} -{" "}
+                            {order.address?.pincode}
+                          </p>
+                        </div>
+
+                        <div className="mt-4 space-y-2">
+                          {order.items.map((item) => (
+                            <div
+                              key={`${item.productId}-${item.title}`}
+                              className="flex items-center gap-3 rounded-xl bg-[#fbf4ea] px-3 py-2.5"
+                            >
+                              <img
+                                src={item.imageUrl || "/hero.jpg"}
+                                alt={item.title}
+                                className="h-11 w-11 rounded-lg border border-[#ead8c0] object-cover"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-semibold text-[#2A2520]">
+                                  {item.title}
+                                </p>
+                                <p className="text-xs text-[#7A6E62]">
+                                  Qty {item.quantity} •{" "}
+                                  {formatCurrency(item.price)}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </article>
+                    ))
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-[#d9c8b0] bg-[#fbf4ea] px-5 py-10 text-center text-sm text-[#7A6E62]">
+                      No delivery records yet. New checkout orders will appear
+                      here automatically.
+                    </div>
+                  )}
+                </div>
+              </section>
             )}
           </div>
         )}
