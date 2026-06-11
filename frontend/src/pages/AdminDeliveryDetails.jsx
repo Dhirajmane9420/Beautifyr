@@ -434,7 +434,15 @@ setFeaturedIds(
         : "PAID ONLINE"}
     </span>
   </div>
+  <div className="flex items-center gap-2">
+  <span className="font-semibold text-[#2A2520]">
+    Phone:
+  </span>
 
+  <span className="text-[#7A6E62]">
+    {order.address?.phone || "N/A"}
+  </span>
+</div>
   <p className="text-[#7A6E62]">
     {order.address?.line1}, {order.address?.city} -{" "}
     {order.address?.pincode}
