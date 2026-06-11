@@ -170,6 +170,26 @@ const statusClass =
                   {copied ? "Copied!" : order._id.slice(0, 12) + "..."}
                 </button>
               </div>
+              
+               {/* PAYMENT METHOD */}
+  <div className="flex items-center justify-between">
+    <span className="text-[#8a775f]">
+      Payment Method
+    </span>
+
+    <span
+      className={`rounded-full px-3 py-1 text-xs font-bold ${
+        order.paymentMethod === "cod"
+          ? "bg-orange-100 text-orange-700"
+          : "bg-green-100 text-green-700"
+      }`}
+    >
+      {order.paymentMethod === "cod"
+        ? "CASH ON DELIVERY"
+        : "PAID ONLINE"}
+    </span>
+  </div>
+
 
               {/* Delivery */}
               <div className="flex items-center gap-1.5 text-[#6e5947] sm:gap-2">

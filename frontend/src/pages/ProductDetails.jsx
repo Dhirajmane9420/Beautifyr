@@ -172,7 +172,8 @@ const handleReviewSubmit = async () => {
     if (!product) return;
     const optionKey = selectedSize;
     addToCart({
-      id: optionKey ? `${product.id}-${toProductSlug(optionKey)}` : product.id,
+      id: product.id,
+      productId: product.id,
       name: product.name,
       price: currentPrice,
       originalPrice: currentOriginalPrice,

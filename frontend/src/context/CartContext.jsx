@@ -94,7 +94,8 @@ useEffect(() => {
       : null;
 
     const normalized = {
-      id: product.id,
+  id: product.id,
+  productId: product.productId || product.id,
       name: product.name || product.title || "Product",
       price: normalizedPrice,
       originalPrice: normalizedOriginalPrice > 0 ? normalizedOriginalPrice : normalizedPrice,

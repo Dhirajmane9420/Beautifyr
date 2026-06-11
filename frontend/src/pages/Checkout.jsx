@@ -69,6 +69,48 @@ export default function Checkout() {
     setIsPlacingOrder(true);
     setOrderMessage("");
 
+    if (paymentMethod === "cod") {
+  const orderItems = items.map(
+    (item) => ({
+      productId: item.productId,
+      title: item.name,
+      category:
+        item.category ||
+        "Skincare",
+      imageUrl: item.image,
+      price: item.price,
+      quantity:
+        item.quantity,
+      size:
+        item.size || "",
+      sizeVariant:
+        item.sizeVariant
+          ?.label || "",
+    })
+  );
+
+  const order =
+    await placeOrder({
+      items: orderItems,
+      address,
+      paymentMethod: "cod",
+    });
+
+  clearCart();
+
+  setOrderMessage(
+    `Order placed successfully. Ref: ${String(
+      order?._id || ""
+    )
+      .slice(-6)
+      .toUpperCase()}`
+  );
+
+  navigate("/orders");
+
+  return;
+}
+
     const razorpayOrder =
       await createPaymentOrder(
         totals.totalAmount
@@ -377,7 +419,15 @@ export default function Checkout() {
                 disabled={isPlacingOrder || items.length === 0}
                 className="mt-5 inline-flex items-center gap-2 rounded bg-[#8a6038] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#7a522f] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <PackageCheck size={18} /> {isPlacingOrder ? "PLACING ORDER..." : `PAY ${formatINR(totals.totalAmount)}`}
+                <PackageCheck size={18} />
+
+{isPlacingOrder
+  ? "PLACING ORDER..."
+  : paymentMethod === "cod"
+  ? "PLACE ORDER (COD)"
+  : `PAY ${formatINR(
+      totals.totalAmount
+    )}`}
               </button>
             </div>
           ) : null}

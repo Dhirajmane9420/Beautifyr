@@ -405,22 +405,42 @@ setFeaturedIds(
                         </div>
 
                         <div className="mt-3 space-y-2 text-sm text-[#2A2520]">
-                          <p className="text-xs text-[#7A6E62]">
-                            Placed on {formatDate(order.createdAt)}
-                          </p>
-                          <p className="font-semibold">
-                            Order total: {formatCurrency(order.totalAmount)} |
-                            Items:{" "}
-                            {order.items.reduce(
-                              (sum, item) => sum + item.quantity,
-                              0,
-                            )}
-                          </p>
-                          <p className="text-[#7A6E62]">
-                            {order.address?.line1}, {order.address?.city} -{" "}
-                            {order.address?.pincode}
-                          </p>
-                        </div>
+
+  <p className="text-xs text-[#7A6E62]">
+    Placed on {formatDate(order.createdAt)}
+  </p>
+
+  <p className="font-semibold">
+    Order total: {formatCurrency(order.totalAmount)} |
+    Items:{" "}
+    {order.items.reduce(
+      (sum, item) => sum + item.quantity,
+      0,
+    )}
+  </p>
+
+  {/* PAYMENT METHOD */}
+
+  <div>
+    <span
+      className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+        order.paymentMethod === "cod"
+          ? "bg-orange-100 text-orange-700"
+          : "bg-green-100 text-green-700"
+      }`}
+    >
+      {order.paymentMethod === "cod"
+        ? "CASH ON DELIVERY"
+        : "PAID ONLINE"}
+    </span>
+  </div>
+
+  <p className="text-[#7A6E62]">
+    {order.address?.line1}, {order.address?.city} -{" "}
+    {order.address?.pincode}
+  </p>
+
+</div>
 
                         <div className="mt-4 space-y-2">
                           {order.items.map((item) => (
