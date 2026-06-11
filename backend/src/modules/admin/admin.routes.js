@@ -12,6 +12,7 @@ import {
 	deleteCatalogProduct,
 	getPublicCatalogProducts,
 	updateCatalogProduct,
+	submitProductReview,
 } from "../catalog/catalog.controller.js";
 import {
 	createCatalogCategory,
@@ -38,3 +39,8 @@ adminRouter.put("/admin/catalog-products/:id", requireAuth, requireAdmin, update
 adminRouter.delete("/admin/catalog-products/:id", requireAuth, requireAdmin, deleteCatalogProduct);
 adminRouter.post("/admin/catalog-categories", requireAuth, requireAdmin, createCatalogCategory);
 adminRouter.delete("/admin/catalog-categories/:id", requireAuth, requireAdmin, deleteCatalogCategory);
+adminRouter.post(
+  "/catalog-products/:id/review",
+  requireAuth,
+  submitProductReview
+);

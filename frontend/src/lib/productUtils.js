@@ -34,20 +34,41 @@ export function toProductPayload(input) {
   const originalPrice = parsedOriginalPrice > 0 ? parsedOriginalPrice : priceNumber;
 
   const liquid = isLiquidProduct(input);
+
   return {
     id: input?.id || input?._id || `p-${toProductSlug(input?.name || input?.title)}`,
     name: input?.name || input?.title || "Product",
     description: String(input?.description || "").trim(),
     category: input?.category || "Skincare",
-    image: input?.image || input?.imageUrl || input?.imageUrls?.[0] || "/hero.jpg",
-    imageUrls: Array.isArray(input?.imageUrls) && input.imageUrls.length ? input.imageUrls : [input?.image || input?.imageUrl || "/hero.jpg"],
+    image:
+      input?.image ||
+      input?.imageUrl ||
+      input?.imageUrls?.[0] ||
+      "/hero.jpg",
+    imageUrls:
+      Array.isArray(input?.imageUrls) && input.imageUrls.length
+        ? input.imageUrls
+        : [input?.image || input?.imageUrl || "/hero.jpg"],
     price: priceNumber,
     originalPrice,
     stock: Number(input?.stock) || 0,
     sizeStock: Array.isArray(input?.sizeStock) ? input.sizeStock : [],
-    sizeVariants: Array.isArray(input?.sizeVariants) ? input.sizeVariants : [],
+    sizeVariants: Array.isArray(input?.sizeVariants)
+      ? input.sizeVariants
+      : [],
     features: Array.isArray(input?.features) ? input.features : [],
     size: liquid ? normalizeMlSize(input?.size) : "",
     isLiquid: liquid,
+
+    reviews: Array.isArray(input?.reviews)
+      ? input.reviews
+      : [],
+
+    averageRating:
+      Number(input?.averageRating) || 0,
+
+    reviewCount:
+      Number(input?.reviewCount) || 0,
   };
 }
+//

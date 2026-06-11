@@ -141,6 +141,47 @@ const catalogProductSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    reviews: {
+  type: [
+    {
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+      },
+      userName: {
+        type: String,
+        required: true,
+      },
+      rating: {
+        type: Number,
+        required: true,
+        min: 1,
+        max: 5,
+      },
+      comment: {
+        type: String,
+        required: true,
+        trim: true,
+        maxlength: 250,
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+  ],
+  default: [],
+},
+
+averageRating: {
+  type: Number,
+  default: 0,
+},
+
+reviewCount: {
+  type: Number,
+  default: 0,
+},
   },
   {
     timestamps: true,

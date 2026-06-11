@@ -8,6 +8,9 @@ import { searchIndex } from "../lib/searchIndex";
 import { isLiquidProduct, toProductPayload, toProductSlug } from "../lib/productUtils";
 import { fetchCatalogProducts } from "../lib/catalogApi";
 import heroImage from "../assets/hero.jpg";
+import { Star } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { submitProductReview } from "../lib/catalogApi";
 
 function formatINR(value) {
   return `₹${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -19,11 +22,17 @@ export default function ProductDetails() {
   const { slug } = useParams();
   const { addToCart } = useCart();
 
+  const { user, isAuthenticated } = useAuth();
+
   const [dbProduct, setDbProduct] = useState(null);
   const [loadingDb, setLoadingDb] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState("");
+
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   // Try to resolve from navigation state first, then searchIndex, then fetch from API
   const resolved = useMemo(() => {
@@ -121,6 +130,43 @@ export default function ProductDetails() {
     setQuantity(1);
     setSelectedSize(sizeOptions[0]?.label || "");
   }, [product?.id]);
+
+const handleReviewSubmit = async () => {
+  if (!product) return;
+
+  if (comment.trim().length < 5) {
+    alert("Review must be at least 5 characters.");
+    return;
+  }
+
+  try {
+    setSubmittingReview(true);
+
+    await submitProductReview(
+      product.id,
+      rating,
+      comment
+    );
+
+    const allProducts = await fetchCatalogProducts();
+
+    const updated = allProducts.find(
+      (p) => p._id === product.id
+    );
+
+    if (updated) {
+      setDbProduct(updated);
+    }
+
+    setComment("");
+
+    alert("Review submitted successfully.");
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    setSubmittingReview(false);
+  }
+};
 
   const addCurrentToCart = () => {
     if (!product) return;
@@ -388,18 +434,145 @@ export default function ProductDetails() {
       </main>
 
       {/* ─── CUSTOMER REVIEWS ─── */}
-      <section className="mx-auto max-w-7xl px-5 pb-10">
-        <div className="rounded-3xl border border-[#D4B896]/20 bg-white p-8 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-[#2A2520]">Customer Reviews</h2>
-            <p className="text-sm text-[#8B7359]">No verified user reviews yet.</p>
-          </div>
+      {/* ─── CUSTOMER REVIEWS ─── */}
+<section className="mx-auto max-w-7xl px-5 pb-10">
+  <div className="rounded-3xl border border-[#D4B896]/20 bg-white p-8 shadow-sm">
 
-          <div className="mt-6 rounded-xl border border-dashed border-[#D4B896]/30 bg-[#FAFAF8] p-6 text-sm text-[#7A6E62]">
-            Reviews will appear here only after real customers submit them.
-          </div>
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <h2 className="text-lg font-semibold text-[#2A2520]">
+          Customer Reviews
+        </h2>
+
+        <div className="flex items-center gap-2 mt-2">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Star
+              key={star}
+              size={18}
+              fill={
+                star <= Math.round(product.averageRating)
+                  ? "#C8A97E"
+                  : "transparent"
+              }
+              color="#C8A97E"
+            />
+          ))}
+
+          <span className="text-sm text-[#7A6E62]">
+            {product.averageRating || 0}/5
+          </span>
+
+          <span className="text-sm text-[#8B7359]">
+            ({product.reviewCount || 0} Reviews)
+          </span>
         </div>
-      </section>
+      </div>
+    </div>
+
+    {/* Reviews List */}
+
+    <div className="mt-6 space-y-4">
+      {product.reviews?.length > 0 ? (
+        product.reviews.map((review, index) => (
+          <div
+            key={index}
+            className="rounded-xl border border-[#D4B896]/20 p-4"
+          >
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium text-[#2A2520]">
+                {review.userName}
+              </h4>
+
+              <div className="flex">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    size={15}
+                    fill={
+                      star <= review.rating
+                        ? "#C8A97E"
+                        : "transparent"
+                    }
+                    color="#C8A97E"
+                  />
+                ))}
+              </div>
+            </div>
+
+            <p className="mt-2 text-sm text-[#7A6E62]">
+              {review.comment}
+            </p>
+          </div>
+        ))
+      ) : (
+        <div className="rounded-xl border border-dashed border-[#D4B896]/30 bg-[#FAFAF8] p-6 text-sm text-[#7A6E62]">
+          No reviews yet. Be the first to review this product.
+        </div>
+      )}
+    </div>
+
+    {/* Review Form */}
+
+    {isAuthenticated ? (
+      <div className="mt-8 border-t border-[#D4B896]/20 pt-6">
+
+        <h3 className="text-md font-semibold text-[#2A2520]">
+          Write a Review
+        </h3>
+
+        <div className="flex gap-2 mt-3">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              onClick={() => setRating(star)}
+            >
+              <Star
+                size={24}
+                fill={
+                  star <= rating
+                    ? "#C8A97E"
+                    : "transparent"
+                }
+                color="#C8A97E"
+              />
+            </button>
+          ))}
+        </div>
+
+        <textarea
+          value={comment}
+          onChange={(e) => {
+            if (e.target.value.length <= 250) {
+              setComment(e.target.value);
+            }
+          }}
+          rows={4}
+          placeholder="Share your experience..."
+          className="mt-4 w-full rounded-xl border border-[#D4B896]/30 p-3 focus:outline-none focus:border-[#C8A97E]"
+        />
+
+        <div className="mt-2 text-xs text-[#8B7359]">
+          {comment.length}/250 characters
+        </div>
+
+        <button
+          onClick={handleReviewSubmit}
+          disabled={submittingReview}
+          className="mt-4 rounded-xl bg-[#C8A97E] px-6 py-2 text-white hover:bg-[#B8976E]"
+        >
+          {submittingReview
+            ? "Submitting..."
+            : "Submit Review"}
+        </button>
+      </div>
+    ) : (
+      <div className="mt-8 rounded-xl bg-[#FAFAF8] p-4 text-sm text-[#7A6E62]">
+        Please login to submit a review.
+      </div>
+    )}
+  </div>
+</section>
 
       {/* ─── RELATED PRODUCTS ─── */}
       <section className="mx-auto max-w-7xl px-5 pb-16">

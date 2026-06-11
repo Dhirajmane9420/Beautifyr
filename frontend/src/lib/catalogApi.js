@@ -91,3 +91,19 @@ export const fetchProductsByCategory =
         product.category === categoryName
     );
   };
+  export const submitProductReview = async (
+  productId,
+  rating,
+  comment
+) => {
+  return request(
+    `/catalog-products/${productId}/review`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        rating,
+        comment,
+      }),
+    }
+  );
+};

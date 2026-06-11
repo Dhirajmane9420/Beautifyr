@@ -396,8 +396,21 @@ const validatePayload = (payload) => {
 
 export const getPublicCatalogProducts = async (_req, res, next) => {
   try {
-    const products = await CatalogProduct.find({}).sort({ createdAt: -1 });
-    return res.status(200).json({ products });
+    const products = await CatalogProduct.find({}).sort({
+      createdAt: -1,
+    });
+
+    console.log("PRODUCTS API CALLED");
+    console.log(
+      products[0]?.reviews,
+      products[0]?.averageRating,
+      products[0]?.reviewCount
+    );
+
+    return res.status(200).json({
+      message: "Review saved successfully",
+      products,
+    });
   } catch (error) {
     return next(error);
   }
@@ -460,6 +473,82 @@ export const deleteCatalogProduct = async (req, res, next) => {
     return next(error);
   }
 };
+
+export const submitProductReview = async (req, res, next) => {
+  try {
+    const { rating, comment } = req.body;
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({
+        message: "Rating must be between 1 and 5",
+      });
+    }
+
+    if (!comment || comment.trim().length < 5) {
+      return res.status(400).json({
+        message: "Comment must be at least 5 characters",
+      });
+    }
+
+    const product = await CatalogProduct.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({
+        message: "Product not found",
+      });
+    }
+
+    const existingReview = product.reviews.find(
+      (review) =>
+        review.userId.toString() === req.user._id.toString()
+    );
+
+    if (existingReview) {
+      existingReview.rating = rating;
+      existingReview.comment = comment.trim();
+      existingReview.createdAt = new Date();
+    } else {
+      product.reviews.push({
+        userId: req.user._id,
+        userName: req.user.name,
+        rating,
+        comment: comment.trim(),
+      });
+    }
+
+    product.reviewCount = product.reviews.length;
+
+    const totalRating = product.reviews.reduce(
+      (sum, review) => sum + review.rating,
+      0
+    );
+
+    product.averageRating =
+      product.reviewCount > 0
+        ? Number(
+            (totalRating / product.reviewCount).toFixed(1)
+          )
+        : 0;
+
+    console.log("==== REVIEW DEBUG ====");
+console.log("Reviews:", product.reviews);
+console.log("Average Rating:", product.averageRating);
+console.log("Review Count:", product.reviewCount);
+console.log("======================");
+
+    await product.save();
+
+    return res.status(200).json({
+      message: "Review saved successfully",
+      reviews: product.reviews,
+      averageRating: product.averageRating,
+      reviewCount: product.reviewCount,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 export const ensureDefaultCatalogProducts = async () => {
   const count = await CatalogProduct.countDocuments({});
