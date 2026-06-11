@@ -23,7 +23,8 @@ export default function ProductDetails() {
   const { addToCart } = useCart();
 
   const { user, isAuthenticated } = useAuth();
-
+  const [allProducts, setAllProducts] =
+  useState([]);
   const [dbProduct, setDbProduct] = useState(null);
   const [loadingDb, setLoadingDb] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -57,6 +58,25 @@ export default function ProductDetails() {
 
     return null;
   }, [location.state, slug]);
+
+  useEffect(() => {
+  const loadProducts = async () => {
+    try {
+      const products =
+        await fetchCatalogProducts();
+
+      setAllProducts(
+        products.map((item) =>
+          toProductPayload(item)
+        )
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  loadProducts();
+}, []);
 
   // Fallback: fetch from API if not resolved from state/index
   useEffect(() => {
@@ -92,20 +112,17 @@ export default function ProductDetails() {
   }, [resolved, dbProduct]);
 
   const relatedProducts = useMemo(() => {
-    if (!product) return [];
-    const sameCategory = searchIndex.filter(
-      (item) => item.type === "Product" && item.category === product.category && toProductSlug(item.title) !== toProductSlug(product.name)
-    );
-    return sameCategory.slice(0, 4).map((item) =>
-      toProductPayload({
-        id: item.id,
-        name: item.title,
-        price: item.price,
-        category: item.category,
-        image: heroImage,
-      })
-    );
-  }, [product]);
+  if (!product) return [];
+
+  return allProducts
+    .filter(
+      (item) =>
+        item.category ===
+          product.category &&
+        item.id !== product.id
+    )
+    .slice(0, 4);
+}, [product, allProducts]);
 
   const liquidProduct = product ? isLiquidProduct(product) : false;
   const productImages = product?.imageUrls?.length ? product.imageUrls : [product?.image].filter(Boolean);
