@@ -304,6 +304,18 @@ const handleReviewSubmit = async () => {
                 </>
               )}
             </div>
+            {/*Stock Section */}
+            <div className="mt-3">
+  {selectedSizeOption?.stock > 0 ? (
+    <span className="text-sm font-medium text-green-600">
+      In Stock ({selectedSizeOption.stock} left)
+    </span>
+  ) : (
+    <span className="text-sm font-medium text-red-600">
+      Out of Stock
+    </span>
+  )}
+</div>
 
             {/* Trust badges */}
             <div className="mt-6 flex flex-wrap gap-2">
@@ -374,7 +386,14 @@ const handleReviewSubmit = async () => {
             <div className="mt-8 flex gap-4">
               <div className="inline-flex items-center rounded-xl border border-[#D4B896]/30 bg-white">
                 <button
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  onClick={() =>
+  setQuantity((q) =>
+    Math.min(
+      q + 1,
+      selectedSizeOption?.stock || 0
+    )
+  )
+}
                   className="px-4 py-2.5 text-[#2A2520] hover:text-[#C8A97E] transition"
                 >
                   <Minus size={16} />
@@ -389,18 +408,31 @@ const handleReviewSubmit = async () => {
               </div>
               <button
                 onClick={addCurrentToCart}
-                className="flex-1 rounded-xl bg-[#C8A97E] px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-[#B8976E] hover:shadow-lg"
+  disabled={
+    !selectedSizeOption ||
+    selectedSizeOption.stock <= 0
+  }
+                className="flex-1 rounded-xl bg-[#C8A97E] px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-[#B8976E] hover:shadow-lg disabled:opacity-50
+disabled:cursor-not-allowed"
               >
-                Add to Cart — {formatINR(currentPrice * quantity)}
+              {
+  selectedSizeOption?.stock > 0
+    ? `Add to Cart — ${formatINR(currentPrice * quantity)}`
+    : "Out of Stock"
+}
               </button>
             </div>
 
             {/* Buy Now */}
             <button
-              onClick={() => {
-                addCurrentToCart();
-                navigate("/checkout");
-              }}
+              disabled={
+    !selectedSizeOption ||
+    selectedSizeOption.stock <= 0
+  }
+  onClick={() => {
+    addCurrentToCart();
+    navigate("/checkout");
+  }}
               className="mt-3 w-full rounded-xl border-2 border-[#2A2520] px-6 py-2.5 text-sm font-semibold text-[#2A2520] transition hover:bg-[#2A2520] hover:text-white"
             >
               Buy it now

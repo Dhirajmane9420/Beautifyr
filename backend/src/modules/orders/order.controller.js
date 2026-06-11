@@ -1,5 +1,5 @@
 import { Order } from "./order.model.js";
-
+import { CatalogProduct } from "../catalog/catalog.model.js";
 const normalizeOrderItems = (items) => {
   if (!Array.isArray(items)) {
     return [];
@@ -34,6 +34,43 @@ export const placeOrder = async (req, res, next) => {
     const { items, address, paymentMethod } = req.body;
     const normalizedItems = normalizeOrderItems(items);
 
+    for (const item of normalizedItems) {
+  const product = await CatalogProduct.findById(
+    item.productId
+  );
+
+  if (!product) {
+    return res.status(404).json({
+      message: `${item.title} not found.`,
+    });
+  }
+
+  const selectedSize =
+    item.sizeVariant || item.size;
+
+  const sizeEntry =
+    product.sizeStock.find(
+      (size) =>
+        size.label === selectedSize
+    );
+
+  if (!sizeEntry) {
+    return res.status(400).json({
+      message: `Selected size not available for ${item.title}.`,
+    });
+  }
+
+  if (
+    sizeEntry.stock <
+    item.quantity
+  ) {
+    return res.status(400).json({
+      message:
+        `${item.title} (${selectedSize}) has only ${sizeEntry.stock} left in stock.`,
+    });
+  }
+}
+
     if (!normalizedItems.length) {
       return res.status(400).json({ message: "Order items are required." });
     }
@@ -66,6 +103,45 @@ export const placeOrder = async (req, res, next) => {
       totalAmount,
       status: "processing",
     });
+
+    for (const item of normalizedItems) {
+  const product =
+    await CatalogProduct.findById(
+      item.productId
+    );
+
+  if (!product) continue;
+
+  const selectedSize =
+    item.sizeVariant || item.size;
+
+  const sizeEntry =
+    product.sizeStock.find(
+      (size) =>
+        size.label === selectedSize
+    );
+
+  if (!sizeEntry) continue;
+
+  sizeEntry.stock =
+    Math.max(
+      0,
+      sizeEntry.stock -
+        item.quantity
+    );
+
+  product.stock =
+    product.sizeStock.reduce(
+      (sum, size) =>
+        sum + size.stock,
+      0
+    );
+
+  product.inStock =
+    product.stock > 0;
+
+  await product.save();
+}
 
     return res.status(201).json({ message: "Order placed successfully.", order });
   } catch (error) {
