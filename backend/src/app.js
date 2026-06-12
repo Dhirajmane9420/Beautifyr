@@ -7,6 +7,7 @@ import { orderRouter } from "./modules/orders/order.routes.js";
 import { catalogRouter } from "./modules/catalog/catalog.route.js";
 import homeFeaturedRouter from "./modules/homeFeatured/homeFeatured.route.js";
 import paymentRouter from "./modules/payment/payment.route.js";
+import healthRoute from "./modules/homeFeatured/healthRoute.js";
 export const createApp = ({ clientUrl }) => {
   const app = express();
 
@@ -37,6 +38,7 @@ export const createApp = ({ clientUrl }) => {
   app.get("/api/health", (_req, res) => {
     res.status(200).json({ status: "ok", message: "Backend running" });
   });
+  
 
   app.use("/api/auth", authRouter);
   app.use("/api", adminRouter);
@@ -44,6 +46,7 @@ export const createApp = ({ clientUrl }) => {
   app.use("/api", catalogRouter);
   app.use("/api", homeFeaturedRouter);
   app.use("/api", paymentRouter);
+  app.use("/health", healthRoute);
   app.use((req, res) => {
     res.status(404).json({ message: `Route not found: ${req.originalUrl}` });
   });
