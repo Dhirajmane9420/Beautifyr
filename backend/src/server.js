@@ -16,6 +16,8 @@ const startServer = async () => {
 
     const server = app.listen(env.port, () => {
       console.log(`Server running on port ${env.port}`);
+      console.log("CLIENT_URL =", env.clientUrl);
+console.log("NODE_ENV =", env.nodeEnv);
     });
 
     const shutdown = async (signal) => {
