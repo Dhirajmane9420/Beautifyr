@@ -237,16 +237,12 @@ const statusClass =
               <div className="flex justify-between text-[#6e5947]">
                 <span>Delivery ({order.courier?.name || "Standard"})</span>
                 <span>
-                  {order.deliveryFee === 0 ? (
-                    <span className="text-green-600">FREE</span>
-                  ) : (
-                    formatINR(order.totals?.courierCost || 0)
-                  )}
+                  <span className="text-green-600">FREE</span>
                 </span>
               </div>
               <div className="flex justify-between text-[#6e5947]">
                 <span>Platform Fee</span>
-                <span>{formatINR(0 || 0)}</span>
+                <span>{formatINR(order.deliveryFee || 0)}</span>
               </div>
             </div>
             <div className="mt-2 border-t border-dashed border-[#dcc8aa] pt-2">

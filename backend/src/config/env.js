@@ -2,7 +2,17 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const requiredEnvVars = ["MONGODB_URI", "JWT_SECRET"];
+const requiredEnvVars = [
+  "MONGODB_URI",
+  "JWT_SECRET",
+  "ADMIN_EMAIL",
+  "ADMIN_PASSWORD",
+  "CLOUDINARY_CLOUD_NAME",
+  "CLOUDINARY_API_KEY",
+  "CLOUDINARY_API_SECRET",
+  "RAZORPAY_KEY_ID",
+  "RAZORPAY_KEY_SECRET",
+];
 
 for (const key of requiredEnvVars) {
   if (!process.env[key]) {
@@ -22,10 +32,10 @@ export const env = {
   jwtSecret: process.env.JWT_SECRET,
   googleClientId: process.env.GOOGLE_CLIENT_ID || "",
   clientUrl: process.env.CLIENT_URL || "http://localhost:5173",
-  adminEmail: process.env.ADMIN_EMAIL || "admin@gmail.com",
-  adminPassword: process.env.ADMIN_PASSWORD || "admin123",
+  adminEmail: process.env.ADMIN_EMAIL,
+  adminPassword: process.env.ADMIN_PASSWORD,
   adminName: process.env.ADMIN_NAME || "Admin",
-  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME || "",
-  cloudinaryApiKey: process.env.CLOUDINARY_API_KEY || "",
-  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || "",
+  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
+  cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
+  cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
 };
