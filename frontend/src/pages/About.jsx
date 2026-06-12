@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from "react";
-import aboutImg from "../assets/hero.jpg"; // replace later with actual image
+import aboutImg from "../assets/ourstory.jpg"; // replace later with actual image
 import { motion } from "framer-motion";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";

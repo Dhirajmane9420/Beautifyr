@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import heroImage from "../assets/hero.jpg";
+import heroImage from "../assets/newarrival.jpg";
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
 import { toProductSlug } from "../lib/productUtils";

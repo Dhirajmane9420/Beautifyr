@@ -17,7 +17,9 @@ import {
 import {
   fetchHomeFeatured,
 } from "../lib/homeFeaturedApi";
-
+import serumimg from "../assets/HERO PAGE/serums.jpg";
+import moisturizerimg from "../assets/HERO PAGE/moisturizer.jpg";
+import cleanserimg from "../assets/HERO PAGE/sunscreens.jpg";
 // Refined, ultra-smooth animation curves
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -280,7 +282,7 @@ useEffect(() => {
         <div className="grid h-auto grid-cols-1 gap-5 md:h-[560px] md:grid-cols-12 md:gap-6">
           {/* Main Large Card */}
           <motion.div variants={fadeUp} className="group relative h-[320px] overflow-hidden rounded-[1.5rem] md:col-span-7 md:h-full md:rounded-[2rem]">
-            <img data-edit-key="categories.mainCard.image" data-edit-kind="image" data-edit-label="Main Category Image" src={heroImg} alt="Serums" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+            <img data-edit-key="categories.mainCard.image" data-edit-kind="image" data-edit-label="Main Category Image" src={serumimg} alt="Serums" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
             <div className="absolute bottom-5 left-5 right-5 sm:bottom-8 sm:left-8 sm:right-8">
               <div className="max-w-xs transform rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-2xl transition-all duration-500 group-hover:translate-y-0 sm:max-w-sm sm:translate-y-4 sm:p-6">
@@ -294,7 +296,7 @@ useEffect(() => {
           {/* Side Cards Stack */}
           <div className="flex h-full flex-col gap-5 md:col-span-5 md:gap-6">
             <motion.div variants={fadeUp} className="group relative min-h-[220px] flex-1 overflow-hidden rounded-[1.5rem] md:min-h-[250px] md:rounded-[2rem]">
-              <img data-edit-key="categories.sideTop.image" data-edit-kind="image" data-edit-label="Top Side Category Image" src={heroImg} alt="Moisturizers" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+              <img data-edit-key="categories.sideTop.image" data-edit-kind="image" data-edit-label="Top Side Category Image" src={moisturizerimg} alt="Moisturizers" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-500"></div>
               <div className="absolute bottom-6 left-6">
                 <h3 data-edit-key="categories.sideTop.title" data-edit-kind="text" data-edit-label="Top Side Category Title" className="text-2xl font-light text-white">Moisturizers</h3>
@@ -303,7 +305,7 @@ useEffect(() => {
             </motion.div>
 
             <motion.div variants={fadeUp} className="group relative min-h-[220px] flex-1 overflow-hidden rounded-[1.5rem] md:min-h-[250px] md:rounded-[2rem]">
-              <img data-edit-key="categories.sideBottom.image" data-edit-kind="image" data-edit-label="Bottom Side Category Image" src={heroImg} alt="Cleansers" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+              <img data-edit-key="categories.sideBottom.image" data-edit-kind="image" data-edit-label="Bottom Side Category Image" src={cleanserimg} alt="Cleansers" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-500"></div>
               <div className="absolute bottom-6 left-6">
                 <h3 data-edit-key="categories.sideBottom.title" data-edit-kind="text" data-edit-label="Bottom Side Category Title" className="text-2xl font-light text-white">Cleansers</h3>
@@ -400,7 +402,7 @@ useEffect(() => {
             </motion.div>
           </div>
           <motion.div variants={fadeUp} className="relative min-h-[260px] sm:min-h-[360px] lg:min-h-full lg:w-1/2">
-            <img data-edit-key="about.image" data-edit-kind="image" data-edit-label="About Image" src={heroImg} alt="Lab/Texture" className="absolute inset-0 w-full h-full object-cover" />
+            <img data-edit-key="about.image" data-edit-kind="image" data-edit-label="About Image" src={serumimg} alt="Lab/Texture" className="absolute inset-0 w-full h-full object-cover" />
           </motion.div>
         </motion.div>
       </section>
@@ -449,7 +451,7 @@ useEffect(() => {
             </div>
             <div className="relative mx-auto w-full max-w-[260px] flex-shrink-0 sm:max-w-[320px] md:mx-0 md:w-auto">
               <div className="flex h-56 w-56 items-center justify-center overflow-hidden rounded-full border border-white/50 bg-white/30 shadow-2xl backdrop-blur-3xl sm:h-64 sm:w-64 md:h-80 md:w-80">
-                 <img data-edit-key="promo.image" data-edit-kind="image" data-edit-label="Promo Image" src={heroImg} alt="Bundle" className="w-[120%] h-[120%] object-cover opacity-90 mix-blend-multiply" />
+                 <img data-edit-key="promo.image" data-edit-kind="image" data-edit-label="Promo Image" src={moisturizerimg} alt="Bundle" className="w-[120%] h-[120%] object-cover opacity-90 mix-blend-multiply" />
               </div>
             </div>
           </div>

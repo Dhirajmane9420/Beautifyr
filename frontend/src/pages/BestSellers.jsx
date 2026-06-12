@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
-import heroImage from "../assets/hero.jpg";
+import heroImage from "../assets/trulydesired.jpg";
 import { toProductSlug } from "../lib/productUtils";
 import {
   deleteCatalogProduct,

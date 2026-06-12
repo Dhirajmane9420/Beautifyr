@@ -24,7 +24,8 @@ import {
   uploadPageOverrideImage,
 } from "../lib/siteOverridesApi";
 import { toProductSlug } from "../lib/productUtils";
-
+import categoryhero from "../assets/categoryhero.jpg";
+import categoryhero2 from "../assets/categoryhero2.jpg";
 const SECTIONS = ["Cleansers", "Serums", "Moisturizers","Acne Care","Brightening","Exfoliators","Eye Care","Kits and Combos","Lip Care","Sunscreens","Toners","Travel Minis"];
 
 const CONTENT_DEFAULTS = {
@@ -32,18 +33,18 @@ const CONTENT_DEFAULTS = {
   "hero.titlePrefix": "Shop by",
   "hero.titleAccent": "Category",
   "hero.description": "Explore our skincare essentials crafted for radiant, healthy skin.",
-  "hero.image": heroImg,
+  "hero.image": categoryhero2,
   "section.cleansers.title": "Cleansers",
   "section.cleansers.subtitle": "Gentle formulas that purify without stripping.",
-  "section.cleansers.image": heroImg,
+  "section.cleansers.image": categoryhero,
   "section.serums.title": "Serums",
   "section.serums.subtitle": "Concentrated treatments for targeted skin concerns.",
-  "section.serums.image": heroImg,
+  "section.serums.image": categoryhero,
   "section.moisturizers.title": "Moisturizers",
   "section.moisturizers.subtitle": "Deep hydration for a dewy, healthy complexion.",
-  "section.moisturizers.image": heroImg,
+  "section.moisturizers.image": categoryhero,
   "section.dynamic.subtitle": "Explore products from this category.",
-  "section.dynamic.image": heroImg,
+  "section.dynamic.image": categoryhero,
 };
 
 const defaultCategory = SECTIONS[0];
