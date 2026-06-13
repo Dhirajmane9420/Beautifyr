@@ -1,4 +1,4 @@
-import heroImg from "../assets/hero.jpg";
+import heroImg from "../assets/categoryhero.jpg";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
