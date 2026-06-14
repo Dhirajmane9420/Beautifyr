@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Eye, Shield, Share2, Truck, Minus, Plus, ChevronRight } from "lucide-react";
+import { Eye, Shield, Share2, Truck, Minus, Plus, ChevronRight, X, Copy, Check } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useCart } from "../context/CartContext";
@@ -30,6 +30,8 @@ export default function ProductDetails() {
   const [quantity, setQuantity] = useState(1);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState("");
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
@@ -457,9 +459,145 @@ disabled:cursor-not-allowed"
             </button>
 
             {/* Share */}
-            <button className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[#8B7359] hover:text-[#C8A97E] transition">
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[#8B7359] hover:text-[#C8A97E] transition"
+            >
               <Share2 size={14} /> Share this product
             </button>
+
+            {/* Share Modal */}
+            {showShareModal && (
+              <div
+                className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4"
+                onClick={() => setShowShareModal(false)}
+              >
+                <div
+                  className="w-full sm:w-[420px] rounded-t-3xl sm:rounded-3xl bg-white shadow-2xl overflow-hidden animate-[slideUp_0.3s_ease-out]"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-6 pt-5 pb-3">
+                    <h3 className="text-lg font-semibold text-[#2A2520]">Share this product</h3>
+                    <button
+                      onClick={() => setShowShareModal(false)}
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-[#8B7359] hover:bg-[#F7F4F0] transition"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  {/* Product Preview */}
+                  <div className="mx-6 mb-4 flex items-center gap-3 rounded-2xl border border-[#D4B896]/20 bg-[#FAFAF8] p-3">
+                    <img
+                      src={activeImage}
+                      alt={product.name}
+                      className="h-14 w-14 rounded-xl object-cover border border-[#D4B896]/20"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-[#2A2520] truncate">{product.name}</p>
+                      <p className="text-xs text-[#C8A97E] font-semibold mt-0.5">{formatINR(currentPrice)}</p>
+                    </div>
+                  </div>
+
+                  {/* Copy Link */}
+                  <div className="mx-6 mb-4">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(window.location.href);
+                        setLinkCopied(true);
+                        setTimeout(() => setLinkCopied(false), 2000);
+                      }}
+                      className="w-full flex items-center gap-3 rounded-2xl border border-[#D4B896]/30 bg-[#FAFAF8] px-4 py-3 text-sm font-medium text-[#2A2520] hover:bg-[#F0EAE0] transition"
+                    >
+                      {linkCopied ? (
+                        <span className="w-9 h-9 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
+                          <Check size={16} className="text-green-600" />
+                        </span>
+                      ) : (
+                        <span className="w-9 h-9 rounded-xl bg-[#C8A97E]/10 flex items-center justify-center shrink-0">
+                          <Copy size={16} className="text-[#C8A97E]" />
+                        </span>
+                      )}
+                      {linkCopied ? "Link copied!" : "Copy link"}
+                    </button>
+                  </div>
+
+                  {/* Share Options Grid */}
+                  <div className="mx-6 mb-6 grid grid-cols-4 gap-3">
+                    {/* WhatsApp */}
+                    <a
+                      href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Check out ${product.name} on Clinical Sanctuary! ${window.location.href}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-center gap-2 rounded-2xl py-3 hover:bg-[#FAFAF8] transition"
+                    >
+                      <span className="w-12 h-12 rounded-2xl bg-[#25D366]/10 flex items-center justify-center">
+                        <svg viewBox="0 0 24 24" className="w-6 h-6 fill-[#25D366]">
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                        </svg>
+                      </span>
+                      <span className="text-[11px] font-medium text-[#7A6E62]">WhatsApp</span>
+                    </a>
+
+                    {/* Facebook */}
+                    <a
+                      href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-center gap-2 rounded-2xl py-3 hover:bg-[#FAFAF8] transition"
+                    >
+                      <span className="w-12 h-12 rounded-2xl bg-[#1877F2]/10 flex items-center justify-center">
+                        <svg viewBox="0 0 24 24" className="w-6 h-6 fill-[#1877F2]">
+                          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                        </svg>
+                      </span>
+                      <span className="text-[11px] font-medium text-[#7A6E62]">Facebook</span>
+                    </a>
+
+                    {/* Twitter/X */}
+                    <a
+                      href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${product.name} on Clinical Sanctuary!`)}&url=${encodeURIComponent(window.location.href)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-center gap-2 rounded-2xl py-3 hover:bg-[#FAFAF8] transition"
+                    >
+                      <span className="w-12 h-12 rounded-2xl bg-[#000]/5 flex items-center justify-center">
+                        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-[#000]">
+                          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                        </svg>
+                      </span>
+                      <span className="text-[11px] font-medium text-[#7A6E62]">X</span>
+                    </a>
+
+                    {/* Email */}
+                    <a
+                      href={`mailto:?subject=${encodeURIComponent(`Check out ${product.name}`)}&body=${encodeURIComponent(`I found this amazing product on Clinical Sanctuary: ${product.name}\n\n${window.location.href}`)}`}
+                      className="flex flex-col items-center gap-2 rounded-2xl py-3 hover:bg-[#FAFAF8] transition"
+                    >
+                      <span className="w-12 h-12 rounded-2xl bg-[#EA4335]/10 flex items-center justify-center">
+                        <svg viewBox="0 0 24 24" className="w-6 h-6 fill-[#EA4335]">
+                          <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                        </svg>
+                      </span>
+                      <span className="text-[11px] font-medium text-[#7A6E62]">Email</span>
+                    </a>
+                  </div>
+
+                  {/* Mobile handle bar */}
+                  <div className="sm:hidden flex justify-center pb-4">
+                    <div className="w-10 h-1 rounded-full bg-[#D4B896]/40"></div>
+                  </div>
+                </div>
+
+                <style>{`
+                  @keyframes slideUp {
+                    from { transform: translateY(100%); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                  }
+                `}</style>
+              </div>
+            )}
 
             {/* Why Shop With Us */}
             <div className="mt-8 border-t border-[#D4B896]/20 pt-6">
