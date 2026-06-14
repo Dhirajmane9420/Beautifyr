@@ -40,9 +40,28 @@ const [items, setItems] = useState([]);
 useEffect(() => {
   const userId = user?._id || user?.id;
 
-  setItems(
-    getStoredCart(userId)
-  );
+  if (userId) {
+    // User just logged in or signed up
+    const userCart = getStoredCart(userId);
+    const guestCart = getStoredCart(null); // reads beautifyr_guest_cart
+
+    if (userCart.length === 0 && guestCart.length > 0) {
+      // Fresh account with no existing cart — adopt the guest cart
+      setItems(guestCart);
+      localStorage.setItem(
+        getCartStorageKey(userId),
+        JSON.stringify(guestCart)
+      );
+      // Clear guest cart so it doesn't merge again on next login
+      localStorage.removeItem(getCartStorageKey(null));
+    } else {
+      // Returning user — use their own saved cart
+      setItems(userCart);
+    }
+  } else {
+    // Not logged in — use guest cart
+    setItems(getStoredCart(null));
+  }
 }, [user]);
 
   useEffect(() => {
