@@ -227,12 +227,16 @@ const related = products.filter((product) => {
                             </p>
                           ) : null}
                           <p className="mt-2 flex flex-wrap items-baseline gap-1.5 text-[#2d251f] sm:mt-3">
-                            <span className="text-sm text-green-700 sm:text-xl">
-                              83%{" "}
-                            </span>
-                            <span className="text-xs text-[#9c8f82] line-through sm:text-lg">
-                              {formatINR(item.originalPrice)}
-                            </span>
+                            {item.originalPrice > item.price && (
+                              <span className="text-sm text-green-700 sm:text-xl">
+                                {Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}%{" "}
+                              </span>
+                            )}
+                            {item.originalPrice > item.price && (
+                              <span className="text-xs text-[#9c8f82] line-through sm:text-lg">
+                                {formatINR(item.originalPrice)}
+                              </span>
+                            )}
                             <span className="text-xl font-semibold sm:text-3xl">
                               {formatINR(item.price)}
                             </span>
