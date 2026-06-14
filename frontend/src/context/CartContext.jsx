@@ -112,15 +112,20 @@ useEffect(() => {
         }
       : null;
 
+    const sizeKey = product.size ? String(product.size).trim() : "";
+    const baseId = product.productId || product.id;
+    // Composite ID so the same product in different sizes gets separate cart entries
+    const cartItemId = sizeKey ? `${baseId}__${sizeKey}` : baseId;
+
     const normalized = {
-  id: product.id,
-  productId: product.productId || product.id,
+  id: cartItemId,
+  productId: baseId,
       name: product.name || product.title || "Product",
       price: normalizedPrice,
       originalPrice: normalizedOriginalPrice > 0 ? normalizedOriginalPrice : normalizedPrice,
       image: product.image || "https://via.placeholder.com/400x400",
       category: product.category || "Skincare",
-      size: product.size ? String(product.size) : "",
+      size: sizeKey,
       sizeVariant: normalizedSizeVariant,
       quantity: Math.max(1, Number(product.quantity) || 1),
     };
