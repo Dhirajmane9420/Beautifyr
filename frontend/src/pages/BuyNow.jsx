@@ -6,58 +6,23 @@ import {
   CreditCard,
   MapPin,
   Package,
+  PackageCheck,
   ShieldCheck,
   Star,
-  Truck,
-  Zap,
+  Wallet,
+  Banknote,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
+import { placeOrder } from "../lib/ordersApi";
+import {
+  createPaymentOrder,
+  verifyPayment,
+} from "../lib/paymentApi";
 
 function formatINR(value) {
   return `₹${Number(value || 0).toLocaleString("en-IN")}`;
-}
-
-const COURIER_PARTNERS = [
-  { name: "Delhivery", eta: "3-5 days", cost: 0 },
-  { name: "Blue Dart", eta: "2-3 days", cost: 49 },
-  { name: "Express (Priority)", eta: "1-2 days", cost: 99 },
-];
-
-const ORDERS_STORAGE_KEY = "beautifyr_orders_v1";
-
-function generateOrderId() {
-  return "ORD" + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
-}
-
-function getStoredOrders() {
-  try {
-    const raw = localStorage.getItem(ORDERS_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveOrder(order) {
-  const orders = getStoredOrders();
-  orders.unshift(order);
-  localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders));
-}
-
-const PROFILE_STORAGE_KEY = "beautifyr_profile_v1";
-
-function loadProfile() {
-  try {
-    const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
 }
 
 export default function BuyNow() {
@@ -67,64 +32,18 @@ export default function BuyNow() {
 
   const product = location.state?.product;
 
-  // Load saved profile from localStorage
-  const savedProfile = useMemo(() => loadProfile(), []);
+  const [quantity, setQuantity] = useState(product?.quantity || 1);
+  const [paymentMethod, setPaymentMethod] = useState("upi");
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [orderMessage, setOrderMessage] = useState("");
 
-  const [quantity, setQuantity] = useState(1);
-  const [selectedCourier, setSelectedCourier] = useState(0);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [orderPlaced, setOrderPlaced] = useState(false);
-
-  const [address, setAddress] = useState(() => {
-    if (savedProfile) {
-      return {
-        fullName: savedProfile.fullName || user?.name || "",
-        phone: savedProfile.phone || "",
-        line1: savedProfile.line1 || "",
-        line2: savedProfile.line2 || "",
-        city: savedProfile.city || "",
-        state: savedProfile.state || "",
-        pincode: savedProfile.pincode || "",
-      };
-    }
-    return {
-      fullName: user?.name || "",
-      phone: "",
-      line1: "",
-      line2: "",
-      city: "",
-      state: "",
-      pincode: "",
-    };
+  const [address, setAddress] = useState({
+    fullName: user?.name || "",
+    phone: "",
+    line1: "",
+    city: "",
+    pincode: "",
   });
-
-  const placeOrder = () => {
-    const order = {
-      id: generateOrderId(),
-      date: new Date().toISOString(),
-      product: {
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        originalPrice: product.originalPrice,
-        image: product.image,
-        size: product.size,
-      },
-      quantity,
-      courier: COURIER_PARTNERS[selectedCourier],
-      address: { ...address },
-      totals: {
-        subtotal,
-        discount,
-        courierCost,
-        platformFee,
-        totalAmount,
-      },
-      status: "Confirmed",
-    };
-    saveOrder(order);
-    setOrderPlaced(true);
-  };
 
   const handleAddressChange = (field) => (e) => {
     setAddress((prev) => ({ ...prev, [field]: e.target.value }));
@@ -135,9 +54,8 @@ export default function BuyNow() {
   const subtotal = unitPrice * quantity;
   const originalSubtotal = originalUnitPrice * quantity;
   const discount = Math.max(0, originalSubtotal - subtotal);
-  const courierCost = COURIER_PARTNERS[selectedCourier].cost;
-  const platformFee = 7;
-  const totalAmount = subtotal + courierCost + platformFee;
+  const platformFee = subtotal > 0 ? 7 : 0;
+  const totalAmount = subtotal + platformFee;
 
   const isAddressValid = useMemo(
     () =>
@@ -147,14 +65,91 @@ export default function BuyNow() {
           address.phone.length >= 10 &&
           address.line1 &&
           address.city &&
-          address.state &&
           address.pincode &&
-          address.pincode.length === 6
+          address.pincode.length >= 5
       ),
     [address]
   );
 
-  const canPlaceOrder = isAuthenticated && isAddressValid && agreedToTerms && quantity > 0;
+  const canPlaceOrder = isAuthenticated && isAddressValid && quantity > 0;
+
+  const handlePlaceOrder = async () => {
+    if (!canPlaceOrder) return;
+
+    try {
+      setIsPlacingOrder(true);
+      setOrderMessage("");
+
+      const orderItems = [
+        {
+          productId: product.id,
+          title: product.name,
+          category: product.category || "Skincare",
+          imageUrl: product.image,
+          price: unitPrice,
+          quantity,
+          size: product.size || "",
+          sizeVariant: product.size || "",
+        },
+      ];
+
+      if (paymentMethod === "cod") {
+        await placeOrder({
+          items: orderItems,
+          address,
+          paymentMethod: "cod",
+        });
+
+        navigate("/orders");
+        return;
+      }
+
+      // Online payment via Razorpay
+      const razorpayOrder = await createPaymentOrder(totalAmount);
+
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        order_id: razorpayOrder.id,
+        name: "Clinical Sanctuary",
+        description: `Buy Now: ${product.name}`,
+        handler: async (response) => {
+          const verification = await verifyPayment(response);
+
+          if (!verification.success) {
+            setOrderMessage("Payment verification failed.");
+            return;
+          }
+
+          await placeOrder({
+            items: orderItems,
+            address,
+            paymentMethod,
+            razorpayOrderId: response.razorpay_order_id,
+            razorpayPaymentId: response.razorpay_payment_id,
+          });
+
+          navigate("/orders");
+        },
+        prefill: {
+          name: address.fullName,
+          contact: address.phone,
+          email: user?.email,
+        },
+        theme: {
+          color: "#8a6038",
+        },
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+    } catch (error) {
+      setOrderMessage(error.message || "Order failed. Please try again.");
+    } finally {
+      setIsPlacingOrder(false);
+    }
+  };
 
   if (!product) {
     return (
@@ -165,49 +160,11 @@ export default function BuyNow() {
           <h1 className="mb-2 text-2xl font-bold">No product selected</h1>
           <p className="mb-8 text-[#6e5947]">Please select a product to buy.</p>
           <button
-            onClick={() => navigate("/cart")}
+            onClick={() => navigate("/categories")}
             className="rounded-xl bg-[#8a6038] px-8 py-3 font-semibold text-white transition hover:bg-[#7a522f]"
           >
-            Back to Cart
+            Browse Products
           </button>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (orderPlaced) {
-    return (
-      <div className="min-h-screen bg-[#fff7ee] text-[#2b2018]">
-        <Navbar />
-        <main className="flex flex-1 flex-col items-center justify-center px-6 py-32 text-center">
-          <div className="relative mb-8">
-            <div className="absolute inset-0 animate-ping rounded-full bg-green-200/50" />
-            <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-green-100">
-              <Package className="text-green-600" size={44} strokeWidth={1.5} />
-            </div>
-          </div>
-          <h1 className="mb-2 text-3xl font-extrabold tracking-tight">Order Placed Successfully!</h1>
-          <p className="mb-2 max-w-md text-[#6e5947]">
-            Your order for <span className="font-semibold text-[#2b2018]">{product.name}</span> x{quantity} has been placed.
-          </p>
-          <p className="mb-8 text-sm text-[#8a775f]">
-            Estimated delivery: {COURIER_PARTNERS[selectedCourier].eta}
-          </p>
-          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-            <button
-              onClick={() => navigate("/profile")}
-              className="w-full rounded-xl border border-[#d3b48f] px-8 py-3 font-semibold text-[#8a6038] transition hover:bg-[#f9efe2] sm:w-auto"
-            >
-              View Orders
-            </button>
-            <button
-              onClick={() => navigate("/categories")}
-              className="w-full rounded-xl bg-[#8a6038] px-8 py-3 font-semibold text-white transition hover:bg-[#7a522f] sm:w-auto"
-            >
-              Continue Shopping
-            </button>
-          </div>
         </main>
         <Footer />
       </div>
@@ -229,8 +186,6 @@ export default function BuyNow() {
               <ChevronLeft size={16} /> Back
             </button>
             <span className="text-[#dcc8aa]">/</span>
-            <span>Cart</span>
-            <span className="text-[#dcc8aa]">/</span>
             <span className="font-semibold text-[#8a6038]">Buy Now</span>
           </div>
 
@@ -240,7 +195,7 @@ export default function BuyNow() {
               {/* Product Summary Card */}
               <section className="overflow-hidden rounded-2xl border border-[#e2d3bd] bg-white shadow-sm">
                 <div className="flex items-center gap-2 bg-gradient-to-r from-[#fdf3e8] to-[#f8efe2] px-5 py-3">
-                  <Zap size={18} className="text-[#8a6038]" />
+                  <PackageCheck size={18} className="text-[#8a6038]" />
                   <h2 className="text-sm font-bold uppercase tracking-wider text-[#8a6038]">
                     Express Buy
                   </h2>
@@ -349,25 +304,13 @@ export default function BuyNow() {
                   </div>
                   <div className="sm:col-span-2">
                     <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#8a775f]">
-                      Address Line 1 *
+                      Address Line *
                     </label>
                     <input
                       type="text"
                       value={address.line1}
                       onChange={handleAddressChange("line1")}
                       placeholder="House / Flat / Street"
-                      className="w-full rounded-lg border border-[#dcc8aa] bg-white px-3 py-2.5 text-sm text-[#2b2018] outline-none transition placeholder:text-[#b8a692] focus:border-[#8a6038] focus:ring-1 focus:ring-[#8a6038]/30"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#8a775f]">
-                      Address Line 2 (optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={address.line2}
-                      onChange={handleAddressChange("line2")}
-                      placeholder="Landmark / Area"
                       className="w-full rounded-lg border border-[#dcc8aa] bg-white px-3 py-2.5 text-sm text-[#2b2018] outline-none transition placeholder:text-[#b8a692] focus:border-[#8a6038] focus:ring-1 focus:ring-[#8a6038]/30"
                     />
                   </div>
@@ -380,18 +323,6 @@ export default function BuyNow() {
                       value={address.city}
                       onChange={handleAddressChange("city")}
                       placeholder="Mumbai"
-                      className="w-full rounded-lg border border-[#dcc8aa] bg-white px-3 py-2.5 text-sm text-[#2b2018] outline-none transition placeholder:text-[#b8a692] focus:border-[#8a6038] focus:ring-1 focus:ring-[#8a6038]/30"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#8a775f]">
-                      State *
-                    </label>
-                    <input
-                      type="text"
-                      value={address.state}
-                      onChange={handleAddressChange("state")}
-                      placeholder="Maharashtra"
                       className="w-full rounded-lg border border-[#dcc8aa] bg-white px-3 py-2.5 text-sm text-[#2b2018] outline-none transition placeholder:text-[#b8a692] focus:border-[#8a6038] focus:ring-1 focus:ring-[#8a6038]/30"
                     />
                   </div>
@@ -411,44 +342,77 @@ export default function BuyNow() {
                 </div>
               </section>
 
-              {/* Courier Selection */}
+              {/* Payment Options */}
               <section className="rounded-2xl border border-[#e2d3bd] bg-white p-5 shadow-sm">
                 <div className="mb-4 flex items-center gap-2">
-                  <Truck size={18} className="text-[#8a6038]" />
+                  <CreditCard size={18} className="text-[#8a6038]" />
                   <h2 className="text-base font-bold uppercase tracking-wider text-[#8a6038]">
-                    Delivery Option
+                    Payment Method
                   </h2>
                 </div>
                 <div className="space-y-3">
-                  {COURIER_PARTNERS.map((courier, idx) => (
-                    <label
-                      key={courier.name}
-                      className={`flex cursor-pointer items-center gap-4 rounded-lg border p-4 transition ${
-                        selectedCourier === idx
-                          ? "border-[#8a6038] bg-[#fcf5ec]"
-                          : "border-[#e2d3bd] bg-white hover:bg-[#faf5ef]"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="courier"
-                        checked={selectedCourier === idx}
-                        onChange={() => setSelectedCourier(idx)}
-                        className="h-4 w-4 accent-[#8a6038]"
-                      />
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-[#2b2018]">{courier.name}</p>
-                        <p className="text-xs text-[#8a775f]">Estimated {courier.eta}</p>
-                      </div>
-                      <span className="text-sm font-semibold text-[#2b2018]">
-                        {courier.cost === 0 ? (
-                          <span className="text-green-600">FREE</span>
-                        ) : (
-                          formatINR(courier.cost)
-                        )}
-                      </span>
-                    </label>
-                  ))}
+                  <label
+                    className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition ${
+                      paymentMethod === "upi"
+                        ? "border-[#8a6038] bg-[#fcf5ec]"
+                        : "border-[#e2d3bd] bg-white hover:bg-[#faf5ef]"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment"
+                      checked={paymentMethod === "upi"}
+                      onChange={() => setPaymentMethod("upi")}
+                      className="h-4 w-4 accent-[#8a6038]"
+                    />
+                    <Wallet size={18} className="text-[#8a6038]" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-[#2b2018]">UPI / Wallet</p>
+                      <p className="text-xs text-[#8a775f]">Google Pay, PhonePe, Paytm</p>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition ${
+                      paymentMethod === "card"
+                        ? "border-[#8a6038] bg-[#fcf5ec]"
+                        : "border-[#e2d3bd] bg-white hover:bg-[#faf5ef]"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment"
+                      checked={paymentMethod === "card"}
+                      onChange={() => setPaymentMethod("card")}
+                      className="h-4 w-4 accent-[#8a6038]"
+                    />
+                    <CreditCard size={18} className="text-[#8a6038]" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-[#2b2018]">Credit / Debit Card</p>
+                      <p className="text-xs text-[#8a775f]">Visa, Mastercard, RuPay</p>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition ${
+                      paymentMethod === "cod"
+                        ? "border-[#8a6038] bg-[#fcf5ec]"
+                        : "border-[#e2d3bd] bg-white hover:bg-[#faf5ef]"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment"
+                      checked={paymentMethod === "cod"}
+                      onChange={() => setPaymentMethod("cod")}
+                      className="h-4 w-4 accent-[#8a6038]"
+                    />
+                    <Banknote size={18} className="text-[#8a6038]" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-[#2b2018]">Cash on Delivery</p>
+                      <p className="text-xs text-[#8a775f]">Pay when you receive</p>
+                    </div>
+                  </label>
                 </div>
               </section>
             </div>
@@ -472,14 +436,17 @@ export default function BuyNow() {
                       <p className="text-sm font-semibold leading-tight text-[#2b2018]">
                         {product.name}
                       </p>
-                      <p className="text-xs text-[#8a775f]">Qty: {quantity}</p>
+                      <p className="text-xs text-[#8a775f]">
+                        Qty: {quantity}
+                        {product.size ? ` · ${product.size}` : ""}
+                      </p>
                     </div>
                     <span className="text-sm font-bold">{formatINR(subtotal)}</span>
                   </div>
 
                   <div className="space-y-2.5 text-sm">
                     <div className="flex justify-between text-[#6e5947]">
-                      <span>Price ({quantity} item)</span>
+                      <span>Price ({quantity} item{quantity > 1 ? "s" : ""})</span>
                       <span className="font-medium text-[#2b2018]">{formatINR(originalSubtotal)}</span>
                     </div>
                     {discount > 0 && (
@@ -488,18 +455,6 @@ export default function BuyNow() {
                         <span className="font-medium text-green-700">−{formatINR(discount)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between text-[#6e5947]">
-                      <span>
-                        Delivery ({COURIER_PARTNERS[selectedCourier].name})
-                      </span>
-                      <span
-                        className={`font-medium ${
-                          courierCost === 0 ? "text-green-600" : "text-[#2b2018]"
-                        }`}
-                      >
-                        {courierCost === 0 ? "FREE" : formatINR(courierCost)}
-                      </span>
-                    </div>
                     <div className="flex justify-between text-[#6e5947]">
                       <span>Platform Fee</span>
                       <span className="font-medium text-[#2b2018]">{formatINR(platformFee)}</span>
@@ -537,43 +492,42 @@ export default function BuyNow() {
                   </div>
                 </div>
 
-                {/* Terms + Place Order */}
+                {/* Delivery info + Place Order */}
                 <div className="rounded-2xl border border-[#e2d3bd] bg-white p-5 shadow-sm">
-                  <label className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      checked={agreedToTerms}
-                      onChange={(e) => setAgreedToTerms(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 accent-[#8a6038]"
-                    />
-                    <span className="text-xs leading-5 text-[#6e5947]">
-                      I agree to the{" "}
-                      <button className="font-semibold text-[#8a6038] underline">Terms of Use</button>{" "}
-                      and{" "}
-                      <button className="font-semibold text-[#8a6038] underline">
-                        Privacy Policy
-                      </button>
-                    </span>
-                  </label>
+                  {address.city && address.pincode && (
+                    <div className="mb-4 inline-flex items-center gap-2 text-sm text-[#8a775f]">
+                      <MapPin size={16} /> Delivering to {address.city}, {address.pincode}
+                    </div>
+                  )}
+
+                  {orderMessage ? (
+                    <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                      {orderMessage}
+                    </p>
+                  ) : null}
+
+                  {!isAuthenticated && (
+                    <p className="mb-3 text-center text-xs text-amber-700">
+                      Log in required to place an order
+                    </p>
+                  )}
 
                   <button
-                    disabled={!canPlaceOrder}
-                    onClick={placeOrder}
-                    className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-base font-bold transition ${
-                      canPlaceOrder
+                    disabled={!canPlaceOrder || isPlacingOrder}
+                    onClick={handlePlaceOrder}
+                    className={`flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-base font-bold transition ${
+                      canPlaceOrder && !isPlacingOrder
                         ? "bg-[#8a6038] text-white shadow-[0_8px_24px_rgba(138,96,56,0.25)] hover:bg-[#7a522f] active:scale-[0.98]"
                         : "cursor-not-allowed bg-[#dcc8aa] text-[#8a775f]"
                     }`}
                   >
-                    <CreditCard size={18} />
-                    Place Order · {formatINR(totalAmount)}
+                    <PackageCheck size={18} />
+                    {isPlacingOrder
+                      ? "PLACING ORDER..."
+                      : paymentMethod === "cod"
+                      ? `PLACE ORDER (COD) · ${formatINR(totalAmount)}`
+                      : `PAY ${formatINR(totalAmount)}`}
                   </button>
-
-                  {!isAuthenticated && (
-                    <p className="mt-3 text-center text-xs text-amber-700">
-                      Log in required to place an order
-                    </p>
-                  )}
                 </div>
               </div>
             </aside>

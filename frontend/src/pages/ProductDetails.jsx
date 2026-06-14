@@ -450,8 +450,20 @@ disabled:cursor-not-allowed"
     selectedSizeOption.stock <= 0
   }
   onClick={() => {
-    addCurrentToCart();
-    navigate("/checkout");
+    navigate("/buy-now", {
+      state: {
+        product: {
+          id: product.id,
+          name: product.name,
+          price: currentPrice,
+          originalPrice: currentOriginalPrice,
+          image: activeImage,
+          category: product.category || "Skincare",
+          size: selectedSize,
+          quantity,
+        },
+      },
+    });
   }}
               className="mt-3 w-full rounded-xl border-2 border-[#2A2520] px-6 py-2.5 text-sm font-semibold text-[#2A2520] transition hover:bg-[#2A2520] hover:text-white"
             >
