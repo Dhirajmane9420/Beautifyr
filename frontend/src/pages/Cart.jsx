@@ -85,6 +85,7 @@ const related = products.filter((product) => {
       state: {
         product: {
           id: item?.id,
+          productId: item?.productId || item?.id,
           name: item?.name,
           price: item?.price,
           originalPrice: item?.originalPrice,

@@ -73,6 +73,12 @@ export default function BuyNow() {
 
   const canPlaceOrder = isAuthenticated && isAddressValid && quantity > 0;
 
+  // Extract the real product ID (strip composite size suffix like "id__100g")
+  const getRealProductId = () => {
+    const raw = product.productId || product.id || "";
+    return raw.includes("__") ? raw.split("__")[0] : raw;
+  };
+
   const handlePlaceOrder = async () => {
     if (!canPlaceOrder) return;
 
@@ -80,9 +86,11 @@ export default function BuyNow() {
       setIsPlacingOrder(true);
       setOrderMessage("");
 
+      const realProductId = getRealProductId();
+
       const orderItems = [
         {
-          productId: product.id,
+          productId: realProductId,
           title: product.name,
           category: product.category || "Skincare",
           imageUrl: product.image,
@@ -115,22 +123,32 @@ export default function BuyNow() {
         name: "Clinical Sanctuary",
         description: `Buy Now: ${product.name}`,
         handler: async (response) => {
-          const verification = await verifyPayment(response);
+          try {
+            const verification = await verifyPayment(response);
 
-          if (!verification.success) {
-            setOrderMessage("Payment verification failed.");
-            return;
+            if (!verification.success) {
+              setOrderMessage("Payment verification failed.");
+              return;
+            }
+
+            await placeOrder({
+              items: orderItems,
+              address,
+              paymentMethod,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+            });
+
+            // Use window.location as fallback — navigate() can fail
+            // inside Razorpay's async callback context
+            try {
+              navigate("/orders");
+            } catch {
+              window.location.href = "/orders";
+            }
+          } catch (err) {
+            setOrderMessage(err.message || "Order failed after payment. Please contact support.");
           }
-
-          await placeOrder({
-            items: orderItems,
-            address,
-            paymentMethod,
-            razorpayOrderId: response.razorpay_order_id,
-            razorpayPaymentId: response.razorpay_payment_id,
-          });
-
-          navigate("/orders");
         },
         prefill: {
           name: address.fullName,

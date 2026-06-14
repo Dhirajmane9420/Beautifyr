@@ -60,6 +60,12 @@ export default function Checkout() {
     [address]
   );
 
+  // Extract the real product ID, stripping the composite size suffix
+  const getRealProductId = (item) => {
+    const raw = item.productId || item.id || "";
+    return raw.includes("__") ? raw.split("__")[0] : raw;
+  };
+
   const handlePlaceOrder = async () => {
   if (!canContinueAddress || items.length === 0) {
     return;
@@ -69,26 +75,28 @@ export default function Checkout() {
     setIsPlacingOrder(true);
     setOrderMessage("");
 
-    if (paymentMethod === "cod") {
-  const orderItems = items.map(
-    (item) => ({
-      productId: item.productId,
-      title: item.name,
-      category:
-        item.category ||
-        "Skincare",
-      imageUrl: item.image,
-      price: item.price,
-      quantity:
-        item.quantity,
-      size:
-        item.size || "",
-      sizeVariant:
-        item.sizeVariant
-          ?.label || "",
-    })
-  );
+    const orderItems = items.map(
+      (item) => ({
+        productId: getRealProductId(item),
+        title: item.name,
+        category:
+          item.category ||
+          "Skincare",
+        imageUrl: item.image,
+        price: item.price,
+        quantity:
+          item.quantity,
+        size:
+          item.size || "",
+        sizeVariant:
+          item.sizeVariant
+            ?.label ||
+          item.size ||
+          "",
+      })
+    );
 
+    if (paymentMethod === "cod") {
   const order =
     await placeOrder({
       items: orderItems,
@@ -138,81 +146,62 @@ export default function Checkout() {
 
       handler:
         async (response) => {
-          const verification =
-            await verifyPayment(
-              response
-            );
+          try {
+            const verification =
+              await verifyPayment(
+                response
+              );
 
-          if (
-            !verification.success
-          ) {
+            if (
+              !verification.success
+            ) {
+              setOrderMessage(
+                "Payment verification failed."
+              );
+              return;
+            }
+
+            const order =
+              await placeOrder({
+                items:
+                  orderItems,
+
+                address,
+
+                paymentMethod:
+                  paymentMethod,
+
+                razorpayOrderId:
+                  response.razorpay_order_id,
+
+                razorpayPaymentId:
+                  response.razorpay_payment_id,
+              });
+
+            clearCart();
+
             setOrderMessage(
-              "Payment verification failed."
+              `Order placed successfully. Ref: ${String(
+                order?._id || ""
+              )
+                .slice(-6)
+                .toUpperCase()}`
             );
-            return;
+
+            // Use window.location as fallback — navigate() can fail
+            // inside Razorpay's async callback context
+            try {
+              navigate(
+                "/orders"
+              );
+            } catch {
+              window.location.href = "/orders";
+            }
+          } catch (err) {
+            setOrderMessage(
+              err.message || "Order failed after payment. Please contact support."
+            );
           }
-
-          const orderItems =
-            items.map((item) => ({
-              productId:
-                item.id,
-
-              title:
-                item.name,
-
-              category:
-                item.category ||
-                "Skincare",
-
-              imageUrl:
-                item.image,
-
-              price:
-                item.price,
-
-              quantity:
-                item.quantity,
-
-              size:
-                item.size ||
-                "",
-
-              sizeVariant:
-                item
-                  .sizeVariant
-                  ?.label || "",
-            }));
-
-          const order =
-            await placeOrder({
-              items:
-                orderItems,
-
-              address,
-
-              paymentMethod:
-                paymentMethod,
-
-              razorpayOrderId:
-                response.razorpay_order_id,
-
-              razorpayPaymentId:
-                response.razorpay_payment_id,
-            });
-
-          clearCart();
-
-          setOrderMessage(
-            `Order placed successfully. Ref: ${String(
-              order?._id || ""
-            )
-              .slice(-6)
-              .toUpperCase()}`
-          );
-
-          navigate(
-            "/orders"
-          );
         },
 
       prefill: {
