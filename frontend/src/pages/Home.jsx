@@ -1,4 +1,4 @@
-﻿import heroImg from "../assets/hero.jpg";
+import heroImg from "../assets/hero.jpg";
 import heroVideoDesktop from "../assets/hero1.mp4";
 import heroVideoMobile from "../assets/hero2.mp4";
 import heroVideoMobileAlt from "../assets/hero3.mp4";
@@ -70,27 +70,34 @@ function Home() {
   });
   const [activeMobileVideoIndex, setActiveMobileVideoIndex] = useState(0);
   const [overrides, setOverrides] = useState([]);
-  const [
-  featuredProducts,
-  setFeaturedProducts
-] = useState([]);
-useEffect(() => {
-  const load =
-    async () => {
-      try {
-        const products =
-          await fetchHomeFeatured();
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
+  const [featuredError, setFeaturedError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
 
-        setFeaturedProducts(
-          products
-        );
+  useEffect(() => {
+    let cancelled = false;
+    setFeaturedLoading(true);
+    setFeaturedError(false);
+
+    const load = async () => {
+      try {
+        const products = await fetchHomeFeatured();
+        if (!cancelled) {
+          setFeaturedProducts(products);
+          setFeaturedLoading(false);
+        }
       } catch {
-        //
+        if (!cancelled) {
+          setFeaturedError(true);
+          setFeaturedLoading(false);
+        }
       }
     };
 
-  load();
-}, []);
+    load();
+    return () => { cancelled = true; };
+  }, [retryKey]);
 
   const mobileHeroVideos = [heroVideoMobile, heroVideoMobileAlt];
 
@@ -332,7 +339,44 @@ useEffect(() => {
         </div>
 
         <div className="relative z-10 grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-  {featuredProducts.map((product) => (
+  {featuredLoading ? (
+    /* ── Skeleton placeholders ── */
+    Array.from({ length: 4 }).map((_, i) => (
+      <motion.div key={`skel-${i}`} variants={fadeUp} className="animate-pulse">
+        <div className="rounded-3xl overflow-hidden bg-white/40 backdrop-blur-xl border border-white/60 p-4">
+          <div className="h-[250px] sm:h-[300px] rounded-2xl bg-[#E8E0D6]" />
+          <div className="mt-6 px-2 pb-2 space-y-3">
+            <div className="flex justify-between">
+              <div className="h-5 w-2/3 rounded bg-[#E8E0D6]" />
+              <div className="h-5 w-12 rounded bg-[#E8E0D6]" />
+            </div>
+            <div className="h-4 w-full rounded bg-[#E8E0D6]" />
+            <div className="h-4 w-3/4 rounded bg-[#E8E0D6]" />
+          </div>
+        </div>
+      </motion.div>
+    ))
+  ) : featuredError ? (
+    /* ── Error state with retry ── */
+    <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
+      <p className="text-[#7A6E62] text-base mb-4">
+        Couldn't load products — the server may be waking up.
+      </p>
+      <button
+        onClick={() => setRetryKey((k) => k + 1)}
+        className="px-6 py-3 bg-[#2A2520] text-white rounded-full text-sm font-medium tracking-wide hover:scale-105 transition-transform duration-300 shadow-lg"
+      >
+        Retry
+      </button>
+    </div>
+  ) : featuredProducts.length === 0 ? (
+    /* ── Empty state ── */
+    <div className="col-span-full flex items-center justify-center py-16">
+      <p className="text-[#7A6E62] text-base">No featured products yet.</p>
+    </div>
+  ) : (
+    /* ── Product cards ── */
+    featuredProducts.map((product) => (
     <motion.div
       key={product._id}
       variants={fadeUp}
@@ -377,7 +421,8 @@ useEffect(() => {
         </div>
       </Link>
     </motion.div>
-  ))}
+  ))
+  )}
 </div>
       </motion.section>
 
