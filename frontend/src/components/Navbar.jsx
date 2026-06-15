@@ -6,15 +6,6 @@ import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { searchCatalogProducts } from "../lib/catalogApi";
 
-const trendingSearches = [
-  "Vitamin C Serum",
-  "Sunscreen SPF 50",
-  "Moisturizer",
-  "Niacinamide",
-  "Cleansers",
-  "Best Sellers",
-];
-
 function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -29,7 +20,6 @@ function Navbar() {
   const trimmedQuery = searchQuery.trim();
   const [liveSuggestions, setLiveSuggestions] =
   useState([]);
-  const showTrending = isSearchOpen && trimmedQuery.length === 0;
   useEffect(() => {
   if (!trimmedQuery) {
     setLiveSuggestions([]);
@@ -73,9 +63,7 @@ const products =
 
   return () => clearTimeout(timer);
 }, [trimmedQuery]);
-  const keyboardSuggestions = showTrending
-    ? trendingSearches.map((term, index) => ({ id: `trend-${index}`, title: term, type: "Trending" }))
-    : liveSuggestions;
+  const keyboardSuggestions = liveSuggestions;
 
   useEffect(() => {
     setHighlightedIndex(-1);
@@ -313,34 +301,7 @@ const products =
               </button>
             </div>
 
-            {showTrending ? (
-              <div className="rounded-xl border border-[#e7d6be] bg-white p-3 shadow-sm">
-                <p className="mb-2 text-xs font-semibold tracking-[0.12em] text-[#8a6038] uppercase">Trending Searches</p>
-                <div className="flex flex-wrap gap-2">
-                  {trendingSearches.map((term) => (
-                    <button
-                      key={term}
-                      type="button"
-                      onMouseEnter={() => {
-                        const index = keyboardSuggestions.findIndex((item) => item.title === term);
-                        setHighlightedIndex(index);
-                      }}
-                      onClick={() => {
-                        setSearchQuery(term);
-                        runSearch(term);
-                      }}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                        highlightedIndex >= 0 && keyboardSuggestions[highlightedIndex]?.title === term
-                          ? "border-[#8a6038] bg-[#f3e6d3] text-[#7a522f]"
-                          : "border-[#d7c2a4] bg-[#fff8ec] text-[#7a522f] hover:bg-[#f3e6d3]"
-                      }`}
-                    >
-                      {term}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : liveSuggestions.length > 0 ? (
+            {liveSuggestions.length > 0 ? (
               <div className="rounded-xl border border-[#e7d6be] bg-white p-2 shadow-sm">
                 {liveSuggestions.map((item) => (
                   <button
@@ -392,34 +353,7 @@ const products =
               Go
             </button>
 
-            {trimmedQuery.length === 0 ? (
-              <div className="rounded-xl border border-[#e7d6be] bg-white p-3 shadow-sm">
-                <p className="mb-2 text-[11px] font-semibold tracking-[0.12em] text-[#8a6038] uppercase">Trending</p>
-                <div className="flex flex-wrap gap-2">
-                  {trendingSearches.slice(0, 4).map((term) => (
-                    <button
-                      key={term}
-                      type="button"
-                      onMouseEnter={() => {
-                        const index = keyboardSuggestions.findIndex((item) => item.title === term);
-                        setHighlightedIndex(index);
-                      }}
-                      onClick={() => {
-                        setSearchQuery(term);
-                        runSearch(term);
-                      }}
-                      className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${
-                        highlightedIndex >= 0 && keyboardSuggestions[highlightedIndex]?.title === term
-                          ? "border-[#8a6038] bg-[#f3e6d3] text-[#7a522f]"
-                          : "border-[#d7c2a4] bg-[#fff8ec] text-[#7a522f]"
-                      }`}
-                    >
-                      {term}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : liveSuggestions.length > 0 ? (
+            {liveSuggestions.length > 0 ? (
               <div className="rounded-xl border border-[#e7d6be] bg-white p-2 shadow-sm">
                 {liveSuggestions.slice(0, 4).map((item) => (
                   <button
