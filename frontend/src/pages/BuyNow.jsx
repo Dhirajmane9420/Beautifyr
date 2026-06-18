@@ -120,7 +120,7 @@ export default function BuyNow() {
         amount: razorpayOrder.amount,
         currency: razorpayOrder.currency,
         order_id: razorpayOrder.id,
-        name: "Clinical Sanctuary",
+        name: "Actshiine",
         description: `Buy Now: ${product.name}`,
         handler: async (response) => {
           try {

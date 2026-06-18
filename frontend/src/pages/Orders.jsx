@@ -48,7 +48,7 @@ const STATUS_COLORS = {
   Cancelled: "bg-red-100 text-red-700 border-red-200",
 };
 
-const ORDERS_STORAGE_KEY = "beautifyr_orders_v1";
+const ORDERS_STORAGE_KEY = "actshiine_orders_v1";
 
 function getStoredOrders() {
   try {

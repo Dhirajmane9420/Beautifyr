@@ -539,7 +539,7 @@ disabled:cursor-not-allowed"
                   <div className="mx-6 mb-6 grid grid-cols-4 gap-3">
                     {/* WhatsApp */}
                     <a
-                      href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Check out ${product.name} on Clinical Sanctuary! ${window.location.href}`)}`}
+                      href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Check out ${product.name} on Actshiine! ${window.location.href}`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex flex-col items-center gap-2 rounded-2xl py-3 hover:bg-[#FAFAF8] transition"
@@ -569,7 +569,7 @@ disabled:cursor-not-allowed"
 
                     {/* Twitter/X */}
                     <a
-                      href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${product.name} on Clinical Sanctuary!`)}&url=${encodeURIComponent(window.location.href)}`}
+                      href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${product.name} on Actshiine!`)}&url=${encodeURIComponent(window.location.href)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex flex-col items-center gap-2 rounded-2xl py-3 hover:bg-[#FAFAF8] transition"
@@ -584,7 +584,7 @@ disabled:cursor-not-allowed"
 
                     {/* Email */}
                     <a
-                      href={`mailto:?subject=${encodeURIComponent(`Check out ${product.name}`)}&body=${encodeURIComponent(`I found this amazing product on Clinical Sanctuary: ${product.name}\n\n${window.location.href}`)}`}
+                      href={`mailto:?subject=${encodeURIComponent(`Check out ${product.name}`)}&body=${encodeURIComponent(`I found this amazing product on Actshiine: ${product.name}\n\n${window.location.href}`)}`}
                       className="flex flex-col items-center gap-2 rounded-2xl py-3 hover:bg-[#FAFAF8] transition"
                     >
                       <span className="w-12 h-12 rounded-2xl bg-[#EA4335]/10 flex items-center justify-center">

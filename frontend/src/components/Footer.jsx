@@ -1,3 +1,6 @@
+import { Link } from "react-router-dom";
+import brandLogo from "../assets/logo-removebg-preview.png";
+
 function Footer() {
   return (
     <footer className="mt-12 rounded-t-4xl bg-[#1A1816] px-5 pb-12 pt-10 text-[#FCFAF8] sm:rounded-t-[3rem] sm:px-6 sm:pt-12 md:px-12 lg:px-24 lg:pt-14">
@@ -17,6 +20,9 @@ function Footer() {
 
       <div className="mb-14 grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
         <div className="lg:col-span-5">
+          <Link to="/" className="inline-block mb-6">
+            <img src={brandLogo} alt="ActShiiNe" className="h-14 w-auto object-contain brightness-0 invert opacity-90" />
+          </Link>
           <h2 className="text-3xl font-light tracking-tight">Join the <span className="font-serif italic text-[#D2C5B5]">Sanctuary</span></h2>
           <p className="mt-4 max-w-md text-sm font-light leading-relaxed text-white/55 sm:text-base">
             Early access to launches, ingredient deep-dives, and members-only ritual sets.
@@ -65,7 +71,7 @@ function Footer() {
       </div>
 
       <div className="flex flex-col gap-4 border-t border-white/10 pt-7 text-xs font-light text-white/40 md:flex-row md:items-center md:justify-between">
-        <p>© 2026 Clinical Sanctuary. All rights reserved.</p>
+        <p>© 2026 ActShiiNe. All rights reserved.</p>
         <div className="flex flex-wrap gap-5">
           <a href="#" className="transition-colors hover:text-white">Privacy</a>
           <a href="#" className="transition-colors hover:text-white">Terms</a>

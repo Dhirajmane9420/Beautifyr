@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "./AuthContext";
 const getCartStorageKey = (userId) =>
-  userId ? `beautifyr_cart_${userId}` : "beautifyr_guest_cart";
+  userId ? `actshiine_cart_${userId}` : "actshiine_guest_cart";
 const CartContext = createContext(null);
 
 function parsePrice(input) {
@@ -43,7 +43,7 @@ useEffect(() => {
   if (userId) {
     // User just logged in or signed up
     const userCart = getStoredCart(userId);
-    const guestCart = getStoredCart(null); // reads beautifyr_guest_cart
+    const guestCart = getStoredCart(null); // reads actshiine_guest_cart
 
     if (userCart.length === 0 && guestCart.length > 0) {
       // Fresh account with no existing cart — adopt the guest cart

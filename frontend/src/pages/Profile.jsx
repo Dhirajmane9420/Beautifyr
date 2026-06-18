@@ -5,7 +5,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
 
-const PROFILE_STORAGE_KEY = "beautifyr_profile_v1";
+const PROFILE_STORAGE_KEY = "actshiine_profile_v1";
 
 function loadProfile() {
   try {

@@ -5,6 +5,7 @@ import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { searchCatalogProducts } from "../lib/catalogApi";
+import brandLogo from "../assets/logo-removebg-preview.png";
 
 function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -197,8 +198,8 @@ const products =
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-10">
         
         {/* Logo */}
-        <Link to="/" className="text-xl font-semibold tracking-tight text-[#1b2330] transition duration-300 hover:text-[#8a6038] premium-fade-up">
-          Clinical Sanctuary
+        <Link to="/" className="flex items-center transition duration-300 hover:opacity-80 premium-fade-up">
+          <img src={brandLogo} alt="ActShiiNe" className="h-10 w-auto object-contain sm:h-12" />
         </Link>
 
         {/* Desktop Links */}

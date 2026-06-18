@@ -6,6 +6,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { request } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import brandLogo from "../assets/logo-removebg-preview.png";
 
 function Signup() {
   const { setAuthenticatedUser } = useAuth();
@@ -76,6 +77,7 @@ function Signup() {
       <div className="w-full max-w-md rounded-3xl border border-[#eadfc8] bg-[#fffaf2]/90 p-8 shadow-xl backdrop-blur-xl">
         {/* Heading */}
         <div className="mb-8 text-center">
+          <img src={brandLogo} alt="ActShiiNe" className="mx-auto mb-5 h-16 w-auto object-contain" />
           <h2 className="mb-2 text-3xl font-semibold text-[#7a522f]">
             Create an Account
           </h2>

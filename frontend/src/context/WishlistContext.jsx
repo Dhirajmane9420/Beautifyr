@@ -3,8 +3,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useAuth } from "./AuthContext";
 const getWishlistStorageKey = (userId) =>
   userId
-    ? `beautifyr_wishlist_${userId}`
-    : "beautifyr_guest_wishlist";
+    ? `actshiine_wishlist_${userId}`
+    : "actshiine_guest_wishlist";
 const WishlistContext = createContext(null);
 
 function getStoredWishlist(userId) {

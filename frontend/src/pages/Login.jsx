@@ -6,6 +6,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { request } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import brandLogo from "../assets/logo-removebg-preview.png";
 
 function Login() {
   const navigate = useNavigate();
@@ -77,6 +78,7 @@ function Login() {
         
         {/* Heading */}
         <div className="mb-8 text-center">
+          <img src={brandLogo} alt="ActShiiNe" className="mx-auto mb-5 h-16 w-auto object-contain" />
           <h2 className="mb-2 text-3xl font-semibold text-[#7a522f]">
             Welcome Back
           </h2>

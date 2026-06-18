@@ -139,7 +139,7 @@ export default function Checkout() {
         razorpayOrder.id,
 
       name:
-        "Clinical Sanctuary",
+        "Actshiine",
 
       description:
         "Order Payment",
@@ -266,7 +266,7 @@ export default function Checkout() {
                   className="w-full border-b border-[#dcc8aa] bg-transparent px-0 py-2 text-lg text-[#2b2018] outline-none placeholder:text-[#9b8a76]"
                 />
                 <p className="mt-4 max-w-lg text-sm leading-6 text-[#8a775f]">
-                  By continuing, you agree to Clinical Sanctuary's Terms of Use and Privacy Policy.
+                  By continuing, you agree to Actshiine's Terms of Use and Privacy Policy.
                 </p>
                 <button
                   onClick={() => navigate("/login?redirect=/checkout")}

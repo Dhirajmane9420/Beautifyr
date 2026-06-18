@@ -45,7 +45,7 @@ function createEntries() {
     { id: "nav-new-arrivals", title: "New Arrivals", type: "Page", description: "Latest products", path: "/new-arrivals", keywords: ["new", "arrivals", "latest"] },
     { id: "nav-wishlist", title: "Wishlist", type: "Page", description: "Saved products", path: "/wishlist", keywords: ["wishlist", "saved"] },
     { id: "nav-cart", title: "Cart", type: "Page", description: "Shopping cart", path: "/cart", keywords: ["cart", "bag", "checkout"] },
-    { id: "nav-about", title: "About", type: "Page", description: "About Clinical Sanctuary", path: "/about", keywords: ["about", "brand"] },
+    { id: "nav-about", title: "About", type: "Page", description: "About Actshiine", path: "/about", keywords: ["about", "brand"] },
   ];
 
   return [...categoryEntries, ...productEntries, ...pageEntries];
