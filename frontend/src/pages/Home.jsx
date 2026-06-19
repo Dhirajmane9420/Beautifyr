@@ -17,9 +17,9 @@ import {
 import {
   fetchHomeFeatured,
 } from "../lib/homeFeaturedApi";
-import serumimg from "../assets/HERO PAGE/serums.jpg";
-import moisturizerimg from "../assets/HERO PAGE/moisturizer.jpg";
-import cleanserimg from "../assets/HERO PAGE/sunscreens.jpg";
+import serumimg from "../assets/HERO PAGE/ser.jpg";
+import moisturizerimg from "../assets/HERO PAGE/mois.jpg";
+import cleanserimg from "../assets/HERO PAGE/clean.jpg";
 // Refined, ultra-smooth animation curves
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -196,9 +196,8 @@ function Home() {
           mobileHeroVideos.map((videoSrc, index) => (
             <video
               key={videoSrc}
-              className={`absolute inset-0 h-full w-full object-cover scale-105 transition-opacity duration-1000 ${
-                index === activeMobileVideoIndex ? "opacity-100" : "opacity-0"
-              }`}
+              className={`absolute inset-0 h-full w-full object-cover scale-105 transition-opacity duration-1000 ${index === activeMobileVideoIndex ? "opacity-100" : "opacity-0"
+                }`}
               autoPlay
               loop
               muted
@@ -214,7 +213,7 @@ function Home() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-[#FCFAF8]/90"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.3)_100%)]"></div>
 
-        <motion.div 
+        <motion.div
           variants={staggerContainer}
           initial="hidden"
           animate="show"
@@ -260,7 +259,7 @@ function Home() {
       </div>
 
       {/* 2. EDITORIAL CATEGORY GRID */}
-      <motion.section 
+      <motion.section
         variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }}
         className="px-5 py-16 sm:px-6 sm:py-20 md:px-12 md:py-24 lg:px-24 lg:py-28"
       >
@@ -324,7 +323,7 @@ function Home() {
       </motion.section>
 
       {/* 3. GLASSMORPHISM FEATURED PRODUCTS */}
-      <motion.section 
+      <motion.section
         variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }}
         className="relative overflow-hidden bg-[#F7F4F0] px-5 py-16 sm:px-6 sm:py-20 md:px-12 md:py-24 lg:px-24"
       >
@@ -339,103 +338,103 @@ function Home() {
         </div>
 
         <div className="relative z-10 grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-  {featuredLoading ? (
-    /* ── Skeleton placeholders ── */
-    Array.from({ length: 4 }).map((_, i) => (
-      <motion.div key={`skel-${i}`} variants={fadeUp} className="animate-pulse">
-        <div className="rounded-3xl overflow-hidden bg-white/40 backdrop-blur-xl border border-white/60 p-4">
-          <div className="h-[250px] sm:h-[300px] rounded-2xl bg-[#E8E0D6]" />
-          <div className="mt-6 px-2 pb-2 space-y-3">
-            <div className="flex justify-between">
-              <div className="h-5 w-2/3 rounded bg-[#E8E0D6]" />
-              <div className="h-5 w-12 rounded bg-[#E8E0D6]" />
+          {featuredLoading ? (
+            /* ── Skeleton placeholders ── */
+            Array.from({ length: 4 }).map((_, i) => (
+              <motion.div key={`skel-${i}`} variants={fadeUp} className="animate-pulse">
+                <div className="rounded-3xl overflow-hidden bg-white/40 backdrop-blur-xl border border-white/60 p-4">
+                  <div className="h-[250px] sm:h-[300px] rounded-2xl bg-[#E8E0D6]" />
+                  <div className="mt-6 px-2 pb-2 space-y-3">
+                    <div className="flex justify-between">
+                      <div className="h-5 w-2/3 rounded bg-[#E8E0D6]" />
+                      <div className="h-5 w-12 rounded bg-[#E8E0D6]" />
+                    </div>
+                    <div className="h-4 w-full rounded bg-[#E8E0D6]" />
+                    <div className="h-4 w-3/4 rounded bg-[#E8E0D6]" />
+                  </div>
+                </div>
+              </motion.div>
+            ))
+          ) : featuredError ? (
+            /* ── Error state with retry ── */
+            <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
+              <p className="text-[#7A6E62] text-base mb-4">
+                Couldn't load products — the server may be waking up.
+              </p>
+              <button
+                onClick={() => setRetryKey((k) => k + 1)}
+                className="px-6 py-3 bg-[#2A2520] text-white rounded-full text-sm font-medium tracking-wide hover:scale-105 transition-transform duration-300 shadow-lg"
+              >
+                Retry
+              </button>
             </div>
-            <div className="h-4 w-full rounded bg-[#E8E0D6]" />
-            <div className="h-4 w-3/4 rounded bg-[#E8E0D6]" />
-          </div>
+          ) : featuredProducts.length === 0 ? (
+            /* ── Empty state ── */
+            <div className="col-span-full flex items-center justify-center py-16">
+              <p className="text-[#7A6E62] text-base">No featured products yet.</p>
+            </div>
+          ) : (
+            /* ── Product cards ── */
+            featuredProducts.map((product) => (
+              <motion.div
+                key={product._id}
+                variants={fadeUp}
+                className="group cursor-pointer"
+              >
+                <Link
+                  to={`/product/${product.title
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, "-")
+                    .replace(/^-|-$/g, "")}`}
+                  state={{ product }}
+                >
+                  <div className="relative rounded-3xl overflow-hidden bg-white/40 backdrop-blur-xl border border-white/60 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 hover:shadow-[0_8px_40px_rgb(0,0,0,0.08)] hover:bg-white/60">
+                    <div className="relative h-[250px] overflow-hidden rounded-2xl sm:h-[300px]">
+                      <img
+                        src={product.imageUrl}
+                        alt={product.title}
+                        className="w-full h-full object-cover transform group-hover:scale-105 transition duration-700"
+                      />
+
+                      <div className="absolute top-3 left-3 bg-white/80 backdrop-blur-md px-3 py-1 rounded-full text-[10px] uppercase tracking-widest text-[#2A2520]">
+                        {product.category}
+                      </div>
+                    </div>
+
+                    <div className="mt-6 px-2 pb-2">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-lg font-medium text-[#2A2520]">
+                          {product.title}
+                        </h3>
+
+                        <span className="text-sm text-[#8B7E72]">
+                          ₹{product.price}
+                        </span>
+                      </div>
+
+                      <p className="text-sm font-light text-[#7A6E62] line-clamp-2">
+                        {product.description ||
+                          "Premium skincare product"}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              </motion.div>
+            ))
+          )}
         </div>
-      </motion.div>
-    ))
-  ) : featuredError ? (
-    /* ── Error state with retry ── */
-    <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
-      <p className="text-[#7A6E62] text-base mb-4">
-        Couldn't load products — the server may be waking up.
-      </p>
-      <button
-        onClick={() => setRetryKey((k) => k + 1)}
-        className="px-6 py-3 bg-[#2A2520] text-white rounded-full text-sm font-medium tracking-wide hover:scale-105 transition-transform duration-300 shadow-lg"
-      >
-        Retry
-      </button>
-    </div>
-  ) : featuredProducts.length === 0 ? (
-    /* ── Empty state ── */
-    <div className="col-span-full flex items-center justify-center py-16">
-      <p className="text-[#7A6E62] text-base">No featured products yet.</p>
-    </div>
-  ) : (
-    /* ── Product cards ── */
-    featuredProducts.map((product) => (
-    <motion.div
-      key={product._id}
-      variants={fadeUp}
-      className="group cursor-pointer"
-    >
-      <Link
-        to={`/product/${product.title
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "")}`}
-        state={{ product }}
-      >
-        <div className="relative rounded-3xl overflow-hidden bg-white/40 backdrop-blur-xl border border-white/60 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 hover:shadow-[0_8px_40px_rgb(0,0,0,0.08)] hover:bg-white/60">
-          <div className="relative h-[250px] overflow-hidden rounded-2xl sm:h-[300px]">
-            <img
-              src={product.imageUrl}
-              alt={product.title}
-              className="w-full h-full object-cover transform group-hover:scale-105 transition duration-700"
-            />
-
-            <div className="absolute top-3 left-3 bg-white/80 backdrop-blur-md px-3 py-1 rounded-full text-[10px] uppercase tracking-widest text-[#2A2520]">
-              {product.category}
-            </div>
-          </div>
-
-          <div className="mt-6 px-2 pb-2">
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="text-lg font-medium text-[#2A2520]">
-                {product.title}
-              </h3>
-
-              <span className="text-sm text-[#8B7E72]">
-                ₹{product.price}
-              </span>
-            </div>
-
-            <p className="text-sm font-light text-[#7A6E62] line-clamp-2">
-              {product.description ||
-                "Premium skincare product"}
-            </p>
-          </div>
-        </div>
-      </Link>
-    </motion.div>
-  ))
-  )}
-</div>
       </motion.section>
 
       {/* 4. SPLIT-SCREEN ABOUT WITH PARALLAX FEEL */}
       <section className="px-5 py-10 sm:px-6 sm:py-12 md:px-12 md:py-14 lg:px-24">
-        <motion.div 
+        <motion.div
           variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }}
           className="flex flex-col overflow-hidden rounded-[1.75rem] bg-[#2A2520] text-[#FCFAF8] sm:rounded-[2.5rem] lg:flex-row"
         >
           <div className="flex flex-col justify-center p-7 sm:p-10 md:p-14 lg:w-1/2 lg:p-20">
             <motion.p data-edit-key="about.badge" data-edit-kind="text" data-edit-label="About Badge" variants={fadeUp} className="text-[#AFA192] text-xs tracking-[0.3em] uppercase mb-6">The Ethos</motion.p>
             <motion.h2 data-edit-key="about.title" data-edit-kind="text" data-edit-label="About Title" variants={fadeUp} className="text-4xl md:text-5xl font-light tracking-tight leading-[1.1] mb-8">
-              Science that respects <br/><span className="font-serif italic text-[#D2C5B5]">your biology.</span>
+              Science that respects <br /><span className="font-serif italic text-[#D2C5B5]">your biology.</span>
             </motion.h2>
             <motion.p data-edit-key="about.description" data-edit-kind="text" data-edit-label="About Description" variants={fadeUp} className="text-white/70 font-light leading-relaxed mb-10 max-w-md">
               We engineer formulations that mimic your skin's natural structure. No harsh stripping, no empty fillers—just precise, biocompatible ingredients that restore optimal health.
@@ -453,7 +452,7 @@ function Home() {
       </section>
 
       {/* 5. MINIMALIST TRUST ICONS */}
-      <motion.section 
+      <motion.section
         variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true }}
         className="border-y border-[#EAE2D8] bg-white/40 px-5 py-8 backdrop-blur-lg sm:px-6 sm:py-10 md:px-12"
       >
@@ -473,14 +472,14 @@ function Home() {
       </motion.section>
 
       {/* 6. GLASS PROMO BANNER */}
-      <motion.section 
+      <motion.section
         variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }}
         className="px-5 pb-14 pt-10 sm:px-6 sm:pb-16 sm:pt-12 md:px-12 md:pb-18 md:pt-14 lg:px-24"
       >
         <div className="relative overflow-hidden rounded-[1.75rem] border border-white bg-[#E8DCCB] p-6 shadow-sm sm:rounded-[2.5rem] sm:p-10 md:p-16 lg:p-20">
           {/* Subtle noise/texture overlay if desired */}
           <div className="absolute inset-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
-          
+
           <div className="relative z-10 flex flex-col items-start justify-between gap-8 md:flex-row md:items-center md:gap-12">
             <div className="max-w-xl">
               <p data-edit-key="promo.badge" data-edit-kind="text" data-edit-label="Promo Badge" className="text-[10px] tracking-[0.3em] uppercase text-[#2A2520]/60 font-medium mb-4">Limited Allocation</p>
@@ -496,7 +495,7 @@ function Home() {
             </div>
             <div className="relative mx-auto w-full max-w-[260px] flex-shrink-0 sm:max-w-[320px] md:mx-0 md:w-auto">
               <div className="flex h-56 w-56 items-center justify-center overflow-hidden rounded-full border border-white/50 bg-white/30 shadow-2xl backdrop-blur-3xl sm:h-64 sm:w-64 md:h-80 md:w-80">
-                 <img data-edit-key="promo.image" data-edit-kind="image" data-edit-label="Promo Image" src={moisturizerimg} alt="Bundle" className="w-[120%] h-[120%] object-cover opacity-90 mix-blend-multiply" />
+                <img data-edit-key="promo.image" data-edit-kind="image" data-edit-label="Promo Image" src={moisturizerimg} alt="Bundle" className="w-[120%] h-[120%] object-cover opacity-90 mix-blend-multiply" />
               </div>
             </div>
           </div>

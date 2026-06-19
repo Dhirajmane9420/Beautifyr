@@ -1,4 +1,4 @@
-import heroImg from "../assets/categoryhero.jpg";
+import heroImg from "../assets/sc1.jpg";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -25,8 +25,8 @@ import {
 } from "../lib/siteOverridesApi";
 import { toProductSlug } from "../lib/productUtils";
 import categoryhero from "../assets/categoryhero.jpg";
-import categoryhero2 from "../assets/categoryhero2.jpg";
-const SECTIONS = ["Cleansers", "Serums", "Moisturizers","Acne Care","Brightening","Exfoliators","Eye Care","Kits and Combos","Lip Care","Sunscreens","Toners","Travel Minis"];
+import categoryhero2 from "../assets/sc1.jpg";
+const SECTIONS = ["Cleansers", "Serums", "Moisturizers", "Acne Care", "Brightening", "Exfoliators", "Eye Care", "Kits and Combos", "Lip Care", "Sunscreens", "Toners", "Travel Minis"];
 
 const CONTENT_DEFAULTS = {
   "hero.badge": "Curated Categories",
@@ -98,11 +98,11 @@ const normalizeProductForm = (product = {}) => {
     imageInputs: imageUrls.length ? imageUrls.slice(0, MAX_ADMIN_PRODUCT_IMAGES).map(buildImageInput) : [buildImageInput()],
     sizeStock: sizes.length
       ? sizes.map((size) => buildSizeInput(
-          size.label || "",
-          String(size.originalPrice ?? product.originalPrice ?? size.price ?? product.price ?? ""),
-          String(size.price ?? product.discountedPrice ?? product.price ?? ""),
-          String(size.stock ?? "")
-        ))
+        size.label || "",
+        String(size.originalPrice ?? product.originalPrice ?? size.price ?? product.price ?? ""),
+        String(size.price ?? product.discountedPrice ?? product.price ?? ""),
+        String(size.stock ?? "")
+      ))
       : [buildSizeInput("250 ml"), buildSizeInput("500 ml")],
     sizeVariants: [],
     features: Array.isArray(product.features) ? product.features.join("\n") : "",
@@ -454,31 +454,31 @@ export default function CategoriesPage() {
     const category = normalizeCategoryName(currentForm.category) || "Cleansers";
 
     return {
-  title: currentForm.title.trim(),
-  description: currentForm.description.trim(),
+      title: currentForm.title.trim(),
+      description: currentForm.description.trim(),
 
-  originalPrice: primarySize.originalPrice,
-  price: primarySize.price,
-  discountedPrice: primarySize.price,
+      originalPrice: primarySize.originalPrice,
+      price: primarySize.price,
+      discountedPrice: primarySize.price,
 
-  stock,
-  inStock:
-    Boolean(currentForm.inStock) &&
-    (stock > 0 || sizeStock.some((size) => size.stock > 0)),
+      stock,
+      inStock:
+        Boolean(currentForm.inStock) &&
+        (stock > 0 || sizeStock.some((size) => size.stock > 0)),
 
-  isNewArrival: Boolean(currentForm.isNewArrival),
-  isBestSeller: Boolean(currentForm.isBestSeller),
+      isNewArrival: Boolean(currentForm.isNewArrival),
+      isBestSeller: Boolean(currentForm.isBestSeller),
 
-  section: category,
-  category: category,   // <-- ADD THIS
+      section: category,
+      category: category,   // <-- ADD THIS
 
-  imageUrl: imageUrls[0] || heroImg,
-  imageUrls,
+      imageUrl: imageUrls[0] || heroImg,
+      imageUrls,
 
-  sizeStock,
-  sizeVariants: [],
-  features,
-};
+      sizeStock,
+      sizeVariants: [],
+      features,
+    };
   };
 
   const handleCreateProduct = async () => {
@@ -492,14 +492,14 @@ export default function CategoriesPage() {
       setProductFormError("");
       //console.log("CURRENT FORM:", currentForm);
       const payload = toPayload(form);
-//       console.log({
-//   title: payload.title,
-//   description: payload.description,
-//   section: payload.section,
-//   category: payload.category,
-//   imageUrl: payload.imageUrl,
-//   imageUrls: payload.imageUrls,
-// });
+      //       console.log({
+      //   title: payload.title,
+      //   description: payload.description,
+      //   section: payload.section,
+      //   category: payload.category,
+      //   imageUrl: payload.imageUrl,
+      //   imageUrls: payload.imageUrls,
+      // });
       await createCatalogProduct(payload);
       const updated = await fetchCatalogProducts();
       setProducts(Array.isArray(updated) ? updated : []);
@@ -759,11 +759,10 @@ export default function CategoriesPage() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveContentTab(tab.id)}
-                    className={`px-5 py-2 text-sm font-medium rounded-lg transition-all ${
-                      activeContentTab === tab.id
-                        ? "bg-white text-[#C8A97E] shadow-sm"
-                        : "text-stone-500 hover:text-stone-700"
-                    }`}
+                    className={`px-5 py-2 text-sm font-medium rounded-lg transition-all ${activeContentTab === tab.id
+                      ? "bg-white text-[#C8A97E] shadow-sm"
+                      : "text-stone-500 hover:text-stone-700"
+                      }`}
                   >
                     {tab.label}
                   </button>
@@ -897,11 +896,10 @@ export default function CategoriesPage() {
           <div className="hidden sm:flex flex-wrap items-center gap-3">
             <button
               onClick={() => setSelectedCategory(null)}
-              className={`rounded-full px-5 py-2 text-sm font-medium transition-all ${
-                !selectedCategory
-                  ? "bg-[#2A2520] text-white shadow-lg"
-                  : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-              }`}
+              className={`rounded-full px-5 py-2 text-sm font-medium transition-all ${!selectedCategory
+                ? "bg-[#2A2520] text-white shadow-lg"
+                : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                }`}
             >
               All Categories
             </button>
@@ -909,11 +907,10 @@ export default function CategoriesPage() {
               <button
                 key={name}
                 onClick={() => setSelectedCategory(name)}
-                className={`rounded-full px-5 py-2 text-sm font-medium transition-all ${
-                  selectedCategory === name
-                    ? "bg-[#C8A97E] text-white shadow-lg shadow-[#C8A97E]/20"
-                    : "bg-stone-100 text-stone-600 hover:bg-stone-200"
-                }`}
+                className={`rounded-full px-5 py-2 text-sm font-medium transition-all ${selectedCategory === name
+                  ? "bg-[#C8A97E] text-white shadow-lg shadow-[#C8A97E]/20"
+                  : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                  }`}
               >
                 {name}
               </button>
@@ -1193,11 +1190,10 @@ function ProductCard({ product, isAdmin, onEdit, onDelete, addToCart }) {
           }}
           aria-label={wishlisted ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`}
           aria-pressed={wishlisted}
-          className={`absolute right-3 top-3 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border shadow-sm backdrop-blur-md transition ${
-            wishlisted
-              ? "border-rose-200 bg-rose-500 text-white"
-              : "border-white/70 bg-white/85 text-[#7f674d] hover:bg-white"
-          }`}
+          className={`absolute right-3 top-3 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border shadow-sm backdrop-blur-md transition ${wishlisted
+            ? "border-rose-200 bg-rose-500 text-white"
+            : "border-white/70 bg-white/85 text-[#7f674d] hover:bg-white"
+            }`}
         >
           <Heart size={16} className={wishlisted ? "fill-current" : ""} />
         </button>
