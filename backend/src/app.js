@@ -18,7 +18,8 @@ export const createApp = ({ clientUrl }) => {
           return callback(null, true);
         }
 
-        const isAllowedClient = origin === clientUrl;
+        const allowedOrigins = clientUrl.split(",").map((url) => url.trim());
+        const isAllowedClient = allowedOrigins.includes(origin);
         const isLocalhostDev =
           process.env.NODE_ENV !== "production" &&
           /^http:\/\/localhost:\d+$/.test(origin);
