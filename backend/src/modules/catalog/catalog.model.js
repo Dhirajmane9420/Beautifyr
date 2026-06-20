@@ -62,6 +62,8 @@ const catalogProductSchema = new mongoose.Schema(
         "Sunscreens",
         "Toners",
         "Travel Minis",
+        "Best Sellers",
+        "New Arrivals",
       ],
     },
     category: {
