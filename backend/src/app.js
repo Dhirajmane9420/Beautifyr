@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { adminRouter } from "./modules/admin/admin.routes.js";
@@ -10,7 +11,7 @@ import paymentRouter from "./modules/payment/payment.route.js";
 import healthRoute from "./modules/homeFeatured/healthRoute.js";
 export const createApp = ({ clientUrl }) => {
   const app = express();
-
+  app.use(helmet());
   app.use(
     cors({
       origin: (origin, callback) => {
@@ -39,7 +40,7 @@ export const createApp = ({ clientUrl }) => {
   app.get("/api/health", (_req, res) => {
     res.status(200).json({ status: "ok", message: "Backend running" });
   });
-  
+
 
   app.use("/api/auth", authRouter);
   app.use("/api", adminRouter);
@@ -51,7 +52,7 @@ export const createApp = ({ clientUrl }) => {
   app.use((req, res) => {
     res.status(404).json({ message: `Route not found: ${req.originalUrl}` });
   });
-  
+
 
   app.use((error, _req, res, _next) => {
     const statusCode = error.statusCode || 500;

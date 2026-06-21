@@ -28,23 +28,39 @@ export const signup = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
+    if (typeof name !== "string" || typeof email !== "string" || typeof password !== "string") {
+      return res.status(400).json({ message: "Name, email, and password must be strings." });
+    }
+
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedName || !trimmedEmail || !password) {
       return res.status(400).json({ message: "Name, email, and password are required." });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters long." });
+    if (trimmedName.length < 2 || trimmedName.length > 60) {
+      return res.status(400).json({ message: "Name must be between 2 and 60 characters long." });
     }
 
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (trimmedEmail.length > 254 || !emailRegex.test(trimmedEmail)) {
+      return res.status(400).json({ message: "Please provide a valid email address (maximum 254 characters)." });
+    }
+
+    if (password.length < 6 || password.length > 128) {
+      return res.status(400).json({ message: "Password must be between 6 and 128 characters long." });
+    }
+
+    const existingUser = await User.findOne({ email: trimmedEmail.toLowerCase() });
     if (existingUser) {
       return res.status(409).json({ message: "User already exists with this email." });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({
-      name,
-      email: email.toLowerCase(),
+      name: trimmedName,
+      email: trimmedEmail.toLowerCase(),
       password: hashedPassword,
       role: "customer",
     });
@@ -65,11 +81,22 @@ export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (typeof email !== "string" || typeof password !== "string") {
+      return res.status(400).json({ message: "Email and password must be strings." });
+    }
+
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail || !password) {
       return res.status(400).json({ message: "Email and password are required." });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (trimmedEmail.length > 254 || !emailRegex.test(trimmedEmail) || password.length > 128) {
+      return res.status(401).json({ message: "Invalid email or password." });
+    }
+
+    const user = await User.findOne({ email: trimmedEmail.toLowerCase() });
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password." });
     }
@@ -129,7 +156,7 @@ export const googleAuth = async (req, res, next) => {
       return res.status(500).json({ message: "Google sign-in is not configured on server." });
     }
 
-    if (!idToken) {
+    if (!idToken || typeof idToken !== "string" || idToken.trim().length === 0) {
       return res.status(400).json({ message: "Google token is required." });
     }
 

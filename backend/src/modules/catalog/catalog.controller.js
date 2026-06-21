@@ -387,9 +387,7 @@ const validatePayload = (payload) => {
     }
   }
 
-  if (!SECTION_VALUES.includes(payload.section)) {
-    return "section must be one of: Cleansers, Serums, Moisturizers, Best Sellers, New Arrivals.";
-  }
+
 
   return null;
 };

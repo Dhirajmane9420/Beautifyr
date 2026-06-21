@@ -47,7 +47,7 @@ const CONTENT_DEFAULTS = {
   "section.dynamic.image": categoryhero,
 };
 
-const defaultCategory = SECTIONS[0];
+
 const MAX_ADMIN_PRODUCT_IMAGES = 7;
 const buildImageInput = (url = "") => ({ url });
 const buildSizeInput = (label = "", originalPrice = "", price = "", stock = "") => ({ label, originalPrice, price, stock });
@@ -69,8 +69,8 @@ const buildInitialForm = () => ({
   inStock: true,
   isNewArrival: false,
   isBestSeller: false,
-  section: defaultCategory,
-  category: defaultCategory,
+  section: "",
+  category: "",
   imageUrl: "",
   imageInputs: [buildImageInput()],
   sizeStock: [buildSizeInput("250 ml"), buildSizeInput("500 ml")],
@@ -92,8 +92,8 @@ const normalizeProductForm = (product = {}) => {
     inStock: product.inStock ?? true,
     isNewArrival: product.isNewArrival ?? product.section === "New Arrivals",
     isBestSeller: product.isBestSeller ?? product.section === "Best Sellers",
-    section: product.section || "Cleansers",
-    category: product.section,
+    section: product.category || product.section || "",
+    category: product.category || product.section || "",
     imageUrl: product.imageUrl || imageUrls[0] || "",
     imageInputs: imageUrls.length ? imageUrls.slice(0, MAX_ADMIN_PRODUCT_IMAGES).map(buildImageInput) : [buildImageInput()],
     sizeStock: sizes.length
@@ -128,7 +128,7 @@ const fadeIn = {
 /* ── GOLD ACCENT ── */
 const GOLD = "#C8A97E";
 
-function ProductAdminForm({ value, onChange, inputCls, onSubmit, isSaving, submitLabel, error }) {
+function ProductAdminForm({ value, onChange, inputCls, onSubmit, isSaving, submitLabel, error, categoryNames }) {
   const updateField = (field, nextValue) => onChange((prev) => ({ ...prev, [field]: nextValue }));
 
   const updateImage = (index, url) => {
@@ -202,12 +202,23 @@ function ProductAdminForm({ value, onChange, inputCls, onSubmit, isSaving, submi
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         <input className={inputCls} value={value.title} onChange={(e) => updateField("title", e.target.value)} placeholder="Product Title *" />
-        <select className={inputCls} value={value.section} onChange={(e) => updateField("section", e.target.value)}>
-          {SECTIONS.map((section) => <option key={section} value={section}>{section}</option>)}
+        <select
+          className={inputCls}
+          value={value.category}
+          onChange={(e) => {
+            updateField("category", e.target.value);
+            updateField("section", e.target.value);
+          }}
+        >
+          <option value="">Select Category *</option>
+          {categoryNames.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
         </select>
-        <input className={inputCls} value={value.category} onChange={(e) => updateField("category", e.target.value)} list="cat-options" placeholder="Category" />
       </div>
 
       <textarea className={inputCls} value={value.description} onChange={(e) => updateField("description", e.target.value)} rows={3} placeholder="Product Description *" />
@@ -362,13 +373,13 @@ export default function CategoriesPage() {
 
   const sectionProducts = useMemo(() => {
     const map = {};
-    SECTIONS.forEach((sec) => {
+    categoryNames.forEach((sec) => {
       map[sec] = products.filter(
-        (p) => (p.section || "").toLowerCase().trim() === sec.toLowerCase().trim()
+        (p) => (p.category || p.section || "").toLowerCase().trim() === sec.toLowerCase().trim()
       );
     });
     return map;
-  }, [products]);
+  }, [products, categoryNames]);
 
   const getContent = (title) => {
     const key = title?.toLowerCase().trim();
@@ -385,7 +396,9 @@ export default function CategoriesPage() {
       };
     }
 
-    if (SECTIONS.map((s) => s.toLowerCase()).includes(key)) {
+    const isPredefined = ["cleansers", "serums", "moisturizers", "acne care", "brightening", "exfoliators", "eye care", "kits and combos", "lip care", "sunscreens", "toners", "travel minis"].includes(key);
+
+    if (isPredefined) {
       return {
         title: overrides[`section.${key}.title`] ?? defs[`section.${key}.title`] ?? title,
         subtitle: overrides[`section.${key}.subtitle`] ?? defs[`section.${key}.subtitle`] ?? "",
@@ -408,6 +421,7 @@ export default function CategoriesPage() {
       .map((item) => item.trim())
       .filter(Boolean);
     if (!currentForm.title.trim()) return "Product title is required.";
+    if (!currentForm.category || !currentForm.category.trim()) return "Product category is required.";
     if (!currentForm.description.trim()) return "Product description is required.";
     if (!imageUrls.length) return "Add at least one product image.";
     if (imageUrls.length > MAX_ADMIN_PRODUCT_IMAGES) return "A product can have at most 7 images.";
@@ -772,11 +786,6 @@ export default function CategoriesPage() {
               {/* Products Tab */}
               {activeContentTab === "products" && (
                 <div className="space-y-4">
-                  <datalist id="cat-options">
-                    {categoryNames.map((n) => (
-                      <option key={n} value={n} />
-                    ))}
-                  </datalist>
                   <ProductAdminForm
                     value={form}
                     onChange={setForm}
@@ -785,6 +794,7 @@ export default function CategoriesPage() {
                     isSaving={isSaving}
                     submitLabel="Add Product"
                     error={productFormError}
+                    categoryNames={categoryNames}
                   />
                 </div>
               )}
@@ -970,7 +980,7 @@ export default function CategoriesPage() {
                 addToCart={addToCart}
               />
             ) : (
-              SECTIONS.map((sec) => (
+              categoryNames.map((sec) => (
                 <SectionGrid
                   key={sec}
                   title={sec}
@@ -1081,6 +1091,7 @@ export default function CategoriesPage() {
                   isSaving={isSaving}
                   submitLabel="Save Changes"
                   error={productFormError}
+                  categoryNames={categoryNames}
                 />
               </div>
             </motion.div>

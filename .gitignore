@@ -26,3 +26,4 @@ Thumbs.db
 # Local env files
 backend/.env
 frontend/.env
+security.md
