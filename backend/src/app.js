@@ -6,9 +6,7 @@ import { authRouter } from "./modules/auth/auth.routes.js";
 import { adminRouter } from "./modules/admin/admin.routes.js";
 import { orderRouter } from "./modules/orders/order.routes.js";
 import { catalogRouter } from "./modules/catalog/catalog.route.js";
-import homeFeaturedRouter from "./modules/homeFeatured/homeFeatured.route.js";
 import paymentRouter from "./modules/payment/payment.route.js";
-import healthRoute from "./modules/homeFeatured/healthRoute.js";
 export const createApp = ({ clientUrl }) => {
   const app = express();
   app.use(helmet());
@@ -46,9 +44,15 @@ export const createApp = ({ clientUrl }) => {
   app.use("/api", adminRouter);
   app.use("/api", orderRouter);
   app.use("/api", catalogRouter);
-  app.use("/api", homeFeaturedRouter);
   app.use("/api", paymentRouter);
-  app.use("/health", healthRoute);
+  app.get("/health", (req, res) => {
+    res.status(200).json({
+      success: true,
+      message: "Backend is running",
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    });
+  });
   app.use((req, res) => {
     res.status(404).json({ message: `Route not found: ${req.originalUrl}` });
   });

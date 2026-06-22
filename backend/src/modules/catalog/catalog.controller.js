@@ -342,6 +342,7 @@ const normalizeInput = (payload) => {
     inStock: hasInStockValue ? payload.inStock : (stock > 0 || hasPositiveStockBySize || hasPositiveStockByVariant),
     isNewArrival: Boolean(payload.isNewArrival),
     isBestSeller: Boolean(payload.isBestSeller),
+    isHomeFeatured: Boolean(payload.isHomeFeatured),
     section: String(payload.section || "").trim(),
     category: normalizeCategoryName(payload.category),
     imageUrl,

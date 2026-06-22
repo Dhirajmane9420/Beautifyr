@@ -1,12 +1,11 @@
-import heroImg from "../assets/hero.jpg";
 import heroVideoDesktop from "../assets/hero1.mp4";
 import heroVideoMobile from "../assets/hero2.mp4";
 import heroVideoMobileAlt from "../assets/hero3.mp4";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import HomeLiveEditor from "../components/admin/HomeLiveEditor";
 import {
@@ -14,9 +13,8 @@ import {
   savePageOverride,
   uploadPageOverrideImage,
 } from "../lib/siteOverridesApi";
-import {
-  fetchHomeFeatured,
-} from "../lib/homeFeaturedApi";
+import { fetchCatalogProducts } from "../lib/catalogApi";
+import { useCart } from "../context/CartContext";
 import serumimg from "../assets/HERO PAGE/ser.jpg";
 import moisturizerimg from "../assets/HERO PAGE/mois.jpg";
 import cleanserimg from "../assets/HERO PAGE/clean.jpg";
@@ -64,6 +62,12 @@ const applyOverridesToDom = (overrides) => {
 function Home() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
+  const scrollContainerRef = useRef(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+
   const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window === "undefined") return true;
     return window.matchMedia("(min-width: 768px)").matches;
@@ -82,9 +86,10 @@ function Home() {
 
     const load = async () => {
       try {
-        const products = await fetchHomeFeatured();
+        const allProducts = await fetchCatalogProducts();
         if (!cancelled) {
-          setFeaturedProducts(products);
+          const featured = allProducts.filter((p) => p.isHomeFeatured === true);
+          setFeaturedProducts(featured);
           setFeaturedLoading(false);
         }
       } catch {
@@ -98,6 +103,84 @@ function Home() {
     load();
     return () => { cancelled = true; };
   }, [retryKey]);
+
+  const homepageCategories = useMemo(() => {
+    const slots = [
+      { category: "", imageUrl: "" },
+      { category: "", imageUrl: "" },
+      { category: "", imageUrl: "" },
+      { category: "", imageUrl: "" },
+    ];
+    overrides.forEach((override) => {
+      const match = override.key.match(/^home\.category_(\d)_(name|image)$/);
+      if (match) {
+        const index = parseInt(match[1], 10) - 1;
+        const field = match[2] === "name" ? "category" : "imageUrl";
+        if (index >= 0 && index < 4) {
+          slots[index][field] = override.value;
+        }
+      }
+    });
+    return slots.filter((slot) => slot.category);
+  }, [overrides]);
+
+  const handleScroll = () => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    const scrollLeft = el.scrollLeft;
+    const scrollWidth = el.scrollWidth;
+    const clientWidth = el.clientWidth;
+
+    const maxScrollLeft = scrollWidth - clientWidth;
+    const pct = maxScrollLeft > 0 ? scrollLeft / maxScrollLeft : 0;
+    setScrollProgress(pct);
+
+    const children = el.children;
+    if (children.length > 0) {
+      let index = 0;
+      let minDiff = Infinity;
+      for (let i = 0; i < children.length; i++) {
+        const childLeft = children[i].offsetLeft - el.offsetLeft;
+        const diff = Math.abs(childLeft - scrollLeft);
+        if (diff < minDiff) {
+          minDiff = diff;
+          index = i;
+        }
+      }
+      setCurrentPage(index + 1);
+    }
+  };
+
+  const scrollByAmount = (direction) => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const cardWidth = el.querySelector(".product-card")?.clientWidth || 300;
+    const scrollAmount = cardWidth * 1.2;
+    el.scrollBy({
+      left: direction === "left" ? -scrollAmount : scrollAmount,
+      behavior: "smooth",
+    });
+  };
+
+  const handleAddToCart = (e, product) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const primarySize = product.sizeStock?.[0] || { label: "Standard", price: product.price, originalPrice: product.originalPrice || product.price, stock: product.stock };
+    addToCart({
+      id: product._id,
+      productId: product._id,
+      name: product.title,
+      title: product.title,
+      price: primarySize.price,
+      originalPrice: primarySize.originalPrice,
+      image: product.imageUrl,
+      category: product.category,
+      size: primarySize.label,
+      sizeVariant: primarySize,
+      quantity: 1,
+    });
+  };
 
   const mobileHeroVideos = [heroVideoMobile, heroVideoMobileAlt];
 
@@ -258,172 +341,208 @@ function Home() {
         </div>
       </div>
 
-      {/* 2. EDITORIAL CATEGORY GRID */}
-      <motion.section
-        variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }}
-        className="px-5 py-16 sm:px-6 sm:py-20 md:px-12 md:py-24 lg:px-24 lg:py-28"
-      >
-        <div className="mb-10 flex flex-col gap-5 md:mb-14 md:flex-row md:items-end md:justify-between md:gap-6">
-          <motion.div variants={fadeUp} className="max-w-xl">
-            <h2 data-edit-key="categories.title" data-edit-kind="text" data-edit-label="Categories Title" className="text-3xl md:text-5xl font-light tracking-tight text-[#2A2520]">
-              Curated <span className="font-serif italic text-[#8B7E72]">Essentials</span>
-            </h2>
-            <p data-edit-key="categories.subtitle" data-edit-kind="text" data-edit-label="Categories Subtitle" className="mt-4 text-[#7A6E62] font-light leading-relaxed">
-              Targeted solutions designed to integrate seamlessly into your daily ritual.
-            </p>
-          </motion.div>
-          <motion.div variants={fadeUp}>
-            <Link
-              to="/categories"
-              onMouseEnter={preloadCategoryRoutes}
-              onFocus={preloadCategoryRoutes}
-              onTouchStart={preloadCategoryRoutes}
-              className="group flex items-center gap-2 text-sm uppercase tracking-widest text-[#2A2520] hover:text-[#8B7E72] transition-colors pb-1 border-b border-[#2A2520]/20"
-            >
-              Explore All <span className="transform group-hover:translate-x-1 transition-transform">→</span>
-            </Link>
-          </motion.div>
-        </div>
-
-        <div className="grid h-auto grid-cols-1 gap-5 md:h-[560px] md:grid-cols-12 md:gap-6">
-          {/* Main Large Card */}
-          <motion.div variants={fadeUp} className="group relative h-[320px] overflow-hidden rounded-[1.5rem] md:col-span-7 md:h-full md:rounded-[2rem]">
-            <img data-edit-key="categories.mainCard.image" data-edit-kind="image" data-edit-label="Main Category Image" src={serumimg} alt="Serums" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
-            <div className="absolute bottom-5 left-5 right-5 sm:bottom-8 sm:left-8 sm:right-8">
-              <div className="max-w-xs transform rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-2xl transition-all duration-500 group-hover:translate-y-0 sm:max-w-sm sm:translate-y-4 sm:p-6">
-                <p data-edit-key="categories.mainCard.badge" data-edit-kind="text" data-edit-label="Main Category Badge" className="text-[10px] tracking-[0.2em] text-white/80 uppercase mb-2">Bestseller</p>
-                <h3 data-edit-key="categories.mainCard.title" data-edit-kind="text" data-edit-label="Main Category Title" className="text-3xl font-light text-white mb-2">Active Serums</h3>
-                <Link data-edit-key="categories.mainCard.cta" data-edit-kind="text" data-edit-label="Main Category CTA" to="/categories" className="text-sm text-white/90 underline decoration-white/30 underline-offset-4 hover:decoration-white transition-all">Shop Category</Link>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Side Cards Stack */}
-          <div className="flex h-full flex-col gap-5 md:col-span-5 md:gap-6">
-            <motion.div variants={fadeUp} className="group relative min-h-[220px] flex-1 overflow-hidden rounded-[1.5rem] md:min-h-[250px] md:rounded-[2rem]">
-              <img data-edit-key="categories.sideTop.image" data-edit-kind="image" data-edit-label="Top Side Category Image" src={moisturizerimg} alt="Moisturizers" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
-              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-500"></div>
-              <div className="absolute bottom-6 left-6">
-                <h3 data-edit-key="categories.sideTop.title" data-edit-kind="text" data-edit-label="Top Side Category Title" className="text-2xl font-light text-white">Moisturizers</h3>
-                <p data-edit-key="categories.sideTop.subtitle" data-edit-kind="text" data-edit-label="Top Side Category Subtitle" className="text-white/80 text-sm font-light mt-1">Barrier protection</p>
-              </div>
-            </motion.div>
-
-            <motion.div variants={fadeUp} className="group relative min-h-[220px] flex-1 overflow-hidden rounded-[1.5rem] md:min-h-[250px] md:rounded-[2rem]">
-              <img data-edit-key="categories.sideBottom.image" data-edit-kind="image" data-edit-label="Bottom Side Category Image" src={cleanserimg} alt="Cleansers" className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
-              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors duration-500"></div>
-              <div className="absolute bottom-6 left-6">
-                <h3 data-edit-key="categories.sideBottom.title" data-edit-kind="text" data-edit-label="Bottom Side Category Title" className="text-2xl font-light text-white">Cleansers</h3>
-                <p data-edit-key="categories.sideBottom.subtitle" data-edit-kind="text" data-edit-label="Bottom Side Category Subtitle" className="text-white/80 text-sm font-light mt-1">Gentle purification</p>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </motion.section>
-
-      {/* 3. GLASSMORPHISM FEATURED PRODUCTS */}
-      <motion.section
-        variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }}
-        className="relative overflow-hidden bg-[#F7F4F0] px-5 py-16 sm:px-6 sm:py-20 md:px-12 md:py-24 lg:px-24"
-      >
+      {/* FEATURED PRODUCTS & CATEGORIES SETUP */}
+      <section className="relative overflow-hidden bg-[#F7F4F0] px-5 py-16 sm:px-6 sm:py-20 md:px-12 md:py-24 lg:px-24">
         {/* Soft abstract background blobs */}
         <div className="absolute top-0 left-0 w-96 h-96 bg-[#EAE2D8] rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob"></div>
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#F1EBE4] rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
 
-        <div className="relative z-10 text-center mb-16">
-          <motion.h2 data-edit-key="favorites.title" data-edit-kind="text" data-edit-label="Favorites Title" variants={fadeUp} className="text-3xl md:text-5xl font-light tracking-tight text-[#2A2520]">
-            The Cult <span className="font-serif italic text-[#8B7E72]">Favorites</span>
-          </motion.h2>
-        </div>
+        <div className="relative z-10 max-w-7xl mx-auto space-y-12">
+          {/* Products Horizontal Slider Section */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="inline-block text-xs font-bold uppercase tracking-[0.25em] text-[#C8A97E] mb-2">
+                  Featured Collection
+                </span>
+                <h2 className="text-3xl font-light tracking-tight text-[#2A2520] font-serif">
+                  The Cult <span className="italic text-[#8B7E72]">Favorites</span>
+                </h2>
+              </div>
+            </div>
 
-        <div className="relative z-10 grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-          {featuredLoading ? (
-            /* ── Skeleton placeholders ── */
-            Array.from({ length: 4 }).map((_, i) => (
-              <motion.div key={`skel-${i}`} variants={fadeUp} className="animate-pulse">
-                <div className="rounded-3xl overflow-hidden bg-white/40 backdrop-blur-xl border border-white/60 p-4">
-                  <div className="h-[250px] sm:h-[300px] rounded-2xl bg-[#E8E0D6]" />
-                  <div className="mt-6 px-2 pb-2 space-y-3">
-                    <div className="flex justify-between">
-                      <div className="h-5 w-2/3 rounded bg-[#E8E0D6]" />
-                      <div className="h-5 w-12 rounded bg-[#E8E0D6]" />
+            {featuredLoading ? (
+              <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-none">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={`skel-${i}`} className="shrink-0 w-[280px] sm:w-[320px] bg-white/40 border border-white/60 p-4 rounded-3xl animate-pulse">
+                    <div className="aspect-square rounded-2xl bg-[#E8E0D6]" />
+                    <div className="mt-5 space-y-3">
+                      <div className="h-5 w-2/3 bg-[#E8E0D6] rounded" />
+                      <div className="h-4 w-1/3 bg-[#E8E0D6] rounded" />
                     </div>
-                    <div className="h-4 w-full rounded bg-[#E8E0D6]" />
-                    <div className="h-4 w-3/4 rounded bg-[#E8E0D6]" />
+                  </div>
+                ))}
+              </div>
+            ) : featuredError ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center bg-white/30 backdrop-blur border border-white/40 rounded-3xl p-6">
+                <p className="text-[#7A6E62] text-sm mb-4">
+                  Couldn't load products — please check your connection.
+                </p>
+                <button
+                  onClick={() => setRetryKey((k) => k + 1)}
+                  className="px-5 py-2.5 bg-[#2A2520] text-white rounded-full text-xs font-semibold tracking-wide hover:scale-105 transition-transform"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : featuredProducts.length === 0 ? (
+              <div className="flex items-center justify-center py-16 bg-white/30 backdrop-blur border border-white/40 rounded-3xl">
+                <p className="text-[#7A6E62] text-sm">No featured products marked yet.</p>
+              </div>
+            ) : (
+              <div className="relative w-full">
+                <div
+                  ref={scrollContainerRef}
+                  onScroll={handleScroll}
+                  className="flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-none pb-4 px-2"
+                  style={{ WebkitOverflowScrolling: "touch" }}
+                >
+                  {featuredProducts.map((product) => (
+                    <div
+                      key={product._id}
+                      className="product-card snap-start shrink-0 w-[280px] sm:w-[320px] bg-white rounded-3xl overflow-hidden shadow-sm border border-stone-100 hover:shadow-md transition-all duration-300 flex flex-col justify-between group"
+                    >
+                      <Link
+                        to={`/product/${product.title
+                          .toLowerCase()
+                          .replace(/[^a-z0-9]+/g, "-")
+                          .replace(/^-|-$/g, "")}`}
+                        state={{ product }}
+                        className="flex-1 flex flex-col"
+                      >
+                        <div className="relative aspect-square overflow-hidden bg-stone-50">
+                          <img
+                            src={product.imageUrl}
+                            alt={product.title}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          />
+                          <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider text-[#2A2520] border border-stone-100">
+                            {product.category}
+                          </div>
+                        </div>
+
+                        <div className="p-5 flex-1 flex flex-col justify-between">
+                          <div className="space-y-1">
+                            <h3 className="text-base font-semibold text-stone-800 line-clamp-1 group-hover:text-[#C8A97E] transition-colors">{product.title}</h3>
+                            <p className="text-xs text-stone-400 font-light line-clamp-2 mt-1">
+                              {product.description || "Premium skincare formulation."}
+                            </p>
+                          </div>
+                          <div className="flex items-center justify-between mt-4">
+                            <div>
+                              <span className="text-lg font-bold text-stone-900">
+                                ₹{Number(product.price).toLocaleString("en-IN")}
+                              </span>
+                              {product.originalPrice && Number(product.originalPrice) > Number(product.price) && (
+                                <span className="text-xs text-stone-400 line-through ml-2">
+                                  ₹{Number(product.originalPrice).toLocaleString("en-IN")}
+                                </span>
+                              )}
+                            </div>
+                            <button
+                              onClick={(e) => handleAddToCart(e, product)}
+                              className="h-10 w-10 rounded-xl bg-stone-50 hover:bg-[#C8A97E] hover:text-white transition flex items-center justify-center text-stone-600 shadow-sm border border-stone-100 group/btn"
+                              title="Add to bag"
+                            >
+                              <svg className="w-5 h-5 transition-transform duration-300 group-hover/btn:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Slider Controls & Progress Tracker */}
+                <div className="mt-8 flex items-center justify-between gap-4 px-2">
+                  <div className="flex items-center gap-3 text-xs text-stone-500 font-mono tracking-wider">
+                    <span className="font-semibold text-stone-800">{String(currentPage).padStart(2, '0')}</span>
+                    <span className="text-stone-300">/</span>
+                    <span>{String(featuredProducts.length).padStart(2, '0')}</span>
+                  </div>
+
+                  <div className="flex-1 h-[2px] bg-stone-200/60 rounded-full relative overflow-hidden hidden sm:block mx-8 max-w-[200px]">
+                    <div
+                      className="absolute top-0 bottom-0 w-8 bg-[#C8A97E] rounded-full transition-all duration-100"
+                      style={{ left: `${scrollProgress * (100 - 16)}%` }}
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => scrollByAmount("left")}
+                      className="h-9 w-9 rounded-full bg-white hover:bg-stone-50 border border-stone-200 shadow-sm flex items-center justify-center text-stone-600 transition"
+                      title="Scroll Left"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => scrollByAmount("right")}
+                      className="h-9 w-9 rounded-full bg-white hover:bg-stone-50 border border-stone-200 shadow-sm flex items-center justify-center text-stone-600 transition"
+                      title="Scroll Right"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
-              </motion.div>
-            ))
-          ) : featuredError ? (
-            /* ── Error state with retry ── */
-            <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
-              <p className="text-[#7A6E62] text-base mb-4">
-                Couldn't load products — the server may be waking up.
+              </div>
+            )}
+          </div>
+
+          <hr className="border-t border-[#eadfc8]/30 my-6" />
+
+          {/* Categories Grid Setup */}
+          <div className="space-y-8 pt-4">
+            <div className="text-center max-w-2xl mx-auto space-y-2">
+              <h2 className="text-3xl md:text-5xl font-light tracking-tight text-[#2A2520] font-serif">
+                Elevate Your <span className="italic text-[#8B7E72]">Everyday</span>
+              </h2>
+              <p className="text-stone-500 font-light text-sm sm:text-base leading-relaxed">
+                Click any of our major categories to browse targeted, clinical skincare formulations.
               </p>
-              <button
-                onClick={() => setRetryKey((k) => k + 1)}
-                className="px-6 py-3 bg-[#2A2520] text-white rounded-full text-sm font-medium tracking-wide hover:scale-105 transition-transform duration-300 shadow-lg"
-              >
-                Retry
-              </button>
             </div>
-          ) : featuredProducts.length === 0 ? (
-            /* ── Empty state ── */
-            <div className="col-span-full flex items-center justify-center py-16">
-              <p className="text-[#7A6E62] text-base">No featured products yet.</p>
-            </div>
-          ) : (
-            /* ── Product cards ── */
-            featuredProducts.map((product) => (
-              <motion.div
-                key={product._id}
-                variants={fadeUp}
-                className="group cursor-pointer"
-              >
-                <Link
-                  to={`/product/${product.title
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, "-")
-                    .replace(/^-|-$/g, "")}`}
-                  state={{ product }}
-                >
-                  <div className="relative rounded-3xl overflow-hidden bg-white/40 backdrop-blur-xl border border-white/60 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 hover:shadow-[0_8px_40px_rgb(0,0,0,0.08)] hover:bg-white/60">
-                    <div className="relative h-[250px] overflow-hidden rounded-2xl sm:h-[300px]">
-                      <img
-                        src={product.imageUrl}
-                        alt={product.title}
-                        className="w-full h-full object-cover transform group-hover:scale-105 transition duration-700"
-                      />
 
-                      <div className="absolute top-3 left-3 bg-white/80 backdrop-blur-md px-3 py-1 rounded-full text-[10px] uppercase tracking-widest text-[#2A2520]">
-                        {product.category}
-                      </div>
-                    </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {homepageCategories.map((slot, index) => {
+                const defaultImages = [serumimg, moisturizerimg, cleanserimg, serumimg];
+                const fallbackImg = defaultImages[index % defaultImages.length];
+                const cardImg = slot.imageUrl || fallbackImg;
 
-                    <div className="mt-6 px-2 pb-2">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-lg font-medium text-[#2A2520]">
-                          {product.title}
-                        </h3>
-
-                        <span className="text-sm text-[#8B7E72]">
-                          ₹{product.price}
-                        </span>
-                      </div>
-
-                      <p className="text-sm font-light text-[#7A6E62] line-clamp-2">
-                        {product.description ||
-                          "Premium skincare product"}
-                      </p>
+                return (
+                  <div
+                    key={index}
+                    onClick={() => {
+                      navigate(`/categories`, { state: { selectedCategory: slot.category } });
+                    }}
+                    className="group relative aspect-[4/5] rounded-[1.5rem] sm:rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all duration-500 bg-stone-100"
+                  >
+                    <img
+                      src={cardImg}
+                      alt={slot.category}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent transition-opacity duration-500 group-hover:opacity-80" />
+                    <div className="absolute inset-0 flex flex-col justify-end p-5 sm:p-7 text-center">
+                      <h3 className="text-lg sm:text-xl font-medium text-white tracking-wide group-hover:translate-y-[-4px] transition-transform duration-500 font-serif">
+                        {slot.category}
+                      </h3>
+                      <span className="text-[10px] tracking-[0.2em] uppercase text-[#E8DCCB] font-semibold mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                        Shop Collection
+                      </span>
                     </div>
                   </div>
-                </Link>
-              </motion.div>
-            ))
-          )}
+                );
+              })}
+            </div>
+          </div>
         </div>
-      </motion.section>
+      </section>
 
       {/* 4. SPLIT-SCREEN ABOUT WITH PARALLAX FEEL */}
       <section className="px-5 py-10 sm:px-6 sm:py-12 md:px-12 md:py-14 lg:px-24">

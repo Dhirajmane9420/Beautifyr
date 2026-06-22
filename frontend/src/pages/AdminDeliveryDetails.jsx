@@ -12,8 +12,19 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { fetchDeliveryDetails } from "../lib/ordersApi";
-import { fetchCatalogProducts } from "../lib/catalogApi";
-import { fetchHomeFeatured, saveHomeFeatured } from "../lib/homeFeaturedApi";
+import { fetchCatalogCategories } from "../lib/catalogApi";
+import { fetchPageOverrides, savePageOverride, uploadPageOverrideImage } from "../lib/siteOverridesApi";
+
+const normalizeCategoryName = (name = "") => {
+  const trimmed = String(name || "").trim();
+  const key = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+  if (["clenser", "clensers", "cleanser", "cleansers"].includes(key)) {
+    return "Cleansers";
+  }
+
+  return trimmed;
+};
 
 const formatCurrency = (value) =>
   `Rs. ${Number(value || 0).toLocaleString("en-IN")}`;
@@ -46,11 +57,14 @@ function MetricCard({ icon: Icon, label, value, hint }) {
 }
 
 export default function AdminDeliveryDetails() {
-  const [catalogProducts, setCatalogProducts] =
-  useState([]);
-
-const [featuredIds, setFeaturedIds] =
-  useState([]);
+  const [categories, setCategories] = useState([]);
+  const [homepageCategories, setHomepageCategories] = useState([
+    { category: "", imageUrl: "" },
+    { category: "", imageUrl: "" },
+    { category: "", imageUrl: "" },
+    { category: "", imageUrl: "" },
+  ]);
+  const [isSavingCategories, setIsSavingCategories] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
@@ -71,23 +85,34 @@ const [featuredIds, setFeaturedIds] =
       try {
         setIsLoading(true);
         setError("");
-        const payload = await fetchDeliveryDetails();
-        const products =
-  await fetchCatalogProducts();
+        const [payload, cats, overrides] = await Promise.all([
+          fetchDeliveryDetails(),
+          fetchCatalogCategories(),
+          fetchPageOverrides("home"),
+        ]);
 
-const featured =
-  await fetchHomeFeatured();
-
-setCatalogProducts(products);
-
-setFeaturedIds(
-  featured.map(
-    (item) =>
-      item._id
-  )
-);
         if (!isMounted) return;
         setData(payload);
+        setCategories(cats);
+
+        // Parse category slots from overrides
+        const initialCategories = [
+          { category: "", imageUrl: "" },
+          { category: "", imageUrl: "" },
+          { category: "", imageUrl: "" },
+          { category: "", imageUrl: "" },
+        ];
+        overrides.forEach((override) => {
+          const match = override.key.match(/^home\.category_(\d)_(name|image)$/);
+          if (match) {
+            const index = parseInt(match[1], 10) - 1;
+            const field = match[2] === "name" ? "category" : "imageUrl";
+            if (index >= 0 && index < 4) {
+              initialCategories[index][field] = override.value;
+            }
+          }
+        });
+        setHomepageCategories(initialCategories);
       } catch (err) {
         if (!isMounted) return;
         setError(err.message || "Failed to load delivery details.");
@@ -117,20 +142,43 @@ setFeaturedIds(
     return isFullOrdersPage ? orders : orders.slice(0, 4);
   }, [isFullOrdersPage, data]);
 
-  const saveFeaturedProducts =
-  async () => {
+  const handleSaveHomepageCategories = async () => {
     try {
-      await saveHomeFeatured(
-        featuredIds
-      );
-
-      alert(
-        "Homepage products updated"
-      );
+      setIsSavingCategories(true);
+      for (let i = 0; i < 4; i++) {
+        const slot = homepageCategories[i];
+        await savePageOverride({
+          page: "home",
+          key: `home.category_${i + 1}_name`,
+          kind: "text",
+          value: slot.category || "",
+        });
+        await savePageOverride({
+          page: "home",
+          key: `home.category_${i + 1}_image`,
+          kind: "image",
+          value: slot.imageUrl || "",
+        });
+      }
+      alert("Homepage categories updated successfully!");
     } catch (err) {
-      alert(
-        err.message
-      );
+      alert("Failed to update homepage categories: " + err.message);
+    } finally {
+      setIsSavingCategories(false);
+    }
+  };
+
+  const handleUploadCategoryHero = async (index, file) => {
+    if (!file) return;
+    try {
+      const uploadedUrl = await uploadPageOverrideImage(file);
+      setHomepageCategories((prev) => {
+        const next = [...prev];
+        next[index] = { ...next[index], imageUrl: uploadedUrl };
+        return next;
+      });
+    } catch (err) {
+      alert("Failed to upload category hero image: " + err.message);
     }
   };
 
@@ -186,66 +234,90 @@ setFeaturedIds(
             </div>
           </div>
         </section>
-        <section className="mb-8 rounded-3xl border border-[#D4B896]/30 bg-white p-6">
-  <h2 className="text-xl font-semibold mb-4">
-    Homepage Featured Products
-  </h2>
+        <section className="mb-8 rounded-3xl border border-[#D4B896]/30 bg-white p-6 shadow-md">
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-[#2A2520]">
+              Homepage Categories & Hero Images
+            </h2>
+            <p className="text-sm text-stone-500 mt-1">
+              Select 4 categories to highlight on the homepage and assign a beautiful hero image for each.
+            </p>
+          </div>
 
-  <p className="text-sm mb-4 text-gray-500">
-    Select 4 products to display on Home page.
-  </p>
+          <div className="grid gap-6 md:grid-cols-2">
+            {homepageCategories.map((slot, index) => (
+              <div key={index} className="rounded-2xl border border-stone-200 bg-stone-50/50 p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#8b7359]">
+                    Slot {index + 1}
+                  </span>
+                  {slot.imageUrl && (
+                    <img
+                      src={slot.imageUrl}
+                      alt={`Slot ${index + 1} Preview`}
+                      className="h-10 w-16 rounded border border-stone-200 object-cover"
+                    />
+                  )}
+                </div>
 
-  <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                    Category Name
+                  </label>
+                  <select
+                    value={slot.category}
+                    onChange={(e) => {
+                      const next = [...homepageCategories];
+                      next[index].category = e.target.value;
+                      setHomepageCategories(next);
+                    }}
+                    className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-800 outline-none focus:ring-2 focus:ring-[#C8A97E]/20 focus:border-[#C8A97E]"
+                  >
+                    <option value="">Select Category</option>
+                    {[...new Set(categories.map(c => normalizeCategoryName(c.name)))].filter(Boolean).map((catName) => (
+                      <option key={catName} value={catName}>
+                        {catName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-    {[0,1,2,3].map((index) => (
-      <select
-        key={index}
-        value={featuredIds[index] || ""}
-        onChange={(e) => {
-          const next =
-            [...featuredIds];
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-stone-500 block">
+                    Hero Image
+                  </label>
+                  <input
+                    type="text"
+                    value={slot.imageUrl}
+                    onChange={(e) => {
+                      const next = [...homepageCategories];
+                      next[index].imageUrl = e.target.value;
+                      setHomepageCategories(next);
+                    }}
+                    placeholder="Image URL"
+                    className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-800 placeholder-stone-400 outline-none focus:ring-2 focus:ring-[#C8A97E]/20 focus:border-[#C8A97E]"
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleUploadCategoryHero(index, e.target.files?.[0])}
+                    className="text-xs text-stone-500 file:mr-3 file:rounded-lg file:border-0 file:bg-[#C8A97E]/10 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-[#8a6038] cursor-pointer"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
 
-          next[index] =
-            e.target.value;
-
-          setFeaturedIds(
-            next
-          );
-        }}
-        className="border rounded-xl p-3"
-      >
-        <option value="">
-          Select Product
-        </option>
-
-        {catalogProducts.map(
-          (product) => (
-            <option
-              key={
-                product._id
-              }
-              value={
-                product._id
-              }
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={handleSaveHomepageCategories}
+              disabled={isSavingCategories}
+              className="px-6 py-3 rounded-xl bg-[#8b5e3c] hover:bg-[#764f32] text-white text-sm font-semibold transition shadow-md shadow-[#8b5e3c]/20 disabled:opacity-50"
             >
-              {product.title}
-            </option>
-          )
-        )}
-      </select>
-    ))}
-
-  </div>
-
-  <button
-    onClick={
-      saveFeaturedProducts
-    }
-    className="mt-4 rounded-xl bg-[#8b5e3c] px-5 py-3 text-white"
-  >
-    Save Homepage Products
-  </button>
-</section>
+              {isSavingCategories ? "Saving settings..." : "Save Homepage Categories"}
+            </button>
+          </div>
+        </section>
         {error ? (
           <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700 shadow-sm">
             {error}

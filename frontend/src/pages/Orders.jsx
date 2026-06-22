@@ -107,6 +107,7 @@ const statusClass =
             </p>
             <p className="mt-0.5 truncate text-xs font-semibold text-[#2b2018] sm:text-sm">
               {firstItem?.title}
+              {order.items?.length > 1 && ` + ${order.items.length - 1} more item${order.items.length > 2 ? "s" : ""}`}
             </p>
           </div>
         </div>
@@ -127,34 +128,38 @@ const statusClass =
       {expanded && (
         <div className="border-t border-[#eee3d5] p-4 sm:p-5">
           <div className="grid gap-4 sm:gap-6 sm:grid-cols-2">
-            {/* Product Image + Details */}
-            <div className="flex gap-3 sm:gap-4">
-              <img
-                src={firstItem?.imageUrl}
-                alt={firstItem?.title}
-                className="h-20 w-16 shrink-0 rounded-xl border border-[#eee3d5] object-cover sm:h-24 sm:w-20"
-              />
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-[#2b2018] sm:text-sm">
-                  {firstItem?.title}
-                </p>
-                {firstItem?.size && (
-                  <p className="text-[10px] text-[#8a775f] sm:text-xs">
-                    Size: {firstItem.size}
-                  </p>
-                )}
-                <p className="mt-1 text-[10px] text-[#8a775f] sm:text-xs">
-                 Qty: {firstItem?.quantity || 1}
-                </p>
-                <p className="mt-1 text-base font-bold text-[#2b2018] sm:mt-2 sm:text-lg">
-                  {formatINR(firstItem?.price || 0)}
-                  {firstItem?.originalPrice > firstItem?.price && (
-                    <span className="ml-1 text-[10px] text-[#9c8f82] line-through sm:ml-2 sm:text-sm">
-                      {formatINR(firstItem?.originalPrice || 0)}
-                    </span>
-                  )}
-                </p>
-              </div>
+            {/* Products List */}
+            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+              {order.items?.map((item, index) => (
+                <div key={index} className="flex gap-3 sm:gap-4 border-b border-[#eee3d5]/40 last:border-0 pb-3 last:pb-0">
+                  <img
+                    src={item?.imageUrl}
+                    alt={item?.title}
+                    className="h-20 w-16 shrink-0 rounded-xl border border-[#eee3d5] object-cover sm:h-24 sm:w-20"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-[#2b2018] sm:text-sm">
+                      {item?.title}
+                    </p>
+                    {item?.size && (
+                      <p className="text-[10px] text-[#8a775f] sm:text-xs mt-0.5">
+                        Size: {item.size}
+                      </p>
+                    )}
+                    <p className="mt-0.5 text-[10px] text-[#8a775f] sm:text-xs">
+                      Qty: {item?.quantity || 1}
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-[#2b2018] sm:mt-1.5 sm:text-base">
+                      {formatINR(item?.price || 0)}
+                      {item?.originalPrice > item?.price && (
+                        <span className="ml-1 text-[10px] text-[#9c8f82] line-through sm:ml-2 sm:text-xs">
+                          {formatINR(item?.originalPrice || 0)}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Order Info */}
@@ -203,18 +208,36 @@ const statusClass =
                 </span>
               </div>
 
-              {/* Address */}
-              <div className="flex items-start gap-1.5 text-[#6e5947] sm:gap-2">
-                <MapPin
-                  size={12}
-                  className="mt-0.5 shrink-0 text-[#8a6038] sm:size-[14px]"
-                />
-                <span className="leading-snug">
-                  {order.address?.fullName}, {order.address?.line1}
-                  {order.address?.line2 ? ", " + order.address.line2 : ""},{" "}
-                  {order.address?.city}, {order.address?.state} —{" "}
-                  {order.address?.pincode}
-                </span>
+              {/* Contact & Shipping Details */}
+              <div className="mt-4 pt-3 border-t border-dashed border-[#eee3d5] space-y-2">
+                {/* Phone */}
+                <div className="flex items-center gap-2 text-[#6e5947]">
+                  <svg className="w-3.5 h-3.5 text-[#8a6038] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  <span className="font-semibold text-xs sm:text-sm">Phone:</span>
+                  <span className="text-xs sm:text-sm">{order.address?.phone || "N/A"}</span>
+                </div>
+
+                {/* Email */}
+                <div className="flex items-center gap-2 text-[#6e5947]">
+                  <svg className="w-3.5 h-3.5 text-[#8a6038] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  <span className="font-semibold text-xs sm:text-sm">Email:</span>
+                  <span className="text-xs sm:text-sm">{order.userSnapshot?.email || order.user?.email || "N/A"}</span>
+                </div>
+
+                {/* Address */}
+                <div className="flex items-start gap-2 text-[#6e5947]">
+                  <MapPin size={14} className="text-[#8a6038] shrink-0 mt-0.5" />
+                  <div className="text-xs sm:text-sm leading-relaxed">
+                    <span className="font-semibold block mb-0.5">Shipping Address:</span>
+                    <span>
+                      {order.address?.fullName}, {order.address?.line1}, {order.address?.city} - {order.address?.pincode}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

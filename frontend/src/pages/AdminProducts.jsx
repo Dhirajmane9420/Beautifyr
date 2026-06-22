@@ -17,8 +17,6 @@ import {
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { useAuth } from "../context/AuthContext";
-import { useCart } from "../context/CartContext";
 import {
   fetchCatalogProducts,
   fetchCatalogCategories,
@@ -49,6 +47,7 @@ const buildInitialForm = () => ({
   inStock: true,
   isNewArrival: false,
   isBestSeller: false,
+  isHomeFeatured: false,
   section: "",
   category: "",
   imageUrl: "",
@@ -72,6 +71,7 @@ const normalizeProductForm = (product = {}) => {
     inStock: product.inStock ?? true,
     isNewArrival: product.isNewArrival ?? product.section === "New Arrivals",
     isBestSeller: product.isBestSeller ?? product.section === "Best Sellers",
+    isHomeFeatured: product.isHomeFeatured ?? false,
     section: product.category || product.section || "",
     category: product.category || product.section || "",
     imageUrl: product.imageUrl || imageUrls[0] || "",
@@ -268,6 +268,10 @@ function ProductAdminForm({ value, onChange, inputCls, onSubmit, isSaving, submi
             <input type="checkbox" checked={value.isBestSeller} onChange={(e) => updateField("isBestSeller", e.target.checked)} className="rounded text-[#C8A97E] focus:ring-[#C8A97E]" />
             Best Seller
           </label>
+          <label className="flex items-center gap-2 text-sm font-medium text-stone-600 cursor-pointer">
+            <input type="checkbox" checked={value.isHomeFeatured} onChange={(e) => updateField("isHomeFeatured", e.target.checked)} className="rounded text-[#C8A97E] focus:ring-[#C8A97E]" />
+            Home Featured
+          </label>
         </div>
         <button type="button" onClick={onSubmit} disabled={isSaving} className="px-6 py-2.5 text-sm font-semibold text-white bg-[#C8A97E] rounded-xl hover:bg-[#B89A6E] transition-all shadow-lg shadow-[#C8A97E]/20 disabled:opacity-50">
           {isSaving ? "Saving..." : submitLabel}
@@ -278,8 +282,6 @@ function ProductAdminForm({ value, onChange, inputCls, onSubmit, isSaving, submi
 }
 
 export default function AdminProducts() {
-  const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -458,6 +460,7 @@ export default function AdminProducts() {
       inStock: Boolean(currentForm.inStock) && (stock > 0 || sizeStock.some((size) => size.stock > 0)),
       isNewArrival: Boolean(currentForm.isNewArrival),
       isBestSeller: Boolean(currentForm.isBestSeller),
+      isHomeFeatured: Boolean(currentForm.isHomeFeatured),
       section: category,
       category: category,
       imageUrl: imageUrls[0] || "",
@@ -768,7 +771,12 @@ export default function AdminProducts() {
                                   Best Seller
                                 </span>
                               ) : null}
-                              {!product.isNewArrival && !product.isBestSeller ? (
+                              {product.isHomeFeatured ? (
+                                <span className="inline-block text-[9px] uppercase font-bold tracking-wider bg-emerald-50 border border-emerald-200 text-emerald-700 px-2.5 py-0.5 rounded-full w-fit">
+                                  Home Featured
+                                </span>
+                              ) : null}
+                              {!product.isNewArrival && !product.isBestSeller && !product.isHomeFeatured ? (
                                 <span className="text-xs text-stone-400 font-light">-</span>
                               ) : null}
                             </div>

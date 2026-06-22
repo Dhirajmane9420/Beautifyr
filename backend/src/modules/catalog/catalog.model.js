@@ -46,6 +46,10 @@ const catalogProductSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isHomeFeatured: {
+      type: Boolean,
+      default: false,
+    },
     section: {
       type: String,
       required: true,

@@ -1,7 +1,7 @@
 import heroImg from "../assets/sc1.jpg";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Heart } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -69,6 +69,7 @@ const buildInitialForm = () => ({
   inStock: true,
   isNewArrival: false,
   isBestSeller: false,
+  isHomeFeatured: false,
   section: "",
   category: "",
   imageUrl: "",
@@ -92,6 +93,7 @@ const normalizeProductForm = (product = {}) => {
     inStock: product.inStock ?? true,
     isNewArrival: product.isNewArrival ?? product.section === "New Arrivals",
     isBestSeller: product.isBestSeller ?? product.section === "Best Sellers",
+    isHomeFeatured: product.isHomeFeatured ?? false,
     section: product.category || product.section || "",
     category: product.category || product.section || "",
     imageUrl: product.imageUrl || imageUrls[0] || "",
@@ -288,6 +290,10 @@ function ProductAdminForm({ value, onChange, inputCls, onSubmit, isSaving, submi
             <input type="checkbox" checked={value.isBestSeller} onChange={(e) => updateField("isBestSeller", e.target.checked)} />
             Best Seller
           </label>
+          <label className="flex items-center gap-2 text-sm font-medium text-stone-600">
+            <input type="checkbox" checked={value.isHomeFeatured} onChange={(e) => updateField("isHomeFeatured", e.target.checked)} />
+            Home Featured
+          </label>
         </div>
         <button type="button" onClick={onSubmit} disabled={isSaving} className="px-6 py-2.5 text-sm font-semibold text-white bg-[#C8A97E] rounded-xl hover:bg-[#B89A6E] transition-all shadow-lg shadow-[#C8A97E]/20 disabled:opacity-50">
           {isSaving ? "Saving..." : submitLabel}
@@ -302,11 +308,31 @@ export default function CategoriesPage() {
   const { addToCart } = useCart();
   const isAdmin = user?.role === "admin";
 
+  const location = useLocation();
+
   /* ── STATE ── */
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(() => {
+    if (location.state && location.state.selectedCategory) {
+      return location.state.selectedCategory;
+    }
+    const searchParams = new URLSearchParams(location.search);
+    return searchParams.get("category") || null;
+  });
+
+  useEffect(() => {
+    if (location.state && location.state.selectedCategory) {
+      setSelectedCategory(location.state.selectedCategory);
+    } else {
+      const searchParams = new URLSearchParams(location.search);
+      const cat = searchParams.get("category");
+      if (cat) {
+        setSelectedCategory(cat);
+      }
+    }
+  }, [location]);
   const [isSaving, setIsSaving] = useState(false);
   const [pageOverrides, setPageOverrides] = useState({});
 
@@ -482,9 +508,9 @@ export default function CategoriesPage() {
 
       isNewArrival: Boolean(currentForm.isNewArrival),
       isBestSeller: Boolean(currentForm.isBestSeller),
-
+      isHomeFeatured: Boolean(currentForm.isHomeFeatured),
       section: category,
-      category: category,   // <-- ADD THIS
+      category: category,
 
       imageUrl: imageUrls[0] || heroImg,
       imageUrls,
