@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { useCart } from './context/CartContext'
+import WhatsAppButton from './components/WhatsAppButton'
 
 const Home = lazy(() => import('./pages/Home'))
 const BestSellers = lazy(() => import('./pages/BestSellers'))
@@ -68,11 +69,13 @@ function App() {
         </Routes>
       </Suspense>
 
+      <WhatsAppButton />
+
       {toast ? (
         <button
           type="button"
           onClick={dismissToast}
-          className="fixed bottom-6 right-6 z-70 rounded-xl bg-[#2d2219] px-4 py-3 text-sm font-medium text-[#fff7ee] shadow-lg"
+          className="fixed bottom-20 md:bottom-24 right-4 md:right-6 z-70 rounded-xl bg-[#2d2219] px-4 py-3 text-sm font-medium text-[#fff7ee] shadow-lg transition-all duration-300"
         >
           {toast.message}
         </button>
