@@ -145,7 +145,10 @@ const products =
     { label: "New Arrivals", path: "/new-arrivals" },
     { label: "About", path: "/about" },
     { label: "Contact", path: "/contact" },
-    ...(isAdmin ? [{ label: "Delivery Details", path: "/admin/delivery-details" }] : []),
+    ...(isAdmin ? [
+      { label: "Delivery Details", path: "/admin/delivery-details" },
+      { label: "Inventory", path: "/admin/products" }
+    ] : []),
   ];
 
   // Detect scroll for glass effect

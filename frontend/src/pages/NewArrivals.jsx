@@ -9,7 +9,6 @@ import Footer from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
 import { useWishlist } from "../context/WishlistContext";
 import {
-  createCatalogProduct,
   deleteCatalogProduct,
   fetchCatalogProducts,
   updateCatalogProduct,
@@ -173,9 +172,6 @@ export default function NewArrivals() {
   const [isSaving, setIsSaving] = useState(false);
   const [notice, setNotice] = useState("");
 
-  const [newForm, setNewForm] = useState(buildInitialForm());
-  const [newFile, setNewFile] = useState(null);
-
   const [editingProductId, setEditingProductId] = useState(null);
   const [editForm, setEditForm] = useState(buildInitialForm());
   const [editFile, setEditFile] = useState(null);
@@ -216,33 +212,9 @@ export default function NewArrivals() {
     imageUrl,
   });
 
-  const handleAdd = async () => {
-    try {
-      setIsSaving(true);
-      setNotice("");
-
-      let imageUrl = newForm.imageUrl.trim();
-      if (newFile) {
-        imageUrl = await uploadCatalogProductImage(newFile);
-      }
-
-      const created = await createCatalogProduct(toPayload(newForm, imageUrl));
-      const createdIsNewArrival = created?.isNewArrival ?? created?.section === "New Arrivals";
-      if (createdIsNewArrival) {
-        setArrivals((current) => [created, ...current]);
-      }
-      setNewForm(buildInitialForm());
-      setNewFile(null);
-      setNotice("New arrival added.");
-    } catch (error) {
-      setNotice(error.message || "Failed to add product.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const openEdit = (product) => {
     setEditingProductId(product._id);
+    setNotice("");
     setEditForm({
       title: product.title || "",
       description: product.description || "",
@@ -276,7 +248,6 @@ export default function NewArrivals() {
       });
       setEditingProductId(null);
       setEditFile(null);
-      setNotice("New arrival updated.");
     } catch (error) {
       setNotice(error.message || "Failed to update product.");
     } finally {
@@ -290,12 +261,10 @@ export default function NewArrivals() {
 
     try {
       setIsSaving(true);
-      setNotice("");
       await deleteCatalogProduct(id);
       setArrivals((current) => current.filter((item) => item._id !== id));
-      setNotice("New arrival deleted.");
     } catch (error) {
-      setNotice(error.message || "Failed to delete product.");
+      alert(error.message || "Failed to delete product.");
     } finally {
       setIsSaving(false);
     }
@@ -365,102 +334,7 @@ export default function NewArrivals() {
         </div>
       </section>
 
-      {isAdmin ? (
-        <section className="mx-auto max-w-7xl px-6 pt-10 md:px-12 lg:px-24">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-700">Admin New Arrivals Manager</h3>
-              {notice ? <p className="text-xs font-medium text-slate-700">{notice}</p> : null}
-            </div>
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-              <input
-                value={newForm.title}
-                onChange={(event) => setNewForm((current) => ({ ...current, title: event.target.value }))}
-                placeholder="Product title"
-                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
-              />
-              <input
-                value={newForm.price}
-                onChange={(event) => setNewForm((current) => ({ ...current, price: event.target.value }))}
-                type="number"
-                min="0"
-                placeholder="Price"
-                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
-              />
-              <select
-                value={newForm.category}
-                onChange={(event) => setNewForm((current) => ({ ...current, category: event.target.value }))}
-                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
-              >
-                {categoryOptions.map((item) => (
-                  <option key={item} value={item}>{item}</option>
-                ))}
-              </select>
-            </div>
-
-            <textarea
-              value={newForm.description}
-              onChange={(event) => setNewForm((current) => ({ ...current, description: event.target.value }))}
-              rows={3}
-              placeholder="Product note/description"
-              className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
-            />
-
-            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <input
-                value={newForm.imageUrl}
-                onChange={(event) => setNewForm((current) => ({ ...current, imageUrl: event.target.value }))}
-                placeholder="Image URL (optional if uploading file)"
-                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
-              />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (!file) return;
-                  if (file.size > 10 * 1024 * 1024) {
-                    setNotice("Image must be 10MB or smaller.");
-                    return;
-                  }
-                  setNewFile(file);
-                }}
-                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div className="mt-3 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={newForm.inStock}
-                    onChange={(event) => setNewForm((current) => ({ ...current, inStock: event.target.checked }))}
-                  />
-                  In stock
-                </label>
-                <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={newForm.isNewArrival}
-                    onChange={(event) => setNewForm((current) => ({ ...current, isNewArrival: event.target.checked }))}
-                  />
-                  New arrival
-                </label>
-              </div>
-              <button
-                type="button"
-                onClick={handleAdd}
-                disabled={isSaving}
-                className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-white disabled:opacity-60"
-              >
-                {isSaving ? "Saving..." : "Add New Arrival"}
-              </button>
-            </div>
-          </div>
-        </section>
-      ) : null}
 
       <section className="mx-auto max-w-7xl px-5 py-20 sm:px-8 md:px-16 lg:px-28">
         <motion.div
@@ -505,12 +379,19 @@ export default function NewArrivals() {
                 onClick={() => {
                   setEditingProductId(null);
                   setEditFile(null);
+                  setNotice("");
                 }}
                 className="text-sm text-slate-600"
               >
                 Close
               </button>
             </div>
+
+            {notice ? (
+              <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                {notice}
+              </div>
+            ) : null}
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <input
@@ -595,6 +476,7 @@ export default function NewArrivals() {
                 onClick={() => {
                   setEditingProductId(null);
                   setEditFile(null);
+                  setNotice("");
                 }}
                 className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm text-slate-600"
               >

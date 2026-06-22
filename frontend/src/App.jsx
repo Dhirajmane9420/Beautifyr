@@ -20,6 +20,7 @@ const ProductDetails = lazy(() => import('./pages/ProductDetails'))
 const Checkout = lazy(() => import('./pages/Checkout'))
 
 const AdminDeliveryDetails = lazy(() => import('./pages/AdminDeliveryDetails'))
+const AdminProducts = lazy(() => import('./pages/AdminProducts'))
 
 const BuyNow = lazy(() => import('./pages/BuyNow'))
 const Orders = lazy(() => import('./pages/Orders'))
@@ -59,6 +60,7 @@ function App() {
           <Route path="/admin/delivery-details" element={<AdminRoute><AdminDeliveryDetails /></AdminRoute>} />
           <Route path="/admin/delivery-details/top-products" element={<AdminRoute><AdminDeliveryDetails /></AdminRoute>} />
           <Route path="/admin/delivery-details/orders" element={<AdminRoute><AdminDeliveryDetails /></AdminRoute>} />
+          <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
