@@ -23,6 +23,7 @@ function Navbar() {
   useState([]);
   useEffect(() => {
   if (!trimmedQuery) {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLiveSuggestions([]);
     return;
   }
@@ -67,6 +68,7 @@ const products =
   const keyboardSuggestions = liveSuggestions;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHighlightedIndex(-1);
   }, [searchQuery, isSearchOpen]);
 

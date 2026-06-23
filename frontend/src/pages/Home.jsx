@@ -319,11 +319,11 @@ function Home() {
           </motion.p>
 
           <motion.div variants={fadeUp} className="mt-8 flex w-full flex-col gap-3 sm:mt-10 sm:w-auto sm:flex-row sm:gap-4">
-            <button data-edit-key="hero.ctaPrimary" data-edit-kind="text" data-edit-label="Hero Primary CTA" className="w-full px-8 py-4 bg-white text-[#2A2520] rounded-full text-sm font-medium tracking-wide shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:scale-105 transition-transform duration-300 sm:w-auto">
+            <button onClick={() => navigate('/categories')} data-edit-key="hero.ctaPrimary" data-edit-kind="text" data-edit-label="Hero Primary CTA" className="w-full px-8 py-4 bg-white text-[#2A2520] rounded-full text-sm font-medium tracking-wide shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:scale-105 transition-transform duration-300 sm:w-auto">
               Shop Collection
             </button>
-            <button data-edit-key="hero.ctaSecondary" data-edit-kind="text" data-edit-label="Hero Secondary CTA" className="w-full px-8 py-4 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-full text-sm font-medium tracking-wide hover:bg-white/20 transition-all duration-300 sm:w-auto">
-              Discover The Science
+            <button onClick={() => { document.getElementById('featured-products')?.scrollIntoView({ behavior: 'smooth' }); }} data-edit-key="hero.ctaSecondary" data-edit-kind="text" data-edit-label="Hero Secondary CTA" className="w-full px-8 py-4 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-full text-sm font-medium tracking-wide hover:bg-white/20 transition-all duration-300 sm:w-auto">
+              Explore Favorites
             </button>
           </motion.div>
         </motion.div>
@@ -342,7 +342,7 @@ function Home() {
       </div>
 
       {/* FEATURED PRODUCTS & CATEGORIES SETUP */}
-      <section className="relative overflow-hidden bg-[#F7F4F0] px-5 py-16 sm:px-6 sm:py-20 md:px-12 md:py-24 lg:px-24">
+      <section id="featured-products" className="relative overflow-hidden bg-[#F7F4F0] px-5 py-16 sm:px-6 sm:py-20 md:px-12 md:py-24 lg:px-24">
         {/* Soft abstract background blobs */}
         <div className="absolute top-0 left-0 w-96 h-96 bg-[#EAE2D8] rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob"></div>
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#F1EBE4] rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
@@ -544,82 +544,7 @@ function Home() {
         </div>
       </section>
 
-      {/* 4. SPLIT-SCREEN ABOUT WITH PARALLAX FEEL */}
-      <section className="px-5 py-10 sm:px-6 sm:py-12 md:px-12 md:py-14 lg:px-24">
-        <motion.div
-          variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }}
-          className="flex flex-col overflow-hidden rounded-[1.75rem] bg-[#2A2520] text-[#FCFAF8] sm:rounded-[2.5rem] lg:flex-row"
-        >
-          <div className="flex flex-col justify-center p-7 sm:p-10 md:p-14 lg:w-1/2 lg:p-20">
-            <motion.p data-edit-key="about.badge" data-edit-kind="text" data-edit-label="About Badge" variants={fadeUp} className="text-[#AFA192] text-xs tracking-[0.3em] uppercase mb-6">The Ethos</motion.p>
-            <motion.h2 data-edit-key="about.title" data-edit-kind="text" data-edit-label="About Title" variants={fadeUp} className="text-4xl md:text-5xl font-light tracking-tight leading-[1.1] mb-8">
-              Science that respects <br /><span className="font-serif italic text-[#D2C5B5]">your biology.</span>
-            </motion.h2>
-            <motion.p data-edit-key="about.description" data-edit-kind="text" data-edit-label="About Description" variants={fadeUp} className="text-white/70 font-light leading-relaxed mb-10 max-w-md">
-              We engineer formulations that mimic your skin's natural structure. No harsh stripping, no empty fillers—just precise, biocompatible ingredients that restore optimal health.
-            </motion.p>
-            <motion.div variants={fadeUp}>
-              <button data-edit-key="about.cta" data-edit-kind="text" data-edit-label="About CTA" className="border-b border-white/30 pb-1 text-sm uppercase tracking-widest hover:border-white transition-colors duration-300">
-                Read Our Story
-              </button>
-            </motion.div>
-          </div>
-          <motion.div variants={fadeUp} className="relative min-h-[260px] sm:min-h-[360px] lg:min-h-full lg:w-1/2">
-            <img data-edit-key="about.image" data-edit-kind="image" data-edit-label="About Image" src={serumimg} alt="Lab/Texture" className="absolute inset-0 w-full h-full object-cover" />
-          </motion.div>
-        </motion.div>
-      </section>
 
-      {/* 5. MINIMALIST TRUST ICONS */}
-      <motion.section
-        variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true }}
-        className="border-y border-[#EAE2D8] bg-white/40 px-5 py-8 backdrop-blur-lg sm:px-6 sm:py-10 md:px-12"
-      >
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 text-center sm:grid-cols-2 md:grid-cols-4 md:gap-8 md:divide-x md:divide-[#EAE2D8]/50">
-          {[
-            { title: "Clinical Actives", desc: "Dermatologist formulated" },
-            { title: "Clean Chemistry", desc: "No harmful additives" },
-            { title: "Sustainable", desc: "Recyclable glass packaging" },
-            { title: "Guaranteed", desc: "30-day efficacy return" }
-          ].map((item, i) => (
-            <motion.div key={i} variants={fadeUp} className="flex flex-col items-center justify-center px-4">
-              <h3 data-edit-key={`trustBlocks.${i + 1}.title`} data-edit-kind="text" data-edit-label={`Trust Block ${i + 1} Title`} className="text-sm font-medium tracking-wide text-[#2A2520] uppercase">{item.title}</h3>
-              <p data-edit-key={`trustBlocks.${i + 1}.desc`} data-edit-kind="text" data-edit-label={`Trust Block ${i + 1} Description`} className="mt-2 text-xs font-light text-[#8B7E72]">{item.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </motion.section>
-
-      {/* 6. GLASS PROMO BANNER */}
-      <motion.section
-        variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }}
-        className="px-5 pb-14 pt-10 sm:px-6 sm:pb-16 sm:pt-12 md:px-12 md:pb-18 md:pt-14 lg:px-24"
-      >
-        <div className="relative overflow-hidden rounded-[1.75rem] border border-white bg-[#E8DCCB] p-6 shadow-sm sm:rounded-[2.5rem] sm:p-10 md:p-16 lg:p-20">
-          {/* Subtle noise/texture overlay if desired */}
-          <div className="absolute inset-0 opacity-[0.03] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
-
-          <div className="relative z-10 flex flex-col items-start justify-between gap-8 md:flex-row md:items-center md:gap-12">
-            <div className="max-w-xl">
-              <p data-edit-key="promo.badge" data-edit-kind="text" data-edit-label="Promo Badge" className="text-[10px] tracking-[0.3em] uppercase text-[#2A2520]/60 font-medium mb-4">Limited Allocation</p>
-              <h2 data-edit-key="promo.title" data-edit-kind="text" data-edit-label="Promo Title" className="text-4xl md:text-5xl font-light text-[#2A2520] tracking-tight mb-6">
-                The <span className="font-serif italic">Restoration</span> Protocol
-              </h2>
-              <p data-edit-key="promo.description" data-edit-kind="text" data-edit-label="Promo Description" className="mb-8 text-base font-light leading-relaxed text-[#5C534A] sm:text-lg">
-                A highly concentrated 3-step regimen designed to repair the epidermal barrier in 14 days. Exclusively bundled.
-              </p>
-              <button data-edit-key="promo.cta" data-edit-kind="text" data-edit-label="Promo CTA" className="px-8 py-4 bg-[#2A2520] text-white rounded-full text-sm font-medium tracking-wide shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300">
-                Unlock The Bundle — $145
-              </button>
-            </div>
-            <div className="relative mx-auto w-full max-w-[260px] flex-shrink-0 sm:max-w-[320px] md:mx-0 md:w-auto">
-              <div className="flex h-56 w-56 items-center justify-center overflow-hidden rounded-full border border-white/50 bg-white/30 shadow-2xl backdrop-blur-3xl sm:h-64 sm:w-64 md:h-80 md:w-80">
-                <img data-edit-key="promo.image" data-edit-kind="image" data-edit-label="Promo Image" src={moisturizerimg} alt="Bundle" className="w-[120%] h-[120%] object-cover opacity-90 mix-blend-multiply" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </motion.section>
 
       <Footer />
 

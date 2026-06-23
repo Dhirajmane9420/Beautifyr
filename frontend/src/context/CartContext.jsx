@@ -46,7 +46,7 @@ useEffect(() => {
     const guestCart = getStoredCart(null); // reads actshiine_guest_cart
 
     if (userCart.length === 0 && guestCart.length > 0) {
-      // Fresh account with no existing cart — adopt the guest cart
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setItems(guestCart);
       localStorage.setItem(
         getCartStorageKey(userId),

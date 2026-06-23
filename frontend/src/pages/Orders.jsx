@@ -50,16 +50,6 @@ const STATUS_COLORS = {
 
 const ORDERS_STORAGE_KEY = "actshiine_orders_v1";
 
-function getStoredOrders() {
-  try {
-    const raw = localStorage.getItem(ORDERS_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
 
 function OrderCard({ order }) {
   const [expanded, setExpanded] = useState(false);
@@ -249,14 +239,6 @@ const statusClass =
                 <span>Subtotal ({order.quantity} item)</span>
                 <span>{formatINR(order.subtotal || 0)}</span>
               </div>
-              {false  && (
-                <div className="flex justify-between">
-                  <span className="text-[#6e5947]">Discount</span>
-                  <span className="text-green-600">
-                    −{formatINR(order.totals.discount)}
-                  </span>
-                </div>
-              )}
               <div className="flex justify-between text-[#6e5947]">
                 <span>Delivery ({order.courier?.name || "Standard"})</span>
                 <span>

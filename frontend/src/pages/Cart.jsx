@@ -23,7 +23,6 @@ export default function Cart() {
     useCart();
   const { isAuthenticated } = useAuth();
 
-  const firstItem = items[0];
 
   const payableAmount = totals.totalAmount;
   useEffect(() => {

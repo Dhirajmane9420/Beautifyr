@@ -22,7 +22,7 @@ export default function ProductDetails() {
   const { slug } = useParams();
   const { addToCart } = useCart();
 
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [allProducts, setAllProducts] =
   useState([]);
   const [dbProduct, setDbProduct] = useState(null);
@@ -148,6 +148,7 @@ export default function ProductDetails() {
     setActiveImageIndex(0);
     setQuantity(1);
     setSelectedSize(sizeOptions[0]?.label || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.id]);
 
 const handleReviewSubmit = async () => {
@@ -189,7 +190,6 @@ const handleReviewSubmit = async () => {
 
   const addCurrentToCart = () => {
     if (!product) return;
-    const optionKey = selectedSize;
     addToCart({
       id: product.id,
       productId: product.id,
