@@ -1142,32 +1142,17 @@ function SectionGrid({ products, content, isAdmin, onEdit, onDelete, addToCart }
       variants={fadeIn}
       className="scroll-mt-32"
     >
-      {/* Premium Section Banner */}
-      <div className="relative h-64 md:h-80 w-full rounded-2xl overflow-hidden mb-10 group shadow-xl">
-        <img
-          src={content.image || heroImg}
-          alt={content.title}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#2A2520]/70 via-[#2A2520]/40 to-transparent" />
-        <div className="absolute inset-0 flex flex-col items-start justify-center text-left px-8 md:px-16">
-          <motion.span
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="text-[#C8A97E] text-xs font-bold uppercase tracking-[0.25em] mb-3"
-          >
-            EXPLORE
-          </motion.span>
-          <h2 className="text-3xl md:text-5xl font-serif font-light text-white mb-3 tracking-tight">
+      {/* Category Name Heading */}
+      <div className="relative mb-8 pb-4 border-b border-stone-200/50 flex items-end justify-between">
+        <div>
+          <span className="text-[#C8A97E] text-[10px] font-bold uppercase tracking-[0.25em] block mb-1">
+            Category
+          </span>
+          <h2 className="text-2xl md:text-3xl font-serif font-light text-[#2A2520] tracking-tight">
             {content.title}
           </h2>
-          <p className="text-stone-300 text-sm md:text-base font-light max-w-lg">
-            {content.subtitle}
-          </p>
         </div>
-        {/* Gold accent line */}
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[#C8A97E] via-[#D4B896] to-transparent" />
+        <div className="flex-grow h-px bg-gradient-to-r from-stone-200/60 via-stone-100 to-transparent ml-6 mb-1.5" />
       </div>
 
       {/* Product Grid */}
